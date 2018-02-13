@@ -8,7 +8,8 @@
 
 This repository is devoted to the development of a cheap electronic marking system for sports and tourist orientation. Here is the hardware part of the marking system. The software is under construction, the links is placed [below](https://github.com/alexandervolikov/sportiduino#data-processing)
 
-[Download](https://github.com/alexandervolikov/sportiduino/releases)
+[Download project](https://github.com/alexandervolikov/sportiduino/releases)
+
 [Manual](https://github.com/alexandervolikov/sportiduino/wiki/Sportiduino)
 
 This project is open and free. Who is not afraid of difficulties, can try to do it by yourself following the instructions from the wiki. Сheapness of the components of the system can recoup the expended work ($ 10 for one base station, $ 0.2 per chip mark)
