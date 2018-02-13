@@ -430,7 +430,7 @@ void writeInit(){
   }
   
   
-  if (dataBuffer[16]!=0){
+  if (dataBuffer[16]!=0 && dataBuffer[16]<ntagType){
     ntagType = dataBuffer[16];
   }
  
