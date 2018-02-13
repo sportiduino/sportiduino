@@ -430,10 +430,7 @@ void writeInit(){
   }
   
   
-  if (dataBuffer[16]!=0 && dataBuffer[16]<ntagType){
-    ntagType = dataBuffer[16];
-  }
- 
+  
   byte Wbuff[] = {255,255,255,255};
   
   for (byte page=4; page < ntagValue;page++){
