@@ -8,7 +8,7 @@
 
 This repository is devoted to the development of a cheap electronic marking system for sports and tourist orientation. Here is the hardware part of the marking system. The software is under construction, the links is placed [below](https://github.com/alexandervolikov/sportiduino#data-processing)
 
-[Download project](https://github.com/alexandervolikov/sportiduino/releases)
+[Download latest release](https://github.com/alexandervolikov/sportiduino/releases)
 
 [Manual](https://github.com/alexandervolikov/sportiduino/wiki/Sportiduino)
 
