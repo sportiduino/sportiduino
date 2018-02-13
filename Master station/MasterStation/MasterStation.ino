@@ -2,7 +2,7 @@
 #include <MFRC522.h>
 #include <EEPROM.h>
 
-const byte vers = 100; //version of software
+const byte vers = 101; //version of software
 
 const byte LED = 4;
 const byte BUZ = 3;
@@ -309,7 +309,7 @@ void writeMasterTime(){
   }
   
 
-  signalOK();
+  flash(500,3);
 
   SPI.end();
 }
@@ -420,7 +420,7 @@ void writeInit(){
     ntagValue = 130;
     ntagType = 5;
   }
-  else if (dump[2]=0x6D){
+  else if (dump[2]==0x6D){
     ntagValue = 216;
     ntagType = 6;
   }
@@ -429,7 +429,7 @@ void writeInit(){
     ntagType = 3;
   }
   
-  ntagType += dataBuffer[16]*100;
+  
   if (dataBuffer[17]!=0){
     ntagValue = dataBuffer[17];
   }
@@ -603,8 +603,11 @@ void readLog(){
 
     for (uint8_t i = 0;i<4;i++){
       for (uint8_t y=0;y<8;y++){
-        if (dump[i]&(2^y)){
-          uint16_t num = (page-5)*32+i*8+(y-7);
+        uint8_t temp = dump[i];
+        temp = temp >> y;
+        if (temp%2 == 1){
+        
+          uint16_t num = (page-5)*32+i*8+y;
           uint8_t first = (num&0xFF00)>>8;
           uint8_t second = num&0x00FF; 
           addData(first,function);

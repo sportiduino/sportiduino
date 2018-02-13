@@ -9,7 +9,7 @@
 
 //Константы и перменные
 
-const uint8_t vers = 100; //version of software
+const uint8_t vers = 101; //version of software
 const uint16_t eepromMaxChip = 4000; //16Kb, default in ds3231 - 4Kb
 
 const uint8_t LED = 4; // led diod pin
@@ -26,8 +26,6 @@ const uint8_t blockInfo = 4; //block for information about participant and last 
 const uint8_t ntag213 = 3;
 const uint8_t ntag215 = 5;
 const uint8_t ntag216 = 6;
-
-const uint8_t typePageSt = 1;
 
 const uint8_t startStantion = 240; //number of start stantion
 const uint8_t finishStantion = 245;//number of finish stantion
@@ -611,25 +609,19 @@ void rfid() {
   
   uint8_t ntagType = dump[2]%10;
 
-  if (dump[2]/100==typePageSt){
-    if (stantion == 240) newPage =8;
-    else if (stantion == 245) newPage = 9;
-    else newPage = stantion+10;
+  if (ntagType==ntag215){
+    newPage = findNewPage(128);  
   }
-  else {
-    if (ntagType==ntag215){
-      newPage = findNewPage(128);  
-    }
-    else if (ntagType==ntag213){
-      newPage = findNewPage(40);
-    }
-    else if (ntagType==ntag216){
-      newPage = findNewPage(224);
-    }
-    else{
-      return;
-    }
+  else if (ntagType==ntag213){
+    newPage = findNewPage(40);
   }
+  else if (ntagType==ntag216){
+    newPage = findNewPage(224);
+  }
+  else{
+    return;
+  }
+
   //ищем последнюю пустую страницу в чипе для записи
   
   //есил поиск вышел неудачным, функция возвращает ноль и выходит
