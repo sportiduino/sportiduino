@@ -430,8 +430,8 @@ void writeInit(){
   }
   
   
-  if (dataBuffer[17]!=0){
-    ntagValue = dataBuffer[17];
+  if (dataBuffer[16]!=0){
+    ntagType = dataBuffer[16];
   }
  
   byte Wbuff[] = {255,255,255,255};
