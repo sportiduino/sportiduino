@@ -18,7 +18,7 @@ I warn that this development is a hobby, the author is not a professional in the
 
 ## Reporting Issues and Asking for Help
 
-Issues and possible improvements can be posted to our public Ticket system. Please make sure you provide all relevant information about your problem or idea.
+Issues and possible improvements can be posted to our [issue](https://github.com/alexandervolikov/sportiduino/issues). Please make sure you provide all relevant information about your problem or idea.
 
 ## Contributing
 
