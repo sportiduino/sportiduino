@@ -6,7 +6,7 @@
 
 [Read this in English](https://github.com/alexandervolikov/sportiduino/blob/master/README.md)
 
-Данный репозиторий посвящен созданию дешевой системы электронной отметки. Здесь находится аппаратная часть системы. Ссылки на программное обеспечение помещены [ниже](https://github.com/alexandervolikov/sportiduino/blob/master/README.ru.md#%D0%9E%D0%B1%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%BA%D0%B0-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
+Данный репозиторий посвящен созданию дешевой системы электронной отметки для ориентирования. Она также может быть использована при проведении рогейнов, мультигонок, трейлов, везде, где требуется фикасация времени и порядка прохождения дистанции. Здесь находится аппаратная часть системы. Ссылки на программное обеспечение помещены [ниже](https://github.com/alexandervolikov/sportiduino/blob/master/README.ru.md#%D0%9E%D0%B1%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%BA%D0%B0-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
 
 [Скачать последний релиз](https://github.com/alexandervolikov/sportiduino/releases)
 
