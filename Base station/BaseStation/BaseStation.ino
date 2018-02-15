@@ -40,8 +40,8 @@ const uint8_t passMaster = 254;
 
 
 /*
- * После запуска или перезагрузки станция счтиывает показание часов
- * Если они сбиты, то издает тир короткиз звуковых сигнала
+ * После запуска или перезагрузки станция считывает показание часов
+ * Если они сбиты, то издает три коротких звуковых сигнала
  * Запоминает промежуточное время temph, чтобы вовремя перейти в режим ожиданиния при бездействии
  * 
  * Далее присходит счтиывание из EEPROM памяти настроек станций:
@@ -94,13 +94,10 @@ void setup () {
   deepsleep = eepromread(eepromAdrSleep); //Read on/off mark from EEPROM
   for (uint8_t i=0; i<3;i++){
     pass[i]=eepromread(eepromPass + i*3);
-   
-    
   }
   setting = eepromread(eepromPass + 9);
   if (pass[0]==255){
     pass[0]=pass[1]=pass[2]=setting=0;
-    
   }
 
   uint8_t timeidl = setting&0b00000011;
@@ -119,10 +116,6 @@ void setup () {
  
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
   flash(800, 1 ); //The signal at system startup or reboote
-
-
-  
-
 }//end of setup
 
 
@@ -130,7 +123,7 @@ void setup () {
  * В цикле работы станции. Сначала включается вотчдог на 1 секунду.
  * Если какой-либо процесс затянется на время большее, то приозойдёт перезагрузка станции
  * 
- * Затем проверяетс время. Не пора ли переключаться из рабочего режима в режим ожидания при бездействии
+ * Затем проверяется время. Не пора ли переключаться из рабочего режима в режим ожидания при бездействии
  * 
  * Далее вызывается функция работы с чипами - rfid()
  * 
@@ -162,7 +155,7 @@ void loop ()
   if (maxCount == 1) work = true;
   
   //Leaving to sleep for 250 ms or 1000 ms in the case of inactivity for more than 6 hours
-    sleep(work);
+  sleep(work);
   
 
   //Power down regime: sleep 24 s
@@ -171,10 +164,7 @@ void loop ()
       sleep8s();
     }
   }
- 
- 
- 
-   
+
 } // end of loop
 
 
@@ -250,8 +240,8 @@ void sleep(boolean light) {
 
 /*
  * Вход в сон на 8000 мс. Сначала ставится флаг для прерывания, что оно приоисходит
- * в следствии сна. Затем присходит выставление всех пинов на OUTPUT и все оин кладустся на землю
- * Выключается АДЦ для большей экономии энергии. Затем настраиваются биты перехода в сон и засыпление станции
+ * в следствии сна. Затем присходит выставление всех пинов на OUTPUT и все оин кладутся на землю
+ * Выключается АЦП для большей экономии энергии. Затем настраиваются биты перехода в сон и засыпление станции
  * После просыпления снимается флаг сна для обработки прерываний
  */
 void sleep8s() {
@@ -302,7 +292,7 @@ void eepromwrite (uint16_t adr, uint8_t val) {
 }
 
 /*
- * Считывание ячейки из внутренней памяти МК с учетом мажоритального резервирвоания
+ * Считывание ячейки из внутренней памяти МК с учетом мажоритарного резервирования
  */
 
 //Getting info from the EEPROM
@@ -327,18 +317,16 @@ uint8_t eepromread(uint16_t adr) {
 
 // write number of chip to eeprom
 void writeNumEeprom (uint16_t num){
-    uint16_t byteAdr = num/8;
-    uint16_t bitAdr = num%8;
-    uint8_t eepromOld = EEPROM.read(byteAdr);
-    uint8_t writeEeprom = 1;
-    while (bitAdr>0){
-      writeEeprom = writeEeprom << 1;
-      bitAdr--;
-    }
-    writeEeprom = writeEeprom | eepromOld;
-    EEPROM.write(byteAdr,writeEeprom);
-
-    
+  uint16_t byteAdr = num/8;
+  uint16_t bitAdr = num%8;
+  uint8_t eepromOld = EEPROM.read(byteAdr);
+  uint8_t writeEeprom = 1;
+  while (bitAdr>0){
+    writeEeprom = writeEeprom << 1;
+    bitAdr--;
+  }
+  writeEeprom = writeEeprom | eepromOld;
+  EEPROM.write(byteAdr,writeEeprom);
 }
 
 /*
@@ -446,20 +434,20 @@ bool ntagWrite (uint8_t *dataBlock, uint8_t pageAdr){
 
   const uint8_t sizePageNtag = 4;
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Ultralight_Write(pageAdr, dataBlock, sizePageNtag);
-    if (status != MFRC522::STATUS_OK) {
-        return false;
-    }
+  if (status != MFRC522::STATUS_OK) {
+    return false;
+  }
 
   uint8_t buffer[18];
   uint8_t size = sizeof(buffer);
 
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
   if (status != MFRC522::STATUS_OK) {
-      return false;
+    return false;
   }
  
   for (uint8_t i = 0; i < 4; i++) {
-      dump[i]=buffer[i];
+    dump[i]=buffer[i];
   }
   if (dataBlock[0]!=0){
     if (dump[0]!=0 || dump[1]!=0 || dump[2]!=0 || dump[3]!=0){
@@ -484,15 +472,14 @@ bool ntagRead (uint8_t pageAdr){
   uint8_t size = sizeof(buffer);
 
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
-    if (status != MFRC522::STATUS_OK) {
-       
-        return false;
-    }
-   
-    for (uint8_t i = 0; i < 16; i++) {
-        dump[i]=buffer[i];
-    }
-    return true;
+  if (status != MFRC522::STATUS_OK) {
+    return false;
+  }
+  
+  for (uint8_t i = 0; i < 16; i++) {
+    dump[i]=buffer[i];
+  }
+  return true;
 }
 
 
@@ -559,28 +546,27 @@ void rfid() {
   //в первых трех байтах находятся нули для обычных чипов и заданные числа для мастер-чипов
   uint8_t info = 0;
   if (dump[2]==255) {
-      
-      info = dump[1];
-      //считываем пароль с мастер-чипа
-      uint8_t chipPass[3];
-      chipPass[0] = dump[4];
-      chipPass[1] = dump[5];
-      chipPass[2] = dump[6];
+    info = dump[1];
+    //считываем пароль с мастер-чипа
+    uint8_t chipPass[3];
+    chipPass[0] = dump[4];
+    chipPass[1] = dump[5];
+    chipPass[2] = dump[6];
 
-      //сверяем пароль. Если не подходит - пищим и выходим
-      if ((pass[0] != chipPass[0])||
-          (pass[1] != chipPass[1])||
-          (pass[2] != chipPass[2])){
-         flash(50,3);
-         return;
-     }
-     //вызов функцций соответствующим мастер-чипам
-     if (info == timeMaster) timeChip();
-     else if (info == numberMaster) stantionChip();
-     else if (info == sleepMaster) sleepChip();
-     else if (info == dumpMaster) dumpChip();
-     else if (info == passMaster) passChip();
-     return; 
+    //сверяем пароль. Если не подходит - пищим и выходим
+    if ((pass[0] != chipPass[0])||
+        (pass[1] != chipPass[1])||
+        (pass[2] != chipPass[2])){
+      flash(50,3);
+      return;
+    }
+    //вызов функций соответствующим мастер-чипам
+    if (info == timeMaster) timeChip();
+    else if (info == numberMaster) stantionChip();
+    else if (info == sleepMaster) sleepChip();
+    else if (info == dumpMaster) dumpChip();
+    else if (info == passMaster) passChip();
+    return; 
   }
 
   if (checkTimeInit == true){
@@ -677,7 +663,6 @@ void rfid() {
   //write num of chip to eeprom
   if ((chipNum<maxNumChip)&&(chipNum>0)){
     writeNumEeprom (chipNum);
-    
   }
 
   //переходим в рабочий режим
@@ -776,7 +761,7 @@ void sleepChip(){
 }
 
 /*
- * функция записи дамп-чипа.Станция считывает все данные по чипм с внутренней памяти
+ * функция записи дамп-чипа.Станция считывает все данные по чипам с внутренней памяти
  * и записывает их последовательно на дамп-чип. После чего один раз пикает и выходит.
  */
 void dumpChip(){
@@ -827,16 +812,13 @@ bool writeTime(int newPage){
    
    uint8_t dataBlock2[4] = {toWrite[0],toWrite[1],toWrite[2],toWrite[3]};
    
-    if (ntagWrite(dataBlock2,newPage))
-    {
-      flash(200, 1);
-      return true;
-    }
-    else {
-      
-      return false;
-    }
-  
+   if (ntagWrite(dataBlock2,newPage)){
+     flash(200, 1);
+     return true;
+   }
+   else {
+     return false;
+   }
 }
 
 /*
@@ -866,14 +848,14 @@ void passChip(){
 
 
 /*
- * функция поиска последней записанной странице по алгоритму бинарного поиска.
+ * функция поиска последней записанной страницы по алгоритму бинарного поиска.
  */
 
 uint8_t findNewPage(uint8_t finishpage){
   uint8_t startpage = 8;
   uint8_t page = (finishpage+startpage)/2;
 
- while (1) {
+  while (1) {
     if (finishpage==startpage) {
       return (finishpage);
     }
@@ -883,14 +865,14 @@ uint8_t findNewPage(uint8_t finishpage){
     if(!ntagRead(page)){
       for (uint8_t i = 0; i<4 ; i++) tempDump[i] = 0;
       return 0;
-     }
+    }
      
-     if (dump[0]==0){
+    if (dump[0]==0){
       finishpage = (finishpage - startpage)/2 + startpage;
-     }
-     else {
+    }
+    else {
       for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i];
       startpage = finishpage - (finishpage - startpage)/2;
-     }
+    }
   } 
 }
