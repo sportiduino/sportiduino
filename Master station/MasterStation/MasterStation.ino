@@ -63,14 +63,12 @@ void loop() {
         serialBuffer[1]!=0xFE ||
         serialBuffer[2]!=0xFE ||
         serialBuffer[3]!=0xFE ||
-        serialBuffer[packetSize-1]!=sum
-        
-        ){
-          signalError(0x01);
-        }
-     else{
-        findFunc();
-     }
+        serialBuffer[packetSize-1]!=sum){
+      signalError(0x01);
+    }
+    else{
+      findFunc();
+    }
   }
 }
 
@@ -94,12 +92,11 @@ void addData(uint8_t data,uint8_t func){
    dataBuffer[dataCount] = data;
    
    if (dataCount == dataSize-1){
-    sendData(func,packetCount+30);
-    packetCount++;
-    
+     sendData(func,packetCount+30);
+     packetCount++;
    }
    else{
-    dataCount++;
+     dataCount++;
    }
   
 }
@@ -135,22 +132,22 @@ bool ntagWrite (uint8_t *dataBlock, uint8_t pageAdr){
 
   const uint8_t sizePageNtag = 4;
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Ultralight_Write(pageAdr, dataBlock, sizePageNtag);
-    if (status != MFRC522::STATUS_OK) {
-        signalError(0x02);
-        return false;
-    }
+  if (status != MFRC522::STATUS_OK) {
+    signalError(0x02);
+    return false;
+  }
 
   uint8_t buffer[18];
   uint8_t size = sizeof(buffer);
 
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
   if (status != MFRC522::STATUS_OK) {
-      signalError(0x03);
-      return false;
+    signalError(0x03);
+    return false;
   }
  
   for (uint8_t i = 0; i < 4; i++) {
-      dump[i]=buffer[i];
+    dump[i]=buffer[i];
   }
 
   if (dump[0]==dataBlock[0] && dump[1]==dataBlock[1] && dump[2]==dataBlock[2] && dump[3]==dataBlock[3]){
@@ -169,15 +166,15 @@ bool ntagRead (uint8_t pageAdr){
   uint8_t size = sizeof(buffer);
 
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
-    if (status != MFRC522::STATUS_OK) {
-        signalError(0x03);
-        return false;
-    }
-   
-    for (uint8_t i = 0; i < 16; i++) {
-        dump[i]=buffer[i];
-    }
-    return true;
+  if (status != MFRC522::STATUS_OK) {
+    signalError(0x03);
+    return false;
+  }
+  
+  for (uint8_t i = 0; i < 16; i++) {
+    dump[i]=buffer[i];
+  }
+  return true;
 }
 
 /*
@@ -289,23 +286,23 @@ void writeMasterTime(){
   
   byte dataBlock[4]    = {0,250,255,vers};
   if(!ntagWrite(dataBlock,pageInit)){
-     return;
+    return;
   }
 
 
   byte dataBlock2[] = {pass[0],pass[1],pass[2],0};
   if(!ntagWrite(dataBlock2,pagePass)){
-     return;
+    return;
   }
 
   byte dataBlock3[] = {dataBuffer[3],dataBuffer[2],dataBuffer[4],0};
   if(!ntagWrite(dataBlock3,pageInfo1)){
-     return;
+    return;
   }
 
   byte dataBlock4[] = {dataBuffer[5],dataBuffer[6],dataBuffer[7],0};
   if(!ntagWrite(dataBlock4,pageInfo2)){
-     return;
+    return;
   }
   
 
@@ -318,9 +315,9 @@ void writeMasterTime(){
  * 
  */
 void  writeMasterNum(){
-    SPI.begin();      // Init SPI bus
+  SPI.begin();          // Init SPI bus
   mfrc522.PCD_Init();   // Init MFRC522
- // Look for new cards
+  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -331,18 +328,18 @@ void  writeMasterNum(){
 
   byte dataBlock[4]    = {0,251,255,vers};
   if(!ntagWrite(dataBlock,pageInit)){
-     return;
+    return;
   }
 
 
   byte dataBlock2[] = {pass[0],pass[1],pass[2],0};
   if(!ntagWrite(dataBlock2,pagePass)){
-     return;
+    return;
   }
 
   byte dataBlock3[] = {dataBuffer[2],0,0,0};
   if(!ntagWrite(dataBlock3,pageInfo1)){
-     return;
+    return;
   }
 
   signalOK();
@@ -354,9 +351,9 @@ void  writeMasterNum(){
  * 
  */
 void writeMasterPass(){
-    SPI.begin();      // Init SPI bus
+  SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init();   // Init MFRC522
- // Look for new cards
+  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -367,13 +364,13 @@ void writeMasterPass(){
 
   byte dataBlock[4]    = {0,254,255,vers};
   if(!ntagWrite(dataBlock,pageInit)){
-     return;
+    return;
   }
 
 
   byte dataBlock2[] = {dataBuffer[5],dataBuffer[6],dataBuffer[7],0};
   if(!ntagWrite(dataBlock2,pagePass)){
-     return;
+    return;
   }
 
   pass[0] = dataBuffer[2];
@@ -388,7 +385,7 @@ void writeMasterPass(){
   
   byte dataBlock3[] = {pass[0],pass[1],pass[2],stantionConfig};
   if(!ntagWrite(dataBlock3,pageInfo1)){
-     return;
+    return;
   }
   
   signalOK();
@@ -400,9 +397,9 @@ void writeMasterPass(){
  * 
  */
 void writeInit(){
-    SPI.begin();      // Init SPI bus
+  SPI.begin();          // Init SPI bus
   mfrc522.PCD_Init();   // Init MFRC522
- // Look for new cards
+  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -434,21 +431,20 @@ void writeInit(){
   byte Wbuff[] = {255,255,255,255};
   
   for (byte page=4; page < ntagValue;page++){
-      
-      if (!ntagWrite(Wbuff,page)){
-          return;
-      }
- }
+    if (!ntagWrite(Wbuff,page)){
+      return;
+    }
+  }
 
- byte Wbuff2[] = {0,0,0,0};
+  byte Wbuff2[] = {0,0,0,0};
   
- for (byte page=4; page < ntagValue;page++){
-      if (!ntagWrite(Wbuff2,page)){
-          return;
-      }
- }
+  for (byte page=4; page < ntagValue;page++){
+    if (!ntagWrite(Wbuff2,page)){
+      return;
+    }
+  }
 
- byte dataBlock[4]    = {dataBuffer[2],dataBuffer[3],ntagType,vers};
+  byte dataBlock[4]    = {dataBuffer[2],dataBuffer[3],ntagType,vers};
   if(!ntagWrite(dataBlock,pageInit)){
      return;
   }
@@ -456,17 +452,17 @@ void writeInit(){
 
   byte dataBlock2[] = {dataBuffer[4],dataBuffer[5],dataBuffer[6],dataBuffer[7]};
   if(!ntagWrite(dataBlock2,pagePass)){
-     return;
+    return;
   }
 
   byte dataBlock3[] = {dataBuffer[8],dataBuffer[9],dataBuffer[10],dataBuffer[11]};
   if(!ntagWrite(dataBlock3,pageInfo1)){
-     return;
+    return;
   }
 
   byte dataBlock4[] = {dataBuffer[12],dataBuffer[13],dataBuffer[14],dataBuffer[15]};
   if(!ntagWrite(dataBlock4,pageInfo2)){
-     return;
+    return;
   }
   
   signalOK();
@@ -478,9 +474,9 @@ void writeInit(){
  * 
  */
 void writeInfo(){
-    SPI.begin();      // Init SPI bus
+  SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init();   // Init MFRC522
- // Look for new cards
+  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -491,13 +487,13 @@ void writeInfo(){
 
   byte dataBlock[4]    = {dataBuffer[2],dataBuffer[3],dataBuffer[4],dataBuffer[5]};
   if(!ntagWrite(dataBlock,pageInfo1)){
-     return;
+    return;
   }
 
 
   byte dataBlock2[] = {dataBuffer[6],dataBuffer[7],dataBuffer[8],dataBuffer[9]};
   if(!ntagWrite(dataBlock2,pageInfo2)){
-     return;
+    return;
   }
 
   signalOK();
@@ -512,9 +508,9 @@ void writeInfo(){
  * 
  */
 void writeMasterLog(){
-    SPI.begin();      // Init SPI bus
+  SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init();   // Init MFRC522
- // Look for new cards
+  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -536,29 +532,28 @@ void writeMasterLog(){
   byte Wbuff[] = {255,255,255,255};
   
   for (byte page=4; page < ntagValue;page++){
-      
-      if (!ntagWrite(Wbuff,page)){
-          return;
-      }
+    if (!ntagWrite(Wbuff,page)){
+      return;
+    }
   }
 
- byte Wbuff2[] = {0,0,0,0};
-  
- for (byte page=4; page < ntagValue;page++){
-      if (!ntagWrite(Wbuff2,page)){
-          return;
-      }
- }
+  byte Wbuff2[] = {0,0,0,0};
+   
+  for (byte page=4; page < ntagValue;page++){
+    if (!ntagWrite(Wbuff2,page)){
+      return;
+    }
+  }
 
-    byte dataBlock[4]    = {0, 253, 255,vers};
+  byte dataBlock[4]    = {0, 253, 255,vers};
   if(!ntagWrite(dataBlock,pageInit)){
-     return;
+    return;
   }
 
 
   byte dataBlock2[] = {pass[0], pass[1], pass[2],0};
   if(!ntagWrite(dataBlock2,pagePass)){
-     return;
+    return;
   }
 
   signalOK();
@@ -576,7 +571,7 @@ void readLog(){
   
   SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init();   // Init MFRC522
- // Look for new cards
+  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -635,7 +630,7 @@ void  readChip(){
   
   SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init();   // Init MFRC522
- // Look for new cards
+  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -670,15 +665,13 @@ void  readChip(){
   timeInit2+=dump[3];
   
   for (uint8_t page = 6; page<8;page++){
-    
     if (!ntagRead(page)){
       return;
     }
 
-   for (uint8_t i = 0;i<4;i++){
+    for (uint8_t i = 0;i<4;i++){
       addData(dump[i],function);
     }
-  
   }
 
   for (uint8_t page = 8; page<ntagValue;page++){
@@ -724,7 +717,7 @@ void readRawChip(){
   
   SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init();   // Init MFRC522
- // Look for new cards
+  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -747,7 +740,7 @@ void readRawChip(){
       return;
     }
 
-  addData(page,function);
+    addData(page,function);
     for (uint8_t i = 0;i<4;i++){
       addData(dump[i],function);
     }
@@ -767,9 +760,9 @@ void readRawChip(){
  * 
  */
 void writeMasterSleep(){
-    SPI.begin();      // Init SPI bus
+  SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init();   // Init MFRC522
- // Look for new cards
+  // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
   }
@@ -780,13 +773,13 @@ void writeMasterSleep(){
 
   byte dataBlock[4]    = {0, 252, 255,vers};
   if(!ntagWrite(dataBlock,pageInit)){
-     return;
+    return;
   }
 
 
   byte dataBlock2[] = {pass[0], pass[1], pass[2],0};
   if(!ntagWrite(dataBlock2,pagePass)){
-     return;
+    return;
   }
 
   signalOK();
