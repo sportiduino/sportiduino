@@ -2,7 +2,7 @@
 #include <MFRC522.h>
 #include <EEPROM.h>
 
-const byte vers = 101; //version of software
+const byte vers = 102; //version of software
 
 const byte LED = 4;
 const byte BUZ = 3;
@@ -12,9 +12,9 @@ const byte SS_PIN = 10;
 //password for master key
 uint8_t pass[] = {0,0,0};
 uint8_t stantionConfig = 0;
-uint8_t masterConfig = 0;
+uint8_t masterConfig = 0; //1 - автоматическое считывание чипов, 0 - только по запросу
 const uint16_t eepromPass = 850;
-const uint16_t eepromConf = 870;
+const uint16_t eepromMaster = 870;
 
 const byte pageCC = 3;
 const byte pageInit = 4;
@@ -27,9 +27,9 @@ uint8_t ntagType = 213;
 
 uint8_t function = 0;
 
-const uint8_t timeOut = 100;
+const uint8_t timeOut = 10;
 const uint8_t packetSize = 32;
-const uint8_t dataSize = 27;
+const uint8_t dataSize = 30;
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);   // Create MFRC522 instance.
 MFRC522::StatusCode status;
@@ -46,29 +46,43 @@ void setup() {
   pass[1] = eepromread(eepromPass+3);
   pass[2] = eepromread(eepromPass+6);
   stantionConfig = eepromread(eepromPass+9);
-  masterConfig = eepromread(eepromConf);
+  masterConfig = eepromread(eepromMaster);
+  
 }
 
 void loop() {
+  if (masterConfig==1){
+    readChip();
+  }
+  
   if (Serial.available() > 0){
-    for (uint8_t y=0; y<packetSize; y++) serialBuffer[y]=0;
+  
+    clearBuffer();
+    
     Serial.readBytes(serialBuffer, packetSize);
+    
+    uint8_t sumAdr = serialBuffer[2]+3;
+    if (sumAdr>28) sumAdr=31;
 
-    for (uint8_t i=0;i<dataSize;i++){
-      dataBuffer[i]=serialBuffer[i+4];
+    
+       
+    for (uint8_t i=0;i<sumAdr-1;i++){
+      dataBuffer[i]=serialBuffer[i+1];
     }
 
-    uint8_t sum = checkSum(dataBuffer,dataSize);
+    
+
+    uint8_t sum = checkSum(dataBuffer,sumAdr-1);
+   
+    
     if (serialBuffer[0]!=0xFE ||
-        serialBuffer[1]!=0xFE ||
-        serialBuffer[2]!=0xFE ||
-        serialBuffer[3]!=0xFE ||
-        serialBuffer[packetSize-1]!=sum){
+        serialBuffer[sumAdr]!=sum){
       signalError(0x01);
     }
     else{
       findFunc();
     }
+   
   }
 }
 
@@ -92,7 +106,7 @@ void addData(uint8_t data,uint8_t func){
    dataBuffer[dataCount] = data;
    
    if (dataCount == dataSize-1){
-     sendData(func,packetCount+30);
+     sendData(func,packetCount+32);
      packetCount++;
    }
    else{
@@ -106,21 +120,20 @@ void addData(uint8_t data,uint8_t func){
  */
 void sendData(uint8_t func, uint8_t leng){
   
-  serialBuffer[0]=serialBuffer[1]=serialBuffer[2]=serialBuffer[3]=0xFE;
+  Serial.write(0xFE);
   
   dataBuffer[0] = func;
-  dataBuffer[1] = leng;
+  dataBuffer[1] = leng-2;
 
-  serialBuffer[packetSize-1] = checkSum(dataBuffer,dataSize);
+  uint8_t trueleng = leng;
+  if (leng>30)trueleng=30;
   
-  for (uint8_t i = 0; i<dataSize;i++){
-    serialBuffer[i+4]=dataBuffer[i];
-    dataBuffer[i]=0;
+  for (uint8_t w  = 0;w<trueleng;w++){
+    Serial.write(dataBuffer[w]);
   }
-  dataCount = 2;
-  
-  Serial.write(serialBuffer, packetSize);
-  
+  Serial.write(checkSum(dataBuffer,trueleng));
+
+  clearBuffer();  
 }
 
 
@@ -224,7 +237,7 @@ uint8_t eepromread(uint16_t adr) {
  * 
  */
 void findFunc(){
-  switch (serialBuffer[4]){
+  switch (serialBuffer[1]){
     case 0x41:
       writeMasterTime();
       break;
@@ -241,13 +254,16 @@ void findFunc(){
       writeInfo();
       break;
     case 0x46:
-      updateConfig();
+      getVersion();
       break;
     case 0x47:
       writeMasterLog();
       break;
     case 0x48:
       readLog();
+      break;
+    case 0x49:
+      updConfig();
       break;
     case 0x4B:
       readChip();
@@ -604,9 +620,7 @@ void readLog(){
           uint8_t second = num&0x00FF; 
           addData(first,function);
           addData(second,function);
-          if (dataCount == dataSize-1){
-            addData(0,function);
-          }
+          
         }
       }
 
@@ -679,7 +693,9 @@ void  readChip(){
     if (!ntagRead(page)){
       return;
     }
-
+    
+    if (dump[0]==0) break;
+    
     addData(dump[0],function);
 
     uint32_t time2 = dump[1];
@@ -702,10 +718,12 @@ void  readChip(){
   sendData (function,dataCount);
   packetCount = 0;
 
- 
-
-
   SPI.end();
+
+  if (masterConfig==1) {
+    flash(20,1);
+    delay(2000);
+  }
 }
 
 /*
@@ -816,15 +834,36 @@ void readFlash(){
 }
 
 
-void updateConfig(){
+void getVersion(){
   
-  masterConfig = dataBuffer[2];
-  eepromwrite(eepromConf,masterConfig);
+  function = 0x66;
+
+  clearBuffer();
+
+  addData(vers,function);
+  sendData (function,dataCount);
+  packetCount = 0;
 
 }
+
+void updConfig(){
+  function = 0x69;
+  
+
+  masterConfig = dataBuffer[2];
+  eepromwrite(eepromMaster,masterConfig);
+
+  clearBuffer();
+  
+  addData(masterConfig,function);
+  sendData (function,dataCount);
+  packetCount = 0;
+}
+
 
 void clearBuffer(){
   dataCount = 2;
   for(uint8_t j=0;j<dataSize;j++) dataBuffer[j]=0; 
+  for(uint8_t k=0;k<packetSize;k++) serialBuffer[k]=0;
 }
 
