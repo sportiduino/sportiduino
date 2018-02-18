@@ -85,7 +85,7 @@ void setup () {
   
   if (t.year < 2017) {
     //Error: watch wrong
-    flash(50, 3);
+    beep(50, 3);
   }
 
   set_sleep_mode (SLEEP_MODE_PWR_DOWN); // the most power save sleep mode
@@ -115,7 +115,7 @@ void setup () {
   if (set3 == true) checkTimeInit = true;
  
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
-  flash(800, 1 ); //The signal at system startup or reboote
+  beep(800, 1 ); //The signal at system startup or reboote
 }//end of setup
 
 
@@ -305,7 +305,7 @@ uint8_t eepromread(uint16_t adr) {
     return EEPROM.read(adr + 1);
   }
   else {
-    flash(50, 3);
+    beep(50, 3);
     return 0;
   }
 
@@ -345,7 +345,7 @@ void cleanEeprom (){
  */
 
 // led and buzzer signal
-void flash(uint16_t ms, uint8_t n) {
+void beep(uint16_t ms, uint8_t n) {
 
   pinMode (LED, OUTPUT);
   pinMode (BUZ, OUTPUT);
@@ -362,7 +362,7 @@ void flash(uint16_t ms, uint8_t n) {
     }
   }
 
-} //end of flash
+} //end of beep
 
 /*
  * Функция считывания напряжения питания МК. 
@@ -412,10 +412,10 @@ void voltage() {
 
 
   if (value < 3100) {
-    flash(1000, 3);
+    beep(1000, 3);
   }
   else {
-    flash(1000, 1);
+    beep(1000, 1);
   }
   digitalWrite(LED, LOW);
   wdt_reset();
@@ -552,7 +552,7 @@ void rfid() {
     if ((pass[0] != chipPass[0])||
         (pass[1] != chipPass[1])||
         (pass[2] != chipPass[2])){
-      flash(50,3);
+      beep(50,3);
       return;
     }
     //вызов функций соответствующим мастер-чипам
@@ -611,7 +611,7 @@ void rfid() {
 
   //во время поиска последнюю записанную страницу поместили в tempDump. Считываем из неё номер, чтобы убедится, что последняя записанная станция отличается 
   if (stantion == tempDump[0]){
-    flash(500,1);
+    beep(500,1);
     return;
   }
   
@@ -686,7 +686,7 @@ void timeChip() {
   uint8_t dataDump[4] ={0, 0, 0,0};
   
   if(!ntagWrite(dataDump,4)){
-    flash(50,3);
+    beep(50,3);
     return;
   }
   
@@ -695,7 +695,7 @@ void timeChip() {
   DS3231_set(t); //correct time
   digitalWrite(VCC_C,LOW);
   
-  flash(300,5);
+  beep(300,5);
   resetFunc(); //reboot
 }
 
@@ -711,18 +711,18 @@ void stantionChip(){
   uint8_t dataDump[4] ={0, 0, 0, 0};
   
   if(!ntagWrite(dataDump,4)){
-    flash(50,3);
+    beep(50,3);
     return;
   }
     
   if ((stantion != newnum)&&(newnum!=0)){
     stantion = newnum;
     eepromwrite (eepromAdrStantion, newnum);
-    flash(300,5);
+    beep(300,5);
     resetFunc(); //reboot
   }
   else{
-    flash(50,3);
+    beep(50,3);
     return;
   }
 }
@@ -737,7 +737,7 @@ void sleepChip(){
   uint8_t dataDump[4] ={0, 0, 0, 0};
   
   if(!ntagWrite(dataDump,4)){
-    flash(50,3);
+    beep(50,3);
     return;
   }
   for (uint8_t i = 0;i<3;i++){
@@ -748,7 +748,7 @@ void sleepChip(){
   deepsleep = true;
   eepromwrite (eepromAdrSleep, 255); //write sleep mode to EEPROM in case of failures
   
-  flash(100,3);
+  beep(100,3);
 
   cleanEeprom();
 
@@ -766,7 +766,7 @@ void dumpChip(){
   uint8_t dataDump[4] = {stantion,0,0,0};
   
   if(!ntagWrite(dataDump,4)){
-    flash(50,3);
+    beep(50,3);
     return;
   }
 
@@ -778,13 +778,13 @@ void dumpChip(){
     }
 
     if(!ntagWrite(dataEeprom,page)){
-      flash(50,3);
+      beep(50,3);
       return;
     }
     
   }
 
-  flash(500,1);
+  beep(500,1);
   return;
   
 }
@@ -808,7 +808,7 @@ bool writeTime(int newPage){
    uint8_t dataBlock2[4] = {toWrite[0],toWrite[1],toWrite[2],toWrite[3]};
    
    if (ntagWrite(dataBlock2,newPage)){
-     flash(200, 1);
+     beep(200, 1);
      return true;
    }
    else {
@@ -836,7 +836,7 @@ void passChip(){
     return;
   }
   
-  flash(300,2);
+  beep(300,2);
   resetFunc(); //reboot
   
 }

@@ -203,7 +203,7 @@ void beep(int ms, byte n){
     tone (BUZ,4000,ms);
     delay (ms);
     digitalWrite (LED, LOW);
-    if ((n-i)!=0){
+    if (i < n - 1){
       delay(ms);
     }
   }
