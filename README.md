@@ -10,7 +10,7 @@ This project is devoted to the development of cheap electronic marking system fo
 
 [Download latest release](https://github.com/alexandervolikov/sportiduino/releases)
 
-[Manual](https://github.com/alexandervolikov/sportiduino/master/Doc/eu.md)
+[Manual](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu.md)
 
 This project is open and free. Who is not afraid of difficulties, can try to do it by yourself following the instructions from the wiki. Сheapness of the components of the system can recoup the expended work ($ 10 for one base station, $ 0.2 per chip mark)
 

@@ -45,7 +45,7 @@ d.	Пищалка.  стоит заказывать более дорогие и
 7.	Корпус Gainta 1020BF. Хороший корпус из ABS пластика, неплохо поддается допиливанию под свои цели. 
 
 
-Оборудование, которое пригодится при сборке, приведено [на отдельной странице](https://github.com/alexandervolikov/sportiduino/master/Doc/ru/Equipment.md)
+Оборудование, которое пригодится при сборке, приведено [на отдельной странице](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/Equipment.md)
 
 
 ### Пайка основной платы

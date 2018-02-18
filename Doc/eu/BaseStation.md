@@ -10,7 +10,7 @@ The components are mounted on a printed circuit board, with an RFID card, a sold
 
 Interface implemented on the connector PBD-6, 6 contacts in two rows. As the box g1020BF used. In the box a hole is drilled for the LED and the excess plastic is cut off so that the battery compartment gets into it.
 
-[About the assembly and the initial setting of the station written here](https://github.com/alexandervolikov/sportiduino/master/Doc/eu/BaseStationAssembly.md)
+[About the assembly and the initial setting of the station written here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/BaseStationAssembly.md)
 
 ### Consumption
 

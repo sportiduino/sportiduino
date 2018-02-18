@@ -10,7 +10,7 @@
 
 [Скачать последний релиз](https://github.com/alexandervolikov/sportiduino/releases)
 
-[Руководство](https://github.com/alexandervolikov/sportiduino/wiki/%D0%A1%D0%B8%D1%81%D1%82%D0%B5%D0%BC%D0%B0-%D0%BE%D1%82%D0%BC%D0%B5%D1%82%D0%BA%D0%B8-Sportiduino)
+[Руководство](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru.md)
 
 Проект свободный. В данный момент изготовление на продажу не осуществляется. Но, кто не боится трудностей, может попоробовать сделать это самостоятельно следуя инструкциям из wiki. Дешевизна компонентов системы может окупить затраченные труды (порядка 500 рублей за базовую станцию, 20 рублей за чип отметки).
 
