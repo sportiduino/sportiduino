@@ -319,14 +319,9 @@ uint8_t eepromread(uint16_t adr) {
 void writeNumEeprom (uint16_t num){
   uint16_t byteAdr = num/8;
   uint16_t bitAdr = num%8;
-  uint8_t eepromOld = EEPROM.read(byteAdr);
-  uint8_t writeEeprom = 1;
-  while (bitAdr>0){
-    writeEeprom = writeEeprom << 1;
-    bitAdr--;
-  }
-  writeEeprom = writeEeprom | eepromOld;
-  EEPROM.write(byteAdr,writeEeprom);
+  uint8_t eepromByte = EEPROM.read(byteAdr);
+  bitSet(eepromByte, bitAdr);
+  EEPROM.write(byteAdr, eepromByte);
 }
 
 /*
@@ -361,7 +356,7 @@ void flash(uint16_t ms, uint8_t n) {
     delay (ms);
     wdt_reset();
     digitalWrite (LED, LOW);
-    if ((n - i) != 0) {
+    if (i < n - 1) {
       delay(ms);
       wdt_reset();
     }
@@ -745,7 +740,7 @@ void sleepChip(){
     flash(50,3);
     return;
   }
-  for (uint8_t i = 0;i<4;i++){
+  for (uint8_t i = 0;i<3;i++){
     pass[i]=0;
     eepromwrite((eepromPass+i*3),0);
   }
