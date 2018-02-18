@@ -193,7 +193,7 @@ bool ntagRead (uint8_t pageAdr){
 /*
  * 
  */
-void flash(int ms, byte n){
+void beep(int ms, byte n){
   
   pinMode (LED, OUTPUT);
   pinMode (BUZ, OUTPUT);
@@ -208,7 +208,7 @@ void flash(int ms, byte n){
     }
   }
   
-} //end of flash
+} //end of beep
 
 //write to EEPROM 3 value from adress to adress+2
 void eepromwrite (uint16_t adr, uint8_t val) {
@@ -322,7 +322,7 @@ void writeMasterTime(){
   }
   
 
-  flash(500,3);
+  beep(500,3);
 
   SPI.end();
 }
@@ -721,7 +721,7 @@ void  readChip(){
   SPI.end();
 
   if (masterConfig==1) {
-    flash(20,1);
+    beep(20,1);
     delay(2000);
   }
 }
@@ -809,7 +809,7 @@ void writeMasterSleep(){
  * 
  */
 void signalError(uint8_t num){
-  flash(100,3);
+  beep(100,3);
   if (num==0) return;
 
   function = 0x78;
@@ -826,7 +826,7 @@ void signalError(uint8_t num){
  * 
  */
 void signalOK(){
-  flash(300,1);
+  beep(300,1);
 }
 
 void readFlash(){
