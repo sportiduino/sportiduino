@@ -28,31 +28,29 @@ It also supports the creation of forks, pull rquests, developing any new ideas.
 
 You can also help by translatiing the documentation. At this moment it is executed roughly.
 
-# Part of the system
+# Parts of the system
 
 ## Cards
 
 The system uses cards Ntag 213 / 215 / 216. In the form of labels these cards cost 0.1, 0.2 0.4 $ , respectively, in the form of a key fob twice as expensive. The memory of these cards is enough for 32, 120 and 216 marks, respectively.
 
-[Read more here](https://github.com/alexandervolikov/sportiduino/wiki/Card-Ntag)
+[Read more here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/Card.md)
 
 ## Base stations.
 
 The main components of the station are the Atmega328P microcontroller and the MFRC522 module, which operates at a frequency of 13.56MHz. Clock DS3231SN. Powered by 3 AA batteries through the MCP1700T-33 stabilizer
 The capacity of the kit of three alkaline AA batteries should be enough for a year of active use.
 
-The box is Gainta g1020bf with flanges. Sealing is carried out through the use of sealant.
+Totally, the initial components for one base station and the consumables cost about 10$.
 
-Totally, the initial components for one base station and the consumables cost about 10$. The manual for assembly is on the wiki.
-
-[Read more here](https://github.com/alexandervolikov/sportiduino/wiki/Base-station)
+[Read more here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/BaseStantion.md)
 
 ## Master station
 
 The master station is simpler than the base station, consists of Arduino Nano, RFID module, LED and buzzer.
 To the computer connection through USB. With the help of the master station you can perform a number of referee tasks.
 
-[Read more here](https://github.com/alexandervolikov/sportiduino/wiki/Master-station)
+[Read more here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/MasterStantion.md)
 
 There is also a wireless station with the bluetooth module. 
 
