@@ -1,5 +1,5 @@
 ## [1.2.0] - 2018-02-17
-###Changed the master station communication protocol
+### Changed the master station communication protocol
 - The fixed packet up to 32 bytes is changed to a variable length packet with a maximum length of 32 bytes.
 - Added functions to request the firmware version of the master station
 - Added the function of transferring the station to automatic regime of cards reading

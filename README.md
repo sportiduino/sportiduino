@@ -6,11 +6,11 @@
 
 [Перейти на русский язык](https://github.com/alexandervolikov/sportiduino/blob/master/README.ru.md)
 
-This project is devoted to the development of cheap electronic marking system for sports and tourist orientering. It is also possible to use it on Rogaine, Multirace, Trail, цherever time fixing is required Here is the hardware part of the marking system. The software is under construction, the links is placed [below](https://github.com/alexandervolikov/sportiduino#data-processing)
+This project is devoted to the development of cheap electronic marking system for sports and tourist orientering. It is also possible to use it on Rogaine, Multirace, Trail, wherever time fixing is required. Here is the hardware part of the marking system. The software is under construction, the links is placed [below](https://github.com/alexandervolikov/sportiduino#data-processing)
 
 [Download latest release](https://github.com/alexandervolikov/sportiduino/releases)
 
-[Manual](https://github.com/alexandervolikov/sportiduino/wiki/Sportiduino)
+[Manual](https://github.com/alexandervolikov/sportiduino/master/Doc/eu.md)
 
 This project is open and free. Who is not afraid of difficulties, can try to do it by yourself following the instructions from the wiki. Сheapness of the components of the system can recoup the expended work ($ 10 for one base station, $ 0.2 per chip mark)
 
@@ -26,6 +26,8 @@ You can contribute by writing code. Programs for working with the system on a PC
 
 It also supports the creation of forks, pull rquests, developing any new ideas.
 
+You can also help by translatiing the documentation. At this moment it is executed roughly.
+
 # Part of the system
 
 ## Cards
@@ -39,7 +41,7 @@ The system uses cards Ntag 213 / 215 / 216. In the form of labels these cards co
 The main components of the station are the Atmega328P microcontroller and the MFRC522 module, which operates at a frequency of 13.56MHz. Clock DS3231SN. Powered by 3 AA batteries through the MCP1700T-33 stabilizer
 The capacity of the kit of three alkaline AA batteries should be enough for a year of active use.
 
-The box is available Gainta g1020bf with flanges. Sealing is carried out through the use of sealant.
+The box is Gainta g1020bf with flanges. Sealing is carried out through the use of sealant.
 
 Totally, the initial components for one base station and the consumables cost about 10$. The manual for assembly is on the wiki.
 
@@ -56,13 +58,11 @@ There is also a wireless station with the bluetooth module.
 
 ## Data processing
 
-Software development in IDE Processing is included in a separate repository:
-https://github.com/alexandervolikov/sportiduinoProcessing
+Software development in IDE Processing is included in a [separate repository](https://github.com/alexandervolikov/sportiduinoProcessing). 
 The functional is minimal.
 
 We are developing a python module for the program [SportOrg](https://github.com/sportorg/pysport)
-The module repository is also separate:
-https://github.com/alexandervolikov/sportiduinoPython
+The module repository is also [separate](https://github.com/alexandervolikov/sportiduinoPython)
 
 ***********
 Available from:  https://github.com/alexandervolikov/sportiduino
