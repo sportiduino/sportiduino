@@ -85,7 +85,7 @@ void setup () {
   
   if (t.year < 2017) {
     //Error: watch wrong
-    flash(50, 3);
+    beep(50, 3);
   }
 
   set_sleep_mode (SLEEP_MODE_PWR_DOWN); // the most power save sleep mode
@@ -115,7 +115,7 @@ void setup () {
   if (set3 == true) checkTimeInit = true;
  
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
-  flash(800, 1 ); //The signal at system startup or reboote
+  beep(800, 1 ); //The signal at system startup or reboote
 }//end of setup
 
 
@@ -281,7 +281,7 @@ void sleep8s() {
 
 /*
  * Функция записи во внутреннюю память микроконтроллера
- * Запись приосходить с мажоритальным резервированием в три подряд ячейки
+ * Запись приосходит с мажоритарным резервированием в три подряд ячейки
  */
 
 //write to EEPROM 3 value from adress to adress+2
@@ -305,7 +305,7 @@ uint8_t eepromread(uint16_t adr) {
     return EEPROM.read(adr + 1);
   }
   else {
-    flash(50, 3);
+    beep(50, 3);
     return 0;
   }
 
@@ -319,14 +319,9 @@ uint8_t eepromread(uint16_t adr) {
 void writeNumEeprom (uint16_t num){
   uint16_t byteAdr = num/8;
   uint16_t bitAdr = num%8;
-  uint8_t eepromOld = EEPROM.read(byteAdr);
-  uint8_t writeEeprom = 1;
-  while (bitAdr>0){
-    writeEeprom = writeEeprom << 1;
-    bitAdr--;
-  }
-  writeEeprom = writeEeprom | eepromOld;
-  EEPROM.write(byteAdr,writeEeprom);
+  uint8_t eepromByte = EEPROM.read(byteAdr);
+  bitSet(eepromByte, bitAdr);
+  EEPROM.write(byteAdr, eepromByte);
 }
 
 /*
@@ -350,7 +345,7 @@ void cleanEeprom (){
  */
 
 // led and buzzer signal
-void flash(uint16_t ms, uint8_t n) {
+void beep(uint16_t ms, uint8_t n) {
 
   pinMode (LED, OUTPUT);
   pinMode (BUZ, OUTPUT);
@@ -361,13 +356,13 @@ void flash(uint16_t ms, uint8_t n) {
     delay (ms);
     wdt_reset();
     digitalWrite (LED, LOW);
-    if ((n - i) != 0) {
+    if (i < n - 1) {
       delay(ms);
       wdt_reset();
     }
   }
 
-} //end of flash
+} //end of beep
 
 /*
  * Функция считывания напряжения питания МК. 
@@ -417,10 +412,10 @@ void voltage() {
 
 
   if (value < 3100) {
-    flash(1000, 3);
+    beep(1000, 3);
   }
   else {
-    flash(1000, 1);
+    beep(1000, 1);
   }
   digitalWrite(LED, LOW);
   wdt_reset();
@@ -485,7 +480,7 @@ bool ntagRead (uint8_t pageAdr){
 
 
 /*
- * Проверка  не прошли более чем время заданное в worktime с момента последней усппешной записи чипа.
+ * Проверка не прошли более чем время заданное в worktime с момента последней успешной записи чипа.
  */
 
 //get time
@@ -557,7 +552,7 @@ void rfid() {
     if ((pass[0] != chipPass[0])||
         (pass[1] != chipPass[1])||
         (pass[2] != chipPass[2])){
-      flash(50,3);
+      beep(50,3);
       return;
     }
     //вызов функций соответствующим мастер-чипам
@@ -610,13 +605,13 @@ void rfid() {
 
   //ищем последнюю пустую страницу в чипе для записи
   
-  //есил поиск вышел неудачным, функция возвращает ноль и выходит
+  //если поиск вышел неудачным, функция возвращает ноль и выходит
   
   if (newPage == 0) return;
 
-  //во время поиска последнюю записунную страницу поместили в tempDump. Считываем из неё номер, чтобы убедится, что последняя записанная станция отличается 
+  //во время поиска последнюю записанную страницу поместили в tempDump. Считываем из неё номер, чтобы убедится, что последняя записанная станция отличается 
   if (stantion == tempDump[0]){
-    flash(500,1);
+    beep(500,1);
     return;
   }
   
@@ -631,7 +626,7 @@ void rfid() {
   }
 
   /*
-  * есил включена функция старта-финиша. То станция старта принимает только пустые чипы
+  * если включена функция старта-финиша. То станция старта принимает только пустые чипы
   * все остальные станции принимают только не пустые чипы
   * после станции финиша на чип нельзя записать отметку
   */
@@ -675,7 +670,7 @@ void rfid() {
 } // end of rfid()
 
 /*
- * функция обработки мастре-чипа времени
+ * функция обработки мастер-чипа времени
  * С чипа считыввается новое время и устанавливается 
  * внутреннее время. Станция пикает 5 раз и перезагружается
  */
@@ -691,7 +686,7 @@ void timeChip() {
   uint8_t dataDump[4] ={0, 0, 0,0};
   
   if(!ntagWrite(dataDump,4)){
-    flash(50,3);
+    beep(50,3);
     return;
   }
   
@@ -700,7 +695,7 @@ void timeChip() {
   DS3231_set(t); //correct time
   digitalWrite(VCC_C,LOW);
   
-  flash(300,5);
+  beep(300,5);
   resetFunc(); //reboot
 }
 
@@ -716,36 +711,36 @@ void stantionChip(){
   uint8_t dataDump[4] ={0, 0, 0, 0};
   
   if(!ntagWrite(dataDump,4)){
-    flash(50,3);
+    beep(50,3);
     return;
   }
     
   if ((stantion != newnum)&&(newnum!=0)){
     stantion = newnum;
     eepromwrite (eepromAdrStantion, newnum);
-    flash(300,5);
+    beep(300,5);
     resetFunc(); //reboot
   }
   else{
-    flash(50,3);
+    beep(50,3);
     return;
   }
 }
 
-/*   
- *    Функция обработки мастер-чипа сна. 
- *    Станция стирает данные о пароле и настройках
- *    пикает три раза и входит в сон
+/*
+ * Функция обработки мастер-чипа сна. 
+ * Станция стирает данные о пароле и настройках,
+ * пикает три раза и входит в сон
  */
 void sleepChip(){
   
   uint8_t dataDump[4] ={0, 0, 0, 0};
   
   if(!ntagWrite(dataDump,4)){
-    flash(50,3);
+    beep(50,3);
     return;
   }
-  for (uint8_t i = 0;i<4;i++){
+  for (uint8_t i = 0;i<3;i++){
     pass[i]=0;
     eepromwrite((eepromPass+i*3),0);
   }
@@ -753,7 +748,7 @@ void sleepChip(){
   deepsleep = true;
   eepromwrite (eepromAdrSleep, 255); //write sleep mode to EEPROM in case of failures
   
-  flash(100,3);
+  beep(100,3);
 
   cleanEeprom();
 
@@ -761,7 +756,7 @@ void sleepChip(){
 }
 
 /*
- * функция записи дамп-чипа.Станция считывает все данные по чипам с внутренней памяти
+ * Функция записи дамп-чипа. Станция считывает все данные по чипам из внутренней памяти
  * и записывает их последовательно на дамп-чип. После чего один раз пикает и выходит.
  */
 void dumpChip(){
@@ -771,7 +766,7 @@ void dumpChip(){
   uint8_t dataDump[4] = {stantion,0,0,0};
   
   if(!ntagWrite(dataDump,4)){
-    flash(50,3);
+    beep(50,3);
     return;
   }
 
@@ -783,20 +778,20 @@ void dumpChip(){
     }
 
     if(!ntagWrite(dataEeprom,page)){
-      flash(50,3);
+      beep(50,3);
       return;
     }
     
   }
 
-  flash(500,1);
+  beep(500,1);
   return;
   
 }
 
 /*
- * функция записи отметки в чип. 
- * Записывает номер и поседние 3 байта юникстайм их в чип. Если удалось, пикает и выдает true
+ * Функция записи отметки в чип. 
+ * Записывает номер и поседние 3 байта юникстайм в чип. Если удалось, пикает и выдает true
  */
 bool writeTime(int newPage){
 
@@ -813,7 +808,7 @@ bool writeTime(int newPage){
    uint8_t dataBlock2[4] = {toWrite[0],toWrite[1],toWrite[2],toWrite[3]};
    
    if (ntagWrite(dataBlock2,newPage)){
-     flash(200, 1);
+     beep(200, 1);
      return true;
    }
    else {
@@ -822,8 +817,8 @@ bool writeTime(int newPage){
 }
 
 /*
- * функция обработки мастер-чип смены пароля. Станция считывает новый пароль и байт настроек. Записывает его в память.
- * Пикает два раза и перезагружается
+ * Функция обработки мастер-чипа смены пароля. Станция считывает новый пароль и байт настроек. Записывает его в память.
+ * Пикает два раза и перезагружается.
  */
 
 void passChip(){
@@ -841,7 +836,7 @@ void passChip(){
     return;
   }
   
-  flash(300,2);
+  beep(300,2);
   resetFunc(); //reboot
   
 }
