@@ -22,7 +22,7 @@ Issues and possible improvements can be posted to our [issue](https://github.com
 
 ## Contributing
 
-You can contribute by writing code. Programs for working with the system on a PC via Serial and on Androide via Bluetooth. The data transfer protocol and commands are described in the [manual](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/MasterStantion.md)  With pleasure we will add a link to your developments working with Sportidoino.
+You can contribute by writing code. Programs for working with the system on a PC via Serial and on Androide via Bluetooth. The data transfer protocol and commands are described in the [manual](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/MasterStation.md)  With pleasure we will add a link to your developments working with Sportidoino.
 
 It also supports the creation of forks, pull rquests, developing any new ideas.
 
@@ -43,14 +43,14 @@ The capacity of the kit of three alkaline AA batteries should be enough for a ye
 
 Totally, the initial components for one base station and the consumables cost about 10$.
 
-[Read more here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/BaseStantion.md)
+[Read more here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/BaseStation.md)
 
 ## Master station
 
 The master station is simpler than the base station, consists of Arduino Nano, RFID module, LED and buzzer.
 To the computer connection through USB. With the help of the master station you can perform a number of referee tasks.
 
-[Read more here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/MasterStantion.md)
+[Read more here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/MasterStation.md)
 
 There is also a wireless station with the bluetooth module. 
 

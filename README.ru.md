@@ -22,7 +22,7 @@
 
 ## Вклад в разработку
 
-Вы можете внести вклад в развитие проекта с помощью написания программ для работы с системой на ПК или Андройде. Протокол передачи данных и команды описан в [руководстве](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/MasterStantion.md)
+Вы можете внести вклад в развитие проекта с помощью написания программ для работы с системой на ПК или Андройде. Протокол передачи данных и команды описан в [руководстве](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/MasterStation.md)
 
 Пул реквесты приветствуются. Также с удовольствием добавим ссылку на Ваши разработки, работающие с Sportiduino.
 
@@ -44,14 +44,14 @@
 
 Суммарно исходные компоненты станции и расходники стоят порядка 500 рублей.
 
-[Подробнее тут](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/BaseStantion.md)
+[Подробнее тут](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/BaseStation.md)
 
 ## Станция сопряжения
 
 Станция сопряжения попроще станции отметки, состоит из Arduino Nano, RFID-модуля, светодиода и пищалки.
 К компьютеру подключение через USB. С помощью станции сопряжения можно выполнять ряд судейских задач.
 
-[Подробнее тут](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/MasterStantion.md)
+[Подробнее тут](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/MasterStation.md)
 
 Также есть беспроводная станция сопряжени с модулем bluetooth. Ведётся разарботка программного обеспечения под Android.
 

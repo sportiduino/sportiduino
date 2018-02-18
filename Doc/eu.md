@@ -8,7 +8,7 @@ The English translation is rough, sometimes there may be unclear moments, write 
 * [Base Station](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/BaseStation.md)
 * [Master Station](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/MasterStation.md)
 * [Wireless Master Station](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/WirelessMasterStation.md)
-* [Equipmnet](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/Equipment.md)
+* [Equipment](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/Equipment.md)
 * [Base Station assembly](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/BaseStationAssembly.md)
 * [Master Station assembly](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/MasterStationAssembly.md)
 * [Data Processing](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/DataProcessing.md)
