@@ -11,7 +11,7 @@ With the help of the master station you can perform a number of referee tasks:
 
 There are gerber files in the folder, you can order a pcb and solder, so it will be more reliable, but you can do everything with wires and double-sided scotch, the benefit of components is quite small.
 
-[Read more about the assembly here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/MasterStationAssembly.md)
+[Read more about the assembly here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/MasterStationAssembly.md)
 
 The station is connected to the computer using a USB connection. The Arduino nano already has a built-in Serial-to-USB converter, so no additional converters are needed. The station will be displayed in the connected devices as a COM port.
 

@@ -6,7 +6,7 @@
 
 [Перейти на русский язык](https://github.com/alexandervolikov/sportiduino/blob/master/README.ru.md)
 
-This project is devoted to the development of cheap electronic marking system for sports and tourist orientering. It is also possible to use it on Rogaine, Multirace, Trail, wherever time fixing is required. Here is the hardware part of the marking system. The software is under construction, the links is placed [below](https://github.com/alexandervolikov/sportiduino#data-processing)
+This project is devoted to the development of cheap electronic marking system for sports and tourist orientering. It is also possible to use it on rogaining events, adventure races, trails, wherever time fixing is required. Here is the hardware part of the marking system. The software is under construction, the links is placed [below](https://github.com/alexandervolikov/sportiduino#data-processing)
 
 [Download latest release](https://github.com/alexandervolikov/sportiduino/releases)
 

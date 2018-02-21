@@ -45,7 +45,7 @@ d. Buzzer. it is worth ordering more expensive and reliable, for example, Jl Wor
 7. The case is Gainta 1020BF. A good body made of ABS plastic, can be doped well for your purposes. You can find another one.
 
 
-Equipment, which is useful for assembly, is given [on a separate page](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/eu/Equipment.md)
+Equipment, which is useful for assembly, is given [on a separate page](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/Equipment.md)
 
 
 ### Soldering the main board
