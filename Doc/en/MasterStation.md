@@ -20,10 +20,10 @@ The transmission and retrieval of information occurs sequentially by sending up 
 || value | the byte address in the packet |
 | --- | --- | --- |
 | start | 0xFE | 0 |
-|function || 1 |
+| function || 1 |
 | the length of the packet, if the packet is not complete, (package number + 0x1E) || 2 |
 | data array || 3--x (x<31) |
-|checksum | x+1 |
+| checksum | x+1 |
 
 The packet starts with start byte 0xFE
 
@@ -56,7 +56,7 @@ List of responses transmitted by the station:
 
 | function | Commands | length | Array of data bytes (in the address bracket in the array) |
 | --- | --- | --- | --- |
-|0x61|Full log transmition|many packages | (the first packet is the station number (0-1)), the number of the marked card 1 (1-2), the number of the marked card 2 (3-4), ..., zero (25)
+| 0x61 | Full log transmition|many packages | (the first packet is the station number (0)), the number of the marked card 1 (1-2), the number of the marked card 2 (3-4), ..., zero (25)
 | 0x63 | Data transfer from the card mark | a lot of packages | (the first package - the card number (0-1), information in the 6-7 pages of the card (2-9),) number cp0 (10), time cp0 (11-14 ), the number of cp1 (15), the time of cp1 (16-19), ...
 | 0x65 | Send raw data from the card | many packets | page number 4 (0), page 4 bytes (1-4), page number 5 (5), page bytes 5 (6-9), ...
 | 0x66 | version of the master stantion harware | 1 | version (0)
@@ -68,6 +68,7 @@ Error Codes:
 
 | N | error |
 | --- | --- |
-| 0x01 | communication error via com | port |
+| 0x01 | communication error via com port |
 | 0x02 | card writing error |
 | 0x03 | card reading error |
+
