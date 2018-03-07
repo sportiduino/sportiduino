@@ -49,8 +49,11 @@ void setup() {
 }
 
 void loop() {
-  if (masterConfig == 1) {
-    readChip();
+  static uint32_t lastReadCardTime = 0;
+  if (masterConfig == 1 &&
+      millis() - lastReadCardTime > 2000) {
+    lastReadCardTime = millis();
+    readCard();
   }
   
   if (Serial.available() > 0) {
@@ -262,10 +265,10 @@ void findFunc() {
       updConfig();
       break;
     case 0x4B:
-      readChip();
+      readCard();
       break;
     case 0x4C:
-      readRawChip();
+      readRawCard();
       break;
     case 0x4E:
       writeMasterSleep();
@@ -620,7 +623,7 @@ void readLog() {
 }
 
 
-void readChip() {
+void readCard() {
   function = 0x63;
   clearBuffer();
   
@@ -710,14 +713,13 @@ void readChip() {
 
   if (masterConfig == 1) {
     beep(20, 1);
-    delay(2000);
   }
 }
 
 /*
  * 
  */
-void readRawChip() {
+void readRawCard() {
   function = 0x65;
   clearBuffer();
   
