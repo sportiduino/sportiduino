@@ -22,6 +22,8 @@ const byte pagePass = 5;
 const byte pageInfo1 = 6;
 const byte pageInfo2 = 7;
 
+const uint8_t START_BYTE = 0xfe;
+
 enum Error {
   ERROR_COM         = 0x01,
   ERROR_CARD_WRITE  = 0x02,
@@ -80,7 +82,7 @@ void loop() {
 
     uint8_t sum = checkSum(dataBuffer, sumAdr - 1);
     
-    if (serialBuffer[0] != 0xFE ||
+    if (serialBuffer[0] != START_BYTE ||
         serialBuffer[sumAdr] != sum) {
       signalError(ERROR_COM);
     }
@@ -124,14 +126,14 @@ void addData(uint8_t data, uint8_t func) {
  */
 void sendData(uint8_t func, uint8_t leng){
   
-  Serial.write(0xFE);
+  Serial.write(START_BYTE);
   
   dataBuffer[0] = func;
   dataBuffer[1] = leng - 2;
 
   uint8_t trueleng = leng;
   if (leng > 30) {
-    trueleng=30;
+    trueleng = 30;
   }
   
   for (uint8_t w = 0; w < trueleng; w++) {
