@@ -22,6 +22,14 @@ const byte pagePass = 5;
 const byte pageInfo1 = 6;
 const byte pageInfo2 = 7;
 
+enum Error {
+  ERROR_COM         = 0x01,
+  ERROR_CARD_WRITE  = 0x02,
+  ERROR_CARD_READ   = 0x03,
+  ERROR_EEPROM_READ = 0x04
+};
+
+
 uint8_t ntagValue = 130;
 uint8_t ntagType = 213;
 
@@ -74,7 +82,7 @@ void loop() {
     
     if (serialBuffer[0] != 0xFE ||
         serialBuffer[sumAdr] != sum) {
-      signalError(0x01);
+      signalError(ERROR_COM);
     }
     else {
       findFunc();
@@ -144,7 +152,7 @@ bool ntagWrite(uint8_t *dataBlock, uint8_t pageAdr) {
   const uint8_t sizePageNtag = 4;
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Ultralight_Write(pageAdr, dataBlock, sizePageNtag);
   if (status != MFRC522::STATUS_OK) {
-    signalError(0x02);
+    signalError(ERROR_CARD_WRITE);
     return false;
   }
 
@@ -153,7 +161,7 @@ bool ntagWrite(uint8_t *dataBlock, uint8_t pageAdr) {
 
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
   if (status != MFRC522::STATUS_OK) {
-    signalError(0x03);
+    signalError(ERROR_CARD_READ);
     return false;
   }
  
@@ -181,7 +189,7 @@ bool ntagRead(uint8_t pageAdr) {
 
   status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
   if (status != MFRC522::STATUS_OK) {
-    signalError(0x03);
+    signalError(ERROR_CARD_READ);
     return false;
   }
   
@@ -226,7 +234,7 @@ uint8_t eepromread(uint16_t adr) {
     return EEPROM.read(adr + 1);
   }
   else {
-    signalError(0x04);
+    signalError(ERROR_EEPROM_READ);
     return 0;
   }
 
