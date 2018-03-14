@@ -71,4 +71,5 @@ Error Codes:
 | 0x01 | communication error via com port |
 | 0x02 | card writing error |
 | 0x03 | card reading error |
+| 0x04 | EEPROM reading error |
 
