@@ -25,14 +25,13 @@ const uint8_t pageCC = 3;
 const uint8_t blockInfo = 4; //block for information about participant and last stantion
 const uint8_t pagePass = 5;
 
-const uint8_t ntag213 = 3;
-const uint8_t ntag215 = 5;
-const uint8_t ntag216 = 6;
+const uint8_t ntag214 = 4;
+const uint8_t ntagValue = 50;
 
 const uint8_t startStantion = 240; //number of start stantion
 const uint8_t finishStantion = 245;//number of finish stantion
 const uint8_t clearStantion = 249; //number of clear station
-const uint16_t maxNumChip = 4000;//for EEPROM write. If you exceed, the mark will be made, but the information in EEPROM will not be recorded
+const uint16_t maxNumChip = 1500;//for EEPROM write. If you exceed, the mark will be made, but the information in EEPROM will not be recorded
 
 //master chips number in the first three bytes of the chip in the first page
 const uint8_t timeMaster = 250;
@@ -70,12 +69,17 @@ uint32_t maxTimeInit = 2500000UL; //
 uint32_t loopCount = 0; //86400, 691200 - 6, 48 hour work regime
 uint32_t maxCount = 86400UL; //loops before switching to standby mode
 
+MFRC522::MIFARE_Key key;
 MFRC522::StatusCode status;
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 struct ts t; //time
 
 
 void setup () {
+
+  for (byte i = 0; i < 6; i++) {
+    key.keyByte[i] = 0xFF;
+  }
   //We read the time. if huddled hours, signaling
   
   pinMode(VCC_C, OUTPUT);
@@ -428,56 +432,83 @@ void voltage() {
 uint8_t dump[16];
 
 //MFRC522::StatusCode MFRC522::MIFARE_Read
-bool ntagWrite (uint8_t *dataBlock, uint8_t pageAdr){
+bool ntagWrite (uint8_t *data, uint8_t pageAdr){
+  byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
 
-  const uint8_t sizePageNtag = 4;
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Ultralight_Write(pageAdr, dataBlock, sizePageNtag);
+  byte dataBlock[16];
+  dataBlock[0]=data[0];
+  dataBlock[1]=data[1];
+  dataBlock[2]=data[2];
+  dataBlock[3]=data[3];
+  
+  byte buffer[18];
+  byte size = sizeof(buffer);
+  byte trailerBlock = blockAddr + (3-blockAddr%4);
+  
+  // Authenticate using key A
+  status = (MFRC522::StatusCode) mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
   if (status != MFRC522::STATUS_OK) {
-    return false;
+      return false;
   }
 
-  uint8_t buffer[18];
-  uint8_t size = sizeof(buffer);
-
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
+  // Write data to the block
+  status = (MFRC522::StatusCode) mfrc522.MIFARE_Write(blockAddr, dataBlock, 16);
   if (status != MFRC522::STATUS_OK) {
-    return false;
+     
+     return false;
+  }
+  
+  // Read data from the block (again, should now be what we have written)
+  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(blockAddr, buffer, &size);
+  if (status != MFRC522::STATUS_OK) {
+      
+      return false;
   }
  
   for (uint8_t i = 0; i < 4; i++) {
     dump[i]=buffer[i];
   }
-  if (dataBlock[0]!=0){
-    if (dump[0]!=0 || dump[1]!=0 || dump[2]!=0 || dump[3]!=0){
-      return true;
-    }
-    else{
-      return false;
-    }
+
+  if (dump[0]==dataBlock[0]){
+    return true;
   }
-  else {
-    if (dump[1]==0){
-      return true;
-    }
-    else{
-      return false;
-    }
+  else{
+    return false;
   }
+    
 }
 
 bool ntagRead (uint8_t pageAdr){
-  uint8_t buffer[18];
-  uint8_t size = sizeof(buffer);
-
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
-  if (status != MFRC522::STATUS_OK) {
-    return false;
-  }
+  byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
   
-  for (uint8_t i = 0; i < 16; i++) {
-    dump[i]=buffer[i];
+  byte buffer[18];
+  byte size = sizeof(buffer);
+  byte trailerBlock = blockAddr + (3-blockAddr%4);
+   // Authenticate using key A
+  status = (MFRC522::StatusCode) mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
+  if (status != MFRC522::STATUS_OK) {
+      return false;
   }
-  return true;
+
+ 
+  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(blockAddr, buffer, &size);
+  if (status != MFRC522::STATUS_OK) {
+      
+      return false;
+  }
+ 
+  byte count = 0;
+  for (byte i = 0; i < 16; i++) {
+      dump[i]=buffer[i];
+      // Compare buffer (= what we've read) with dataBlock (= what we've written)
+ }
+
+ if (pageAdr==3){
+      dump[2]=0;
+ }
+ 
+ return true;
+   
 }
 
 
@@ -544,6 +575,43 @@ void rfid() {
   //в первых трех байтах находятся нули для обычных чипов и заданные числа для мастер-чипов
   uint8_t info = 0;
   if (dump[2]==255) {
+    uint8_t tempdump[16];
+    tempdump[0]=dump[0];
+    tempdump[1]=dump[1];
+    tempdump[2]=dump[2];
+    tempdump[3]=dump[3];
+
+    if(!ntagRead(blockInfo+1)){
+      return;
+    }
+
+    tempdump[4]=dump[0];
+    tempdump[5]=dump[1];
+    tempdump[6]=dump[2];
+    tempdump[7]=dump[3];
+
+    if(!ntagRead(blockInfo+2)){
+      return;
+    }
+
+    tempdump[8]=dump[0];
+    tempdump[9]=dump[1];
+    tempdump[10]=dump[2];
+    tempdump[11]=dump[3];
+
+    if(!ntagRead(blockInfo+3)){
+      return;
+    }
+
+    tempdump[12]=dump[0];
+    tempdump[13]=dump[1];
+    tempdump[14]=dump[2];
+    tempdump[15]=dump[3];
+
+    for (uint8_t h=0;h<16;h++){
+      dump[h]=tempdump[h];
+    }
+    
     info = dump[1];
     //считываем пароль с мастер-чипа
     uint8_t chipPass[3];
@@ -571,7 +639,7 @@ void rfid() {
     clearChip();
     return;
   }
-
+  
   if (checkTimeInit == true){
   
     uint32_t timeInit = dump[4];
@@ -598,18 +666,8 @@ void rfid() {
   
   uint8_t ntagType = dump[2]%10;
 
-  if (ntagType==ntag215){
-    newPage = findNewPage(128);  
-  }
-  else if (ntagType==ntag213){
-    newPage = findNewPage(40);
-  }
-  else if (ntagType==ntag216){
-    newPage = findNewPage(224);
-  }
-  else{
-    return;
-  }
+  newPage = findNewPage(50);
+ 
 
   //ищем последнюю пустую страницу в чипе для записи
   
@@ -626,9 +684,7 @@ void rfid() {
   
   //проверяем записан ли чип уже полностью и места на нём нет
   //check if memory of chip has finished
-  uint8_t maxPage = 39;
-  if (ntagType == ntag215) maxPage = 127;
-  else if (ntagType == ntag216) maxPage = 223;
+  uint8_t maxPage = 49;
   
   if(newPage > maxPage){
     return;
@@ -673,7 +729,10 @@ void rfid() {
   work = true;
   loopCount = 0;
 
-  
+  // Halt PICC
+    mfrc522.PICC_HaltA();
+    // Stop encryption on PCD
+    mfrc522.PCD_StopCrypto1();
   SPI.end();
 
 } // end of rfid()
@@ -779,7 +838,7 @@ void dumpChip(){
     return;
   }
 
-  for (uint8_t page = 5; page<130;page++){
+  for (uint8_t page = 5; page<50;page++){
   wdt_reset();  
     for (uint8_t m = 0; m<4;m++){
       dataEeprom[m]=EEPROM.read(eepromAdr);
@@ -885,22 +944,6 @@ void clearChip(){
 
   pinMode (LED, OUTPUT);
   digitalWrite (LED,HIGH);
-  
-  uint8_t ntagValue = 0;
-  uint8_t ntagType = dump[2]%10;
-
-  if (ntagType==ntag215){
-    ntagValue = 130;
-  }
-  else if (ntagType==ntag213){
-    ntagValue = 40;
-  }
-  else if (ntagType==ntag216){
-    ntagValue = 216;
-  }
-  else{
-    return;
-  }
   
   byte Wbuff[] = {255,255,255,255};
   

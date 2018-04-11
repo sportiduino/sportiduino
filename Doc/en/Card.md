@@ -2,6 +2,10 @@ The card Ntag 213 / 215 / 216 can record up to 32/120/216 marks. In the form of 
 
 Important! For reliable operation with these cards, which have a small antenna area (like the keychains below) it is necessary to replace the inductors with the more powerful ones in the RFID RC522 module (described on the page "Base station assembly").
 
+In addition, it is possible to use Mifare Classic S50 chips. These chips are also cheap, come bundled with the RC522 module. The memory of these chips is enough for 42 marks. They work a little slower than Ntag. Firmware for Mifare and Ntag are not compatible, so when using Mifare, at the mark and base stations need to upload other firmware, with Mifare in the title.
+
+Memory of Mifare chips is used only for a quarter, since in their structure pages with a length of 16 bytes are realized. And with more dense recording there is a risk of data loss. The structure of the record is similar to Ntag.
+
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/Chip.JPG)
 
 The memory of the Ntag 213/215/216 cards is structurally divided into 45/135/231 pages, each containing 4 bytes. The first 4 pages contain UID and other service information. Also, the service information is contained in the last 5 pages. Thus, 36/126/222 pages remain for the record.

@@ -1,3 +1,10 @@
+## [1.3.0] - 2018-04-11
+### Bug fix and new features
+- Bug fix with set settings to statioin
+- Add clear station mode
+- Sound of the station is amplified by adding transistor to scheme
+- Firmware for working with Mifare Classic S50 cards moved to the main repository
+
 ## [1.2.0] - 2018-02-17
 ### Changed the master station communication protocol
 - The fixed packet up to 32 bytes is changed to a variable length packet with a maximum length of 32 bytes.

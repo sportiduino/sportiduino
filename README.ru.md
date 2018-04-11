@@ -1,6 +1,6 @@
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/logo.png)
 
-#### Version 1.2.0
+#### Version 1.3.0
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportIDuino/master/Images/Sportiduino.JPG)
 
@@ -35,6 +35,8 @@
 ## Чипы
 
 В системе используются чипы Ntag213 / 215 / 216. В виде наклеек данные чипы стоят 6, 12 и 20 рублей, соответветственно, в виде брелка в два раза дороже. Памяти данных чипов хватает на 32, 120 и 216 отметок, соответственно.
+
+Кроме того, возможно использование чипов Mifare Classic S50. Это чипы также дешевые, идут в комплекте в модулем RC522. Памяти данных чипов хватает на 42 отметки. Работают чуть медленнее Ntag. Прошивки для Mifare и Ntag не совместимы, поэтому при использовании Mifare, на станции отметки и сопряжения необходимо загружать другие прошивки, с Mifare в названии.
 
 [Подробнее тут](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/Card.md)
 

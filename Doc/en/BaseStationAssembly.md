@@ -14,11 +14,11 @@ b. DS3231SN Watch
 
 c. The voltage regulator MCP1700T-33.
 
+d. Transistor BC817 sot 23. Or similar.
+
 4. Passive components in the 0805 format.
 
-a. Resistor 150 Ohm
-
-b. 47 Ohm Resistor
+a. Two Resistor 150 Ohm
 
 c. Three 10 kΩ resistors
 

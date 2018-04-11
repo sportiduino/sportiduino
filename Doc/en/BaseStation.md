@@ -46,6 +46,13 @@ Byte settings. It is programmed using the master-card pass and settings. Respons
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/Setting-byte2.PNG)
 
+### Clear station.
+
+To transfer the station to the cleaning mode, you need to specify stations number 249.
+In cleanup mode, the station clears all pages of the chip except of the page with the chip number and pages of the specified information. That is, all the marks are erased, the given chip number remains the same. The new time is recorded in the initialization time page, which is used to calculate the results, so it is important that the time at the station is correct.
+
+When the chip is presented, the LED lights up on the station and lights up all the cleaning time (about 5 seconds). If the cleaning is successful, the station emits a signal, the LED goes out, the chip needs to be removed. If there was no signal, the cleaning was not completed, you need to repeat the procedure.
+
 ### Password system.
 Because the system is open and all the specifications are available to everyone, someone can write with any NFC device any master card. There is the possibility of vandalism - reprogramming of established stations. And then, unlike if the station was simply broken down, the error might turn into results, which is difficult to notice and which can affect the places. To protect against this phenomenon, a password system was introduced.
 
