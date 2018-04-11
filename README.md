@@ -58,11 +58,15 @@ There is also a wireless station with the bluetooth module.
 
 ## Data processing
 
-Software development in IDE Processing is included in a [separate repository](https://github.com/alexandervolikov/sportiduinoProcessing). 
-The functional is minimal.
+Development of software in IDE Processing is made in a separate [repository] (https://github.com/alexandervolikov/sportiduinoProcessing) Implemented basic functionality for working with the system.
 
-We are developing a python module for the program [SportOrg](https://github.com/sportorg/pysport)
-The module repository is also [separate](https://github.com/alexandervolikov/sportiduinoPython)
+The [python module](https://github.com/alexandervolikov/sportiduinoPython) was developed for connect master-stantion to various software products.
+
+### SportOrg
+
+Reading chips is implemented in the program [SportOrg] (https://github.com/sportorg/pysport)
+[Site](http://sportorg.o-ural.ru/)
+[Group VK](https://vk.com/sportorgpro)
 
 ***********
 Available from:  https://github.com/alexandervolikov/sportiduino

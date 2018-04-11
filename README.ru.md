@@ -59,10 +59,15 @@
 
 ## Обработка данных
 
-Разработка программного обеспечения в IDE Processing вынесена в отдельний [репозиторий](https://github.com/alexandervolikov/sportiduinoProcessing) Функционал минимальный.
+Разработка программного обеспечения в IDE Processing вынесена в отдельний [репозиторий](https://github.com/alexandervolikov/sportiduinoProcessing) Реализован базовый функционал для работы с системой.
 
-Ведётся разработка модуля на python для программы [SportOrg ](https://github.com/sportorg/pysport)
-Репозиторий модуля также [отдельный](https://github.com/alexandervolikov/sportiduinoPython)
+Разработан [модуль на python](https://github.com/alexandervolikov/sportiduinoPython) для подключения к различным программным продуктам. 
+
+### SportOrg
+Чтение чипов реализовано в программе [SportOrg ](https://github.com/sportorg/pysport)
+[Сайт с руководством](http://sportorg.o-ural.ru/)
+[Группа ВК](https://vk.com/sportorgpro)
+
 
 ***********
 [Проведенные на системе соревнования](https://github.com/alexandervolikov/sportiduino/wiki/%D0%9F%D1%80%D0%BE%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%BD%D1%8B%D0%B5-%D1%81%D0%BE%D1%80%D0%B5%D0%B2%D0%BD%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F)
