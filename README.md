@@ -64,8 +64,10 @@ The [python module](https://github.com/alexandervolikov/sportiduinoPython) was d
 
 ### SportOrg
 
-Reading chips is implemented in the program [SportOrg] (https://github.com/sportorg/pysport)
+Reading chips is implemented in the program [SportOrg](https://github.com/sportorg/pysport)
+
 [Site](http://sportorg.o-ural.ru/)
+
 [Group VK](https://vk.com/sportorgpro)
 
 ***********

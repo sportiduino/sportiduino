@@ -65,7 +65,9 @@
 
 ### SportOrg
 Чтение чипов реализовано в программе [SportOrg ](https://github.com/sportorg/pysport)
+
 [Сайт с руководством](http://sportorg.o-ural.ru/)
+
 [Группа ВК](https://vk.com/sportorgpro)
 
 
