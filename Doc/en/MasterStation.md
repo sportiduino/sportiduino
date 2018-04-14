@@ -37,7 +37,7 @@ List of commands sent to the station:
 
 | function | Commands | length | Array of data bytes (in the address bracket in the array) |
 | --- | --- | --- | --- |
-| 0x41 | Write the time for the master card | 6 | year-2000 (0) month (1) day (2) hour (3) minute (4) second (5)
+| 0x41 | Write the time for the master card | 9 | year-2000 (0) month (1) day (2) hour (3) minute (4) second (5) correction (6) value of the correction (7-8)
 | 0x42 | Write the station number to the master card | 1 | number (0)
 | 0x43 | Write the password and settings for the master card | 7 | new password (0-2) old password (3-5) settings (6)
 | 0x44 | Initialize the card | 14 | card number (0-1), current time (2-5), information in 6-7 pages (6-13)

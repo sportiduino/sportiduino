@@ -1,6 +1,6 @@
 ﻿![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/logo.png)
 
-#### Version 1.3.0
+#### Last Version 1.4.0
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportIDuino/master/Images/Sportiduino.JPG)
 
@@ -9,6 +9,10 @@
 This project is devoted to the development of cheap electronic marking system for sports and tourist orientering. It is also possible to use it on rogaining events, adventure races, trails, wherever time fixing is required. Here is the hardware part of the marking system. The software is under construction, the links is placed [below](https://github.com/alexandervolikov/sportiduino#data-processing)
 
 [Download latest release](https://github.com/alexandervolikov/sportiduino/releases)
+
+Stable - 1.2.0
+
+latest - 1.4.0
 
 [Manual](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en.md)
 

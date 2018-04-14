@@ -1,3 +1,7 @@
+## [1.4.0] - 2018-04-13
+### Add calibrating the clock
+- The ability to calibrate the clock is added. Increase / decrease the speed of the clock in the range from 15 to 1,000,000 ppm
+
 ## [1.3.0] - 2018-04-11
 ### Bug fix and new features
 - Bug fix with set settings to statioin

@@ -2,7 +2,7 @@
 #include <MFRC522.h>
 #include <EEPROM.h>
 
-const byte vers = 103; //version of software
+const byte vers = 104; //version of software
 
 const byte LED = 4;
 const byte BUZ = 3;
@@ -354,17 +354,17 @@ void writeMasterTime() {
   }
 
 
-  byte dataBlock2[] = {pass[0], pass[1], pass[2], 0};
+  byte dataBlock2[] = {pass[0], pass[1], pass[2], dataBuffer[8]};
   if(!ntagWrite(dataBlock2, pagePass)) {
     return;
   }
 
-  byte dataBlock3[] = {dataBuffer[3], dataBuffer[2], dataBuffer[4], 0};
+  byte dataBlock3[] = {dataBuffer[3], dataBuffer[2], dataBuffer[4], dataBuffer[9]};
   if(!ntagWrite(dataBlock3, pageInfo1)){
     return;
   }
 
-  byte dataBlock4[] = {dataBuffer[5], dataBuffer[6], dataBuffer[7], 0};
+  byte dataBlock4[] = {dataBuffer[5], dataBuffer[6], dataBuffer[7], dataBuffer[10]};
   if(!ntagWrite(dataBlock4, pageInfo2)) {
     return;
   }
