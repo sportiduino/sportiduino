@@ -9,7 +9,7 @@
 
 //Константы и перменные
 
-const uint8_t vers = 104; //version of software
+const uint8_t vers = 103; //version of software
 const uint16_t eepromMaxChip = 4000; //16Kb, default in ds3231 - 4Kb
 
 const uint8_t LED = 4; // led diod pin
@@ -20,7 +20,6 @@ const uint8_t SS_PIN = 10; //SS pin of RFID
 const uint16_t eepromAdrStantion = 800;//start address for storing number of the stantion
 const uint16_t eepromAdrSleep = 900;//start address for storing sleep state
 const uint16_t eepromPass = 850;//start address for storing password and settings
-const uint16_t eepromTimeCorr = 950;//start addres for correction time
 
 const uint8_t pageCC = 3;
 const uint8_t blockInfo = 4; //block for information about participant and last stantion
@@ -66,10 +65,6 @@ boolean night = false; // When triggered watchdog if the station does not sleep,
 boolean deepsleep = false; //On / off stantion. In off regime sleep 8 s
 boolean checkTimeInit = false; //реагирование станций на чипы с просроченой инициализацией
 uint32_t maxTimeInit = 2500000UL; //
-
-uint32_t lastTimeCorrect = 0; //время последней установки времени
-uint8_t funcCorrect = 0; //знак коррекци: 1 - часы опаздывают, 2 - часы спешат, 0 - не производить коррекцию
-uint16_t valueCorrect = 0; //величина коррекции. поправка на  1 с спустя valueCorrect после времени последний коррекции часов
 
 uint32_t loopCount = 0; //86400, 691200 - 6, 48 hour work regime
 uint32_t maxCount = 86400UL; //loops before switching to standby mode
@@ -125,8 +120,6 @@ void setup () {
   
   uint8_t set3 = setting&0b00001000;
   if (set3 == true) checkTimeInit = true;
-
-  initTimeCorr();
  
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
   beep(800, 1 ); //The signal at system startup or reboote
@@ -758,21 +751,17 @@ void timeChip() {
   t.min = dump[13];
   t.sec = dump[14];
 
-  digitalWrite(VCC_C,HIGH);
-  delay(1);
-  DS3231_set(t); //correct time
-  DS3231_get(&t);
-  digitalWrite(VCC_C,LOW);
-
-  setTimeCorr(dump[7], dump[11], dump[15]);
-  
-  
   uint8_t dataDump[4] ={0, 0, 0,0};
   
   if(!ntagWrite(dataDump,4)){
     beep(50,3);
     return;
   }
+  
+  digitalWrite(VCC_C,HIGH);
+  delay(1);
+  DS3231_set(t); //correct time
+  digitalWrite(VCC_C,LOW);
   
   beep(300,5);
   resetFunc(); //reboot
@@ -874,20 +863,9 @@ void dumpChip(){
  */
 bool writeTime(int newPage){
 
-   uint32_t timeNow = t.unixtime;
-   
-   if (funcCorrect == 1 && valueCorrect!=0){
-     timeNow += (timeNow - lastTimeCorrect)/valueCorrect;
-     
-   }
-   else if (funcCorrect == 2 && valueCorrect!=0){
-     timeNow -= (timeNow - lastTimeCorrect)/valueCorrect;
-     
-   }
-   
    uint32_t code = stantion;
    code = code<<24;
-   code += (timeNow&0x00FFFFFF);
+   code += (t.unixtime&0x00FFFFFF);
 
    uint8_t toWrite[4] = {0,0,0,0};
    toWrite[0]=(code&0xFF000000)>>24;
@@ -1001,62 +979,3 @@ void clearChip(){
   
 }
 
-void initTimeCorr(){
-  
-  uint8_t timeCorr[7];
-
-  for (uint8_t i=0; i<7;i++){
-    timeCorr[i] = eepromread(eepromTimeCorr + i*3);
-  }
-
-  if (timeCorr[0]==1 || timeCorr[0]==2){
-    funcCorrect = timeCorr[0];
-  
-    valueCorrect = timeCorr[1];
-    valueCorrect <<= 8;
-    valueCorrect += timeCorr[2]; 
-    
-    lastTimeCorrect = timeCorr[3];
-    lastTimeCorrect <<= 8;
-    lastTimeCorrect += timeCorr[4];
-    lastTimeCorrect <<= 8;
-    lastTimeCorrect += timeCorr[5];
-    lastTimeCorrect <<= 8;
-    lastTimeCorrect += timeCorr[6];
-  }
-  
-}
-
-
-void setTimeCorr(uint8_t znak, uint8_t value1, uint8_t value2){
-
-  uint8_t timeCorr[7];
-
-  if (znak!=0){
-    if (znak==1 || znak==2){
-      timeCorr[0] = znak;
-      timeCorr[1] = value1;
-      timeCorr[2] = value2;
-    }
-    else{
-      timeCorr[0] = 0;
-      timeCorr[1] = 0;
-      timeCorr[2] = 0;
-    }
-    for (uint8_t i = 0;i<3;i++){
-      eepromwrite((eepromTimeCorr+i*3),timeCorr[i]);
-    }
-  }
-  
-  uint32_t corTime = t.unixtime;
-  
-  timeCorr[3] = (corTime&0xFF000000)>>24;
-  timeCorr[4] = (corTime&0x00FF0000)>>16;
-  timeCorr[5] = (corTime&0x0000FF00)>>8;
-  timeCorr[6] = (corTime&0x000000FF);
-
-  for (uint8_t i = 3;i<7;i++){
-    eepromwrite((eepromTimeCorr+i*3),timeCorr[i]);
-  }
-    
-}
