@@ -1,3 +1,9 @@
+## [1.3.1] - 2018-06-06
+### Speeded up the mark, changes in the settings of the base stations
+- Due to optimization of chip reading, the time of the mark is reduced by 40 ms
+- Added the ability to limit the maximum possible number of marks on the chip and, thereby, further reduce the time of the mark at the base stations
+- In the cleaning station mode, the problem of re-cleaning the chip is solved.
+
 ## [1.3.0] - 2018-04-11
 ### Bug fix and new features
 - Bug fix with set settings to statioin

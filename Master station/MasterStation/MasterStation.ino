@@ -2,7 +2,7 @@
 #include <MFRC522.h>
 #include <EEPROM.h>
 
-const byte vers = 103; //version of software
+const byte vers = 104; //version of software
 
 const byte LED = 4;
 const byte BUZ = 3;
@@ -447,8 +447,8 @@ void writeInit() {
     ntagValue = 40;
     ntagType = 3;
   }
-  
-  
+
+   
   
   byte Wbuff[] = {255,255,255,255};
   

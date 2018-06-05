@@ -69,6 +69,10 @@ uint32_t maxTimeInit = 2500000UL; //
 uint32_t loopCount = 0; //86400, 691200 - 6, 48 hour work regime
 uint32_t maxCount = 86400UL; //loops before switching to standby mode
 
+uint8_t lastCleanChip0 = 0;
+uint8_t lastCleanChip1 = 0;
+boolean lastChipClean = false;
+
 MFRC522::MIFARE_Key key;
 MFRC522::StatusCode status;
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
@@ -941,7 +945,16 @@ uint8_t findNewPage(uint8_t finishpage){
 }
 
 void clearChip(){
-
+  
+  
+  if ((lastCleanChip0==dump[0])&&(lastCleanChip1==dump[1])&&lastChipClean){
+    beep(500, 1 );
+    return;
+  }
+  lastChipClean = false;
+  lastCleanChip0 = dump[0];
+  lastCleanChip1 = dump[1];
+  
   pinMode (LED, OUTPUT);
   digitalWrite (LED,HIGH);
   
@@ -977,5 +990,6 @@ void clearChip(){
   digitalWrite (LED,LOW);
   beep(500, 1 );
   
+  lastChipClean = true;
 }
 

@@ -70,6 +70,12 @@ uint32_t maxTimeInit = 2500000UL; //
 uint32_t loopCount = 0; //86400, 691200 - 6, 48 hour work regime
 uint32_t maxCount = 86400UL; //loops before switching to standby mode
 
+
+uint32_t ntagReg = 0;
+uint8_t lastCleanChip0 = 0;
+uint8_t lastCleanChip1 = 0;
+boolean lastChipClean = false;
+
 MFRC522::StatusCode status;
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 struct ts t; //time
@@ -103,11 +109,11 @@ void setup () {
     pass[0]=pass[1]=pass[2]=setting=0;
   }
 
-  uint8_t timeidl = setting&0b00000011;
-  if (timeidl == 0b00000000) maxCount = 86400UL;
-  if (timeidl == 0b00000001) maxCount = 691200UL;
-  if (timeidl == 0b00000010) maxCount = 0;
-  if (timeidl == 0b00000011) maxCount = 1;
+  uint8_t set0_1 = setting&0b00000011;
+  if (set0_1 == 0b00000000) maxCount = 86400UL; //6 чаосв
+  if (set0_1 == 0b00000001) maxCount = 691200UL; //24 часа
+  if (set0_1 == 0b00000010) maxCount = 0; // всегда режим ожидания
+  if (set0_1 == 0b00000011) maxCount = 1; // всегда рабочий режим
   
   
   uint8_t set2 = setting&0b00000100;
@@ -116,6 +122,12 @@ void setup () {
   
   uint8_t set3 = setting&0b00001000;
   if (set3 == true) checkTimeInit = true;
+
+  uint8_t set4_5 = setting&0b00110000;
+  if (set4_5 ==  0b00000000) ntagReg = 0; // число отметок определяется типом чипа
+  if (set4_5 ==  0b00010000) ntagReg = 3; //32 отметки
+  if (set4_5 ==  0b00100000) ntagReg = 4; //64 отметки
+  if (set4_5 ==  0b00110000) ntagReg = 5; //120 отметок
  
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
   beep(800, 1 ); //The signal at system startup or reboote
@@ -597,18 +609,35 @@ void rfid() {
 
   
   uint8_t ntagType = dump[2]%10;
+  uint8_t maxPage = 39;
 
-  if (ntagType==ntag215){
-    newPage = findNewPage(128);  
-  }
-  else if (ntagType==ntag213){
+  if (ntagReg == 3){
     newPage = findNewPage(40);
   }
-  else if (ntagType==ntag216){
-    newPage = findNewPage(224);
+  else if (ntagReg == 4 && ntagType > 3){
+    newPage = findNewPage(72);
+    maxPage = 71;
+  }
+  else if (ntagReg == 5 && ntagType == 6){
+    newPage = findNewPage(128);
+    maxPage = 127;
   }
   else{
-    return;
+    if (ntagType==ntag215){
+      newPage = findNewPage(128);
+      maxPage = 127;
+    }
+    else if (ntagType==ntag213){
+      newPage = findNewPage(40);
+      maxPage = 39;
+    }
+    else if (ntagType==ntag216){
+      newPage = findNewPage(224);
+      maxPage = 223;
+    }
+    else{
+      return;
+    }
   }
 
   //ищем последнюю пустую страницу в чипе для записи
@@ -626,9 +655,6 @@ void rfid() {
   
   //проверяем записан ли чип уже полностью и места на нём нет
   //check if memory of chip has finished
-  uint8_t maxPage = 39;
-  if (ntagType == ntag215) maxPage = 127;
-  else if (ntagType == ntag216) maxPage = 223;
   
   if(newPage > maxPage){
     return;
@@ -856,36 +882,67 @@ void passChip(){
  */
 
 uint8_t findNewPage(uint8_t finishpage){
-  uint8_t startpage = 8;
-  uint8_t page = (finishpage+startpage)/2;
+  uint8_t finishblock = finishpage/4;
+  uint8_t startblock = 2;
+  uint8_t block = (finishblock-startblock)/2;
 
   while (1) {
-    if (finishpage==startpage) {
-      return (finishpage);
+    if (finishblock==startblock) {
+      return (finishblock*4);
     }
        
-    page = (finishpage + startpage)/2;
-   
-    if(!ntagRead(page)){
+    block = (finishblock + startblock)/2;
+     
+    if(!ntagRead(block*4)){
       for (uint8_t i = 0; i<4 ; i++) tempDump[i] = 0;
       return 0;
     }
      
+    boolean empty = true;
+
     if (dump[0]==0){
-      finishpage = (finishpage - startpage)/2 + startpage;
+      empty = true;
+    }
+    else if (dump[0]!=0 && dump[4]==0){
+      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i];
+      return block*4+1;
+    }
+    else if (dump[4]!=0 && dump[8]==0){
+      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i+4];
+      return block*4+2;
+    }
+    else if (dump[8]!=0 && dump[12]==0){
+      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i+8];
+      return block*4+3;
     }
     else {
-      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i];
-      startpage = finishpage - (finishpage - startpage)/2;
+      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i+12];
+      empty = false;
     }
-  } 
+
+    
+    if (empty){
+      finishblock = (finishblock - startblock)/2 + startblock;
+    }
+    else{
+      startblock = finishblock - (finishblock - startblock)/2;
+    }
+    } 
 }
 
 void clearChip(){
+  
+  if ((lastCleanChip0==dump[0])&&(lastCleanChip1==dump[1])&&lastChipClean){
+    beep(500, 1 );
+    return;
+  }
+  lastChipClean = false;
+  lastCleanChip0 = dump[0];
+  lastCleanChip1 = dump[1];
 
   pinMode (LED, OUTPUT);
   digitalWrite (LED,HIGH);
-  
+
   uint8_t ntagValue = 0;
   uint8_t ntagType = dump[2]%10;
 
@@ -933,6 +990,8 @@ void clearChip(){
   }
   digitalWrite (LED,LOW);
   beep(500, 1 );
+
+  lastChipClean = true;
   
 }
 

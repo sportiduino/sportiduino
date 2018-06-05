@@ -1,4 +1,6 @@
-Разработка программного обеспечения в IDE Processing вынесена в отдельний [репозиторий](https://github.com/alexandervolikov/sportiduinoProcessing) Функционал минимальный.
+Разработка программного обеспечения в IDE Processing вынесена в отдельний [репозиторий](https://github.com/alexandervolikov/sportiduinoProcessing) Функционал минимальный. Необходима для первоначальной настройки чипов и станций.
 
-Ведётся разработка модуля на python для программы [SportOrg ](https://github.com/sportorg/pysport)
-Репозиторий модуля также [отдельный](https://github.com/alexandervolikov/sportiduinoPython)
+Модуль на python [репозиторий](https://github.com/alexandervolikov/sportiduinoPython)
+
+Чтение чипов реализовано в программе [SportOrg ](https://github.com/sportorg/pysport)
+[Сайт с руководством](http://sportorg.o-ural.ru/)
