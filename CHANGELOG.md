@@ -1,3 +1,7 @@
+## [1.3.2] - 2018-06-08
+### Add check station
+- To simplify the procedure for checking the chips before the start, a check station mode was added. Also Since it does not record anything on the chip, participants can be trained in the marking chip on the base station
+
 ## [1.3.1] - 2018-06-06
 ### Speeded up the mark, changes in the settings of the base stations
 - Due to optimization of chip reading, the time of the mark is reduced by 40 ms

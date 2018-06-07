@@ -31,6 +31,7 @@ const uint8_t ntag216 = 6;
 
 const uint8_t startStantion = 240; //number of start stantion
 const uint8_t finishStantion = 245;//number of finish stantion
+const uint8_t checkStantion = 248;
 const uint8_t clearStantion = 249; //number of clear station
 const uint16_t maxNumChip = 4000;//for EEPROM write. If you exceed, the mark will be made, but the information in EEPROM will not be recorded
 
@@ -584,6 +585,11 @@ void rfid() {
     return;
   }
 
+  if (stantion == checkStantion){
+    checkChip();
+    return;
+  }
+
   if (checkTimeInit == true){
   
     uint32_t timeInit = dump[4];
@@ -995,3 +1001,39 @@ void clearChip(){
   
 }
 
+/*
+ * 
+ */
+void checkChip(){
+  
+  uint32_t initTime = dump[4];
+  initTime <<= 8;
+  initTime += dump[5];
+  initTime <<= 8;
+  initTime += dump[6];
+  initTime <<= 8;
+  initTime += dump[7];
+
+  if ((t.unixtime-initTime)> maxTimeInit){
+    beep(200,3);
+    return;
+  }
+
+  uint8_t firstPage = 8;
+
+  for (byte i =0;i<7;i++){
+    if(!ntagRead(firstPage)){
+      return;
+    }  
+  }
+  
+  for (byte i=0; i<16;i++){
+    if (dump[i]!=0){
+      beep(200,3);
+      return;
+    }
+  }
+
+  beep(200,1);
+  
+}

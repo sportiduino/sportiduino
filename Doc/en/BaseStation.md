@@ -53,6 +53,12 @@ In cleanup mode, the station clears all pages of the chip except of the page wit
 
 When the chip is presented, the LED lights up on the station and lights up all the cleaning time (about 5 seconds). If the cleaning is successful, the station emits a signal, the LED goes out, the chip needs to be removed. If there was no signal, the cleaning was not completed, you need to repeat the procedure.
 
+### The Check station.
+
+To transfer the station to the check mode, you need to specify stations number 248.
+In the verification mode, the station does not write anything to the chip but only checks it. If the chip is not empty or the time of initialization exceeds the time at the station for more than a month, the station emits three short signals. If everything is ok, then one short signal.
+The test time is approximately the same as the time of the mark, so participants can practice the mark at this station.
+
 ### Password system.
 Because the system is open and all the specifications are available to everyone, someone can write with any NFC device any master card. There is the possibility of vandalism - reprogramming of established stations. And then, unlike if the station was simply broken down, the error might turn into results, which is difficult to notice and which can affect the places. To protect against this phenomenon, a password system was introduced.
 
