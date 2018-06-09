@@ -1,3 +1,7 @@
+## [1.3.3] - 2018-06-10
+### Added the capacitor to the battery power of the clock
+- In some parts of the station, a problem arose with the hours rushing for 2-5 minutes per day. It turned out that the problem consists in unstabilized power supply, the output capacitor after the stabilizer does not cope. We need to add one more closer to clock. In new gerber files that problem is fixed. In older boards, the bug is easily corrected by soldering the capacitor directly to the clock's power outputs.
+
 ## [1.3.2] - 2018-06-08
 ### Add check station
 - To simplify the procedure for checking the chips before the start, a check station mode was added. Also Since it does not record anything on the chip, participants can be trained in the marking chip on the base station
