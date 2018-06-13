@@ -12,7 +12,6 @@ const byte SS_PIN = 10;
 //password for master key
 uint8_t pass[] = {0,0,0};
 uint8_t stantionConfig = 0;
-uint8_t masterConfig = 0; //1 - автоматическое считывание чипов, 0 - только по запросу
 const uint16_t eepromPass = 850;
 const uint16_t eepromMaster = 870;
 
@@ -55,16 +54,10 @@ void setup() {
   pass[1] = eepromread(eepromPass+3);
   pass[2] = eepromread(eepromPass+6);
   stantionConfig = eepromread(eepromPass+9);
-  masterConfig = eepromread(eepromMaster);
 }
 
 void loop() {
   static uint32_t lastReadCardTime = 0;
-  if (masterConfig == 1 &&
-      millis() - lastReadCardTime > 2000) {
-    lastReadCardTime = millis();
-    readCard();
-  }
   
   if (Serial.available() > 0) {
     clearBuffer();
@@ -270,9 +263,6 @@ void findFunc() {
       break;
     case 0x48:
       readLog();
-      break;
-    case 0x49:
-      updConfig();
       break;
     case 0x4B:
       readCard();
@@ -721,9 +711,7 @@ void readCard() {
 
   SPI.end();
 
-  if (masterConfig == 1) {
-    beep(20, 1);
-  }
+
 }
 
 /*
@@ -810,7 +798,7 @@ void writeMasterSleep() {
  * 
  */
 void signalError(uint8_t num) {
-  beep(100,3);
+  beep(50,3);
   if (num == 0) return;
 
   function = 0x78;
@@ -826,10 +814,7 @@ void signalError(uint8_t num) {
  * 
  */
 void signalOK() {
-  beep(300,1);
-}
-
-void readFlash(){
+  beep(200,1);
 }
 
 void getVersion() {
@@ -838,19 +823,6 @@ void getVersion() {
   clearBuffer();
 
   addData(vers, function);
-  sendData(function, dataCount);
-  packetCount = 0;
-}
-
-void updConfig() {
-  function = 0x69;
-
-  masterConfig = dataBuffer[2];
-  eepromwrite(eepromMaster, masterConfig);
-
-  clearBuffer();
-  
-  addData(masterConfig, function);
   sendData(function, dataCount);
   packetCount = 0;
 }

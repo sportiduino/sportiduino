@@ -63,3 +63,33 @@ The test time is approximately the same as the time of the mark, so participants
 Because the system is open and all the specifications are available to everyone, someone can write with any NFC device any master card. There is the possibility of vandalism - reprogramming of established stations. And then, unlike if the station was simply broken down, the error might turn into results, which is difficult to notice and which can affect the places. To protect against this phenomenon, a password system was introduced.
 
 The password consists of three numbers from 0 to 255 (three bytes). The default password is 0,0,0. A master configuration card is used to send the password to the base station. When you apply this card to the station marks, if the old password is the same, then a new password is recorded. All master-cards work only with the correct password in the first line. Also a byte of the settings is copied. The station picks twice and reboots. When the sleep card is presented (with the correct password), the station will reset the password and settings, leading the bytes to 0.0.0.0. Enters sleep mode and reboots. Information about passwords and station setup is stored in the EEPROM memory.
+
+### Signals
+
+(duration, number of repetitions)
+
+Errors:
+
+50, 2 - error while reading its memory
+50, 3 - the clock goes wrong
+50, 4 - the password of the master of the chip is not suitable
+50, 5 - batteries need to be replaced
+50, 6 - attempt to add stations number 0
+200, 3 - the chip is incorrect when verified
+
+Normal behavior:
+
+1000, 1 - signal at station loading
+500, 1 - the voltage is normal
+500, 1 - repetition of the attached chip
+200, 1 - the chip is marked on the chip
+200, 1 - the chip is cleaned at the cleaning station
+200, 1 - the chip is normal when tested
+
+Reading master-chips
+
+500, 2 - read the master password chip
+500, 3 - the station read the master time chip
+500, 4 - read the master chip sleep
+500, 5 - station read the master-chip numbers
+500, 6 - read the master chip dump

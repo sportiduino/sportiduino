@@ -1,3 +1,9 @@
+## [1.3.4] - 2018-06-13
+### Some changes
+- reset stantion config with sleep entering
+- fix sounds
+- remove auto reading mode at master station
+
 ## [1.3.3] - 2018-06-10
 ### Added the capacitor to the battery power of the clock
 - In some parts of the station, a problem arose with the hours rushing for 2-5 minutes per day. It turned out that the problem consists in unstabilized power supply, the output capacitor after the stabilizer does not cope. We need to add one more closer to clock. In new gerber files that problem is fixed. In older boards, the bug is easily corrected by soldering the capacitor directly to the clock's power outputs.

@@ -45,7 +45,6 @@ List of commands sent to the station:
 | 0x46 | Ask version of the master stantion | 0 |
 | 0x48 | Read the log rent | 0 |
 | 0x47 | Write a tenant of the log | 0 |
-| 0x49 | Update work regime of master stantion | 1 | regime (1 - automaticaly read a cards, 0 - only with request) (0)
 | 0x4B | Read the card | 0 |
 | 0x4C | Read raw data from the card | 0 |
 | 0x4E | Write a sleep master | 0 |

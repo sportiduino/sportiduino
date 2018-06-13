@@ -1,7 +1,8 @@
 Этот проект посвящен построению дешевой системы электронной отметки для спортивного и туристического ориентирования с помощью Arduino.
 
-Версия 1.3.3
+Версия 1.3.4
 
+* [Руководство пользователей](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/UserManual.md)
 * [Чипы отметки](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/Card.md)
 * [Станция отметки](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/BaseStation.md)
 * [Станция сопряжения](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/MasterStation.md)

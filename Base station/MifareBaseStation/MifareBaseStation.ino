@@ -127,7 +127,7 @@ void setup () {
   if (set3 == true) checkTimeInit = true;
  
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
-  beep(800, 1 ); //The signal at system startup or reboote
+  beep(1000, 1 ); //The signal at system startup or reboote
 }//end of setup
 
 
@@ -317,7 +317,7 @@ uint8_t eepromread(uint16_t adr) {
     return EEPROM.read(adr + 1);
   }
   else {
-    beep(50, 3);
+    beep(50, 2);
     return 0;
   }
 
@@ -424,10 +424,10 @@ void voltage() {
 
 
   if (value < 3100) {
-    beep(1000, 3);
+    beep(50, 5);
   }
   else {
-    beep(1000, 1);
+    beep(500, 1);
   }
   digitalWrite(LED, LOW);
   wdt_reset();
@@ -628,7 +628,7 @@ void rfid() {
     if ((pass[0] != chipPass[0])||
         (pass[1] != chipPass[1])||
         (pass[2] != chipPass[2])){
-      beep(50,3);
+      beep(50,4);
       return;
     }
     //вызов функций соответствующим мастер-чипам
@@ -764,7 +764,6 @@ void timeChip() {
   uint8_t dataDump[4] ={0, 0, 0,0};
   
   if(!ntagWrite(dataDump,4)){
-    beep(50,3);
     return;
   }
   
@@ -773,7 +772,7 @@ void timeChip() {
   DS3231_set(t); //correct time
   digitalWrite(VCC_C,LOW);
   
-  beep(300,5);
+  beep(500,3);
   resetFunc(); //reboot
 }
 
@@ -789,18 +788,19 @@ void stantionChip(){
   uint8_t dataDump[4] ={0, 0, 0, 0};
   
   if(!ntagWrite(dataDump,4)){
-    beep(50,3);
     return;
   }
     
-  if ((stantion != newnum)&&(newnum!=0)){
-    stantion = newnum;
-    eepromwrite (eepromAdrStantion, newnum);
-    beep(300,5);
+  if (newnum!=0){
+    if (stantion != newnum){
+      stantion = newnum;
+      eepromwrite (eepromAdrStantion, newnum);
+    }
+    beep(500,5);
     resetFunc(); //reboot
   }
   else{
-    beep(50,3);
+    beep(50,6);
     return;
   }
 }
@@ -815,10 +815,9 @@ void sleepChip(){
   uint8_t dataDump[4] ={0, 0, 0, 0};
   
   if(!ntagWrite(dataDump,4)){
-    beep(50,3);
     return;
   }
-  for (uint8_t i = 0;i<3;i++){
+  for (uint8_t i = 0;i<4;i++){
     pass[i]=0;
     eepromwrite((eepromPass+i*3),0);
   }
@@ -826,7 +825,7 @@ void sleepChip(){
   deepsleep = true;
   eepromwrite (eepromAdrSleep, 255); //write sleep mode to EEPROM in case of failures
   
-  beep(100,3);
+  beep(500,4);
 
   cleanEeprom();
 
@@ -844,7 +843,6 @@ void dumpChip(){
   uint8_t dataDump[4] = {stantion,0,0,0};
   
   if(!ntagWrite(dataDump,4)){
-    beep(50,3);
     return;
   }
 
@@ -862,7 +860,7 @@ void dumpChip(){
     
   }
 
-  beep(500,1);
+  beep(500,6);
   return;
   
 }
@@ -914,7 +912,7 @@ void passChip(){
     return;
   }
   
-  beep(300,2);
+  beep(500,2);
   resetFunc(); //reboot
   
 }
@@ -994,7 +992,7 @@ void clearChip(){
     return;
   }
   digitalWrite (LED,LOW);
-  beep(500, 1 );
+  beep(200, 1 );
   
   lastChipClean = true;
 }
