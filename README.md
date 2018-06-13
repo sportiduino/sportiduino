@@ -58,7 +58,7 @@ There is also a wireless station with the bluetooth module.
 
 ## Data processing
 
-Development of software in IDE Processing is made in a separate [repository] (https://github.com/alexandervolikov/sportiduinoProcessing) Implemented basic functionality for working with the system.
+Development of software in IDE Processing is made in a separate [repository](https://github.com/alexandervolikov/sportiduinoProcessing) Implemented basic functionality for working with the system.
 
 The [python module](https://github.com/alexandervolikov/sportiduinoPython) was developed for connect master-stantion to various software products.
 

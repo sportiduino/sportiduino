@@ -4,7 +4,7 @@ version 1.3.4
 
 The English translation is rough, sometimes there may be unclear moments, write in the Issue in case of questions
 
-* [User Manual](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/UserManual.md)
+* [User Manual](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/UserManual.md)
 * [Card](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/Card.md)
 * [Base Station](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/BaseStation.md)
 * [Master Station](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/MasterStation.md)
