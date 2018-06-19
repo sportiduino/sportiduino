@@ -69,6 +69,8 @@ When initializing, in addition to the chip number, the initialization time is al
 You can clear already initialized chips with saving the number on the cleaning station (you need to assign the base station number 249, and update the time at the station).
 Preparing Stations
 
+### Master Chips
+
 To configure the stations, master chips are used. The master chip is an ordinary chip with the data recorded on it for transmission to the base station. To record the master chip, you need to bring it to the master station and press the desired button depending on the task. It is recommended to select the chip specifically for use for this purpose and somehow mark it, in order to avoid getting it into a heap with chip participants, since in this case various unexpected situations are possible if the chip turns out to be active. After each use of the chip, it is deactivated, it is necessary to record it every time you use it.
 
 To set up stations, if they are in a state of sleep, you must first awaken them - bring any chip for up to 30 seconds. There will be a procedure to exit the sleep state: the LED will light up for 5 seconds, the station will measure the charge of the batteries (if the normal charge produces one long signal, if the batteries need to replace five short ones). Then it will reboot and after 5 seconds will emit one short signal. If the station emits three short beeps 5 seconds before the long one, then the clock on it goes wrong, they need to be adjusted.
@@ -125,9 +127,13 @@ d = 16, the maximum number of marks = 32
 d = 32, the maximum number of marks = 64
 d = 48, maximum number of marks = 120
 
-For example, we want the station to go into standby mode after 6 hours, work with the start and finish station, do not check the chip initialization time, the maximum number of marks = 64, then
-a = 0, b = 4, c = 0, d = 32
-SetSt = 0 + 4 + 0 + 32 = 36
+Reset settings when the station enters sleep mode
+e = 0, do not reset
+e = 64, reset
+
+For example, we want the station to go into standby mode after 6 hours, work with the start and finish station, check the chip initialization time, the maximum number of marks = 64, the settings are preserved when the station is put into sleep, then
+a = 0, b = 4, c = 0, d = 32, e = 0
+SetSt = 0 + 4 + 0 + 32 + 0 = 36
 
 ### Removing the station log
 

@@ -22,8 +22,9 @@ const uint16_t eepromAdrSleep = 900;//start address for storing sleep state
 const uint16_t eepromPass = 850;//start address for storing password and settings
 
 const uint8_t pageCC = 3;
-const uint8_t blockInfo = 4; //block for information about participant and last stantion
+const uint8_t pageInfo = 4; //block for information about participant and last stantion
 const uint8_t pagePass = 5;
+const uint8_t firstPage = 8;
 
 const uint8_t ntag213 = 3;
 const uint8_t ntag215 = 5;
@@ -76,6 +77,7 @@ uint32_t ntagReg = 0;
 uint8_t lastCleanChip0 = 0;
 uint8_t lastCleanChip1 = 0;
 boolean lastChipClean = false;
+boolean eraseSetting = false;
 
 MFRC522::StatusCode status;
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
@@ -129,6 +131,10 @@ void setup () {
   if (set4_5 ==  0b00010000) ntagReg = 3; //32 отметки
   if (set4_5 ==  0b00100000) ntagReg = 4; //64 отметки
   if (set4_5 ==  0b00110000) ntagReg = 5; //120 отметок
+
+  uint8_t set6 = setting&0b01000000;
+  if (set6 == true) eraseSetting = true;
+  else eraseSetting = false;
  
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
   beep(1000, 1 ); //The signal at system startup or reboote
@@ -550,7 +556,7 @@ void rfid() {
   }
    
   //читаем блок информации
-  if(!ntagRead(blockInfo)){
+  if(!ntagRead(pageInfo)){
     return;
   }
   
@@ -780,9 +786,13 @@ void sleepChip(){
   if(!ntagWrite(dataDump,4)){
     return;
   }
-  for (uint8_t i = 0;i<4;i++){
+  for (uint8_t i = 0;i<3;i++){
     pass[i]=0;
     eepromwrite((eepromPass+i*3),0);
+  }
+
+  if (eraseSetting){
+    eepromwrite((eepromPass+9),0);
   }
   
   deepsleep = true;
@@ -935,17 +945,6 @@ uint8_t findNewPage(uint8_t finishpage){
 
 void clearChip(){
   
-  if ((lastCleanChip0==dump[0])&&(lastCleanChip1==dump[1])&&lastChipClean){
-    beep(500, 1 );
-    return;
-  }
-  lastChipClean = false;
-  lastCleanChip0 = dump[0];
-  lastCleanChip1 = dump[1];
-
-  pinMode (LED, OUTPUT);
-  digitalWrite (LED,HIGH);
-
   uint8_t ntagValue = 0;
   uint8_t ntagType = dump[2]%10;
 
@@ -962,9 +961,30 @@ void clearChip(){
     return;
   }
   
+  if ((lastCleanChip0==dump[0])&&(lastCleanChip1==dump[1])&&lastChipClean){
+    
+    if(!ntagRead(firstPage)){
+       return;
+    }
+
+    if (dump[0]==0 && dump[1]==0 && dump[2]==0 && dump[3]==0){
+      beep(500, 1 );
+      return;
+    }
+    
+  }
+  lastChipClean = false;
+  lastCleanChip0 = dump[0];
+  lastCleanChip1 = dump[1];
+
+  pinMode (LED, OUTPUT);
+  digitalWrite (LED,HIGH);
+
+
+  
   byte Wbuff[] = {255,255,255,255};
   
-  for (byte page = 8; page < ntagValue; page++) {
+  for (byte page = firstPage; page < ntagValue; page++) {
     wdt_reset();
     if (!ntagWrite(Wbuff,page)) {
       return;
@@ -973,7 +993,7 @@ void clearChip(){
 
   byte Wbuff2[] = {0,0,0,0};
   
-  for (byte page = 8; page < ntagValue; page++) {
+  for (byte page = (ntagValue-1); page > (firstPage-1); page--) {
     wdt_reset();
     if (!ntagWrite(Wbuff2, page)) {
       return;
@@ -1002,6 +1022,11 @@ void clearChip(){
  * 
  */
 void checkChip(){
+
+  if (dump[2]==255){
+    beep(200,3);
+    return;
+  }
   
   uint32_t initTime = dump[4];
   initTime <<= 8;
@@ -1015,9 +1040,7 @@ void checkChip(){
     beep(200,3);
     return;
   }
-
-  uint8_t firstPage = 8;
-
+  
   for (byte i =0;i<7;i++){
     if(!ntagRead(firstPage)){
       return;

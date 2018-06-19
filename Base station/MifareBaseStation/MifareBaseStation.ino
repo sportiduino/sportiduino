@@ -24,6 +24,7 @@ const uint16_t eepromPass = 850;//start address for storing password and setting
 const uint8_t pageCC = 3;
 const uint8_t blockInfo = 4; //block for information about participant and last stantion
 const uint8_t pagePass = 5;
+const uint8_t firstPage = 8;
 
 const uint8_t ntag214 = 4;
 const uint8_t ntagValue = 50;
@@ -73,6 +74,7 @@ uint32_t maxCount = 86400UL; //loops before switching to standby mode
 uint8_t lastCleanChip0 = 0;
 uint8_t lastCleanChip1 = 0;
 boolean lastChipClean = false;
+boolean eraseSetting = false;
 
 MFRC522::MIFARE_Key key;
 MFRC522::StatusCode status;
@@ -125,6 +127,10 @@ void setup () {
   
   uint8_t set3 = setting&0b00001000;
   if (set3 == true) checkTimeInit = true;
+
+  uint8_t set6 = setting&0b01000000;
+  if (set6 == true) eraseSetting = true;
+  else eraseSetting = false;
  
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
   beep(1000, 1 ); //The signal at system startup or reboote
@@ -821,6 +827,10 @@ void sleepChip(){
     pass[i]=0;
     eepromwrite((eepromPass+i*3),0);
   }
+
+  if (eraseSetting){
+    eepromwrite((eepromPass+9),0);
+  }
   
   deepsleep = true;
   eepromwrite (eepromAdrSleep, 255); //write sleep mode to EEPROM in case of failures
@@ -950,21 +960,28 @@ uint8_t findNewPage(uint8_t finishpage){
 
 void clearChip(){
   
-  
   if ((lastCleanChip0==dump[0])&&(lastCleanChip1==dump[1])&&lastChipClean){
-    beep(500, 1 );
-    return;
+    
+    if(!ntagRead(firstPage)){
+       return;
+    }
+
+    if (dump[0]==0 && dump[1]==0 && dump[2]==0 && dump[3]==0){
+      beep(500, 1 );
+      return;
+    }
+    
   }
   lastChipClean = false;
   lastCleanChip0 = dump[0];
   lastCleanChip1 = dump[1];
-  
+
   pinMode (LED, OUTPUT);
   digitalWrite (LED,HIGH);
-  
+
   byte Wbuff[] = {255,255,255,255};
   
-  for (byte page = 8; page < ntagValue; page++) {
+  for (byte page = firstPage; page < ntagValue; page++) {
     wdt_reset();
     if (!ntagWrite(Wbuff,page)) {
       return;
@@ -973,7 +990,7 @@ void clearChip(){
 
   byte Wbuff2[] = {0,0,0,0};
   
-  for (byte page = 8; page < ntagValue; page++) {
+  for (byte page = (ntagValue-1); page > (firstPage-1); page--) {
     wdt_reset();
     if (!ntagWrite(Wbuff2, page)) {
       return;
@@ -993,11 +1010,20 @@ void clearChip(){
   }
   digitalWrite (LED,LOW);
   beep(200, 1 );
-  
+
   lastChipClean = true;
+  
 }
 
+/*
+ * 
+ */
 void checkChip(){
+
+  if (dump[2]==255){
+    beep(200,3);
+    return;
+  }
   
   uint32_t initTime = dump[4];
   initTime <<= 8;
@@ -1011,9 +1037,7 @@ void checkChip(){
     beep(200,3);
     return;
   }
-
-  uint8_t firstPage = 8;
-
+  
   for (byte i =0;i<7;i++){
     if(!ntagRead(firstPage)){
       return;

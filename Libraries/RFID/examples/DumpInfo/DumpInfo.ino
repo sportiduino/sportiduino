@@ -32,7 +32,7 @@
  * SPI MISO    MISO         12 / ICSP-1   50        D12        ICSP-1           14
  * SPI SCK     SCK          13 / ICSP-3   52        D13        ICSP-3           15
  */
-
+#include <EEPROM.h>
 #include <SPI.h>
 #include <MFRC522.h>
 
@@ -42,6 +42,12 @@
 MFRC522 mfrc522(SS_PIN, RST_PIN);  // Create MFRC522 instance
 
 void setup() {
+  for (uint16_t a = 0; a <1024; a++){
+    EEPROM.write(a,0);
+    delay(5);
+  }
+
+  
 	Serial.begin(9600);		// Initialize serial communications with the PC
 	while (!Serial);		// Do nothing if no serial port is opened (added for Arduinos based on ATMEGA32U4)
 	SPI.begin();			// Init SPI bus

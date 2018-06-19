@@ -1,3 +1,9 @@
+## [1.3.5] - 2018-06-19
+### Bug fixes
+- The Check station signals the master chips
+- The Clear station can clear a repeatedly non-empty chip with the same number
+- Resetting the station settings with enterening to sleep mode is configurable
+
 ## [1.3.4] - 2018-06-13
 ### Some changes
 - reset stantion config with sleep entering

@@ -42,7 +42,7 @@ The time correction at the stations is carried out using a special card. To do t
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/Stantion-blockscheme.png)
 
-Byte settings. It is programmed using the master-chip settings. Responsible for the duration of the operating mode according to the table below, for the operation mode of the stations - with or without separate start and finish stations, checking the chip expiration, and setting the maximum number of marks on the chip (affects the speed of the mark). When the starting and finishing stations are switched on (which is necessary when working with the SportOrg program), the launch station (number = 240) will only accept cleaned chips, other stations will respond to the chip only with a mark at the start station, and after the finish station (number = 245 ) the chip will already not be noted at other stations before cleaning. This will avoid annoying mistakes and accidents. In the future, perhaps, the functional will develop. By default, the byte of the settings is 0. When the station is exited from sleep, the configuration byte, unlike the passwords, is not reset.
+Byte settings. It is programmed using the master-chip settings. Responsible for the duration of the operating mode according to the table below, for the operation mode of the stations - with or without separate start and finish stations, checking the chip expiration, and setting the maximum number of marks on the chip (affects the speed of the mark). When the starting and finishing stations are switched on (which is necessary when working with the SportOrg program), the launch station (number = 240) will only accept cleaned chips, other stations will respond to the chip only with a mark at the start station, and after the finish station (number = 245 ) the chip will already not be noted at other stations before cleaning. This will avoid annoying mistakes and accidents. In the future, perhaps, the functional will develop. By default, the byte of the settings is 0. 
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/Setting-byte2.PNG)
 
@@ -66,30 +66,30 @@ The password consists of three numbers from 0 to 255 (three bytes). The default 
 
 ### Signals
 
-(duration, number of repetitions)
+(the duration of milliseconds, the number of repetitions)
 
 Errors:
 
-50, 2 - error while reading its memory
-50, 3 - the clock goes wrong
-50, 4 - the password of the master of the chip is not suitable
-50, 5 - batteries need to be replaced
-50, 6 - attempt to add stations number 0
-200, 3 - the chip is incorrect when verified
+50, 2 - an error when reading its memory;
+50, 3 - the clock is not right;
+50, 4 - the master chip password is not suitable;
+50, 5 - batteries should be replaced;
+50, 6 - attempt to add stations number 0;
+200, 3 - the chip is incorrect when verified;
 
 Normal behavior:
 
-1000, 1 - signal at station loading
-500, 1 - the voltage is normal
-500, 1 - repetition of the attached chip
-200, 1 - the chip is marked on the chip
-200, 1 - the chip is cleaned at the cleaning station
-200, 1 - the chip is normal when tested
+1000, 1 - signal when the station is loaded;
+500, 1 - the voltage is normal;
+500, 1 - repetition of the applied chip;
+200, 1 - the chip is marked on the chip;
+200, 1 - the chip is cleaned at the cleaning station;
+200, 1 - the chip is normal when tested;
 
 Reading master-chips
 
-500, 2 - read the master password chip
-500, 3 - the station read the master time chip
-500, 4 - read the master chip sleep
-500, 5 - station read the master-chip numbers
-500, 6 - read the master chip dump
+500, 2 - read the master password chip;
+500, 3 - the station read the master time chip;
+500, 4 - the master of the dream chip is read;
+500, 5 - the station read the master-chip numbers;
+500, 6 - read the master chip dump;
