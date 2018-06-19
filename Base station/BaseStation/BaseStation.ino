@@ -124,7 +124,7 @@ void setup () {
   else startFinish = false;
   
   uint8_t set3 = setting&0b00001000;
-  if (set3 == true) checkTimeInit = true;
+  if (set3 == 0b00001000) checkTimeInit = true;
 
   uint8_t set4_5 = setting&0b00110000;
   if (set4_5 ==  0b00000000) ntagReg = 0; // число отметок определяется типом чипа
@@ -133,9 +133,8 @@ void setup () {
   if (set4_5 ==  0b00110000) ntagReg = 5; //120 отметок
 
   uint8_t set6 = setting&0b01000000;
-  if (set6 == true) eraseSetting = true;
-  else eraseSetting = false;
- 
+  if (set6 == 0b01000000) eraseSetting = true;
+  
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
   beep(1000, 1 ); //The signal at system startup or reboote
 }//end of setup
