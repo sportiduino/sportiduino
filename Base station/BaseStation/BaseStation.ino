@@ -1022,7 +1022,7 @@ void clearChip(){
  */
 void checkChip(){
 
-  if (dump[2]==255){
+  if (dump[2]==0){
     beep(200,3);
     return;
   }

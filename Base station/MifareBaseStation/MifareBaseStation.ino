@@ -1019,31 +1019,35 @@ void clearChip(){
  */
 void checkChip(){
 
-  if (dump[2]==255){
+  if (dump[2]==0){
     beep(200,3);
     return;
   }
+
+  if(!ntagRead(pagePass)){
+    return;
+  }  
   
-  uint32_t initTime = dump[4];
+  uint32_t initTime = dump[0];
   initTime <<= 8;
-  initTime += dump[5];
+  initTime += dump[1];
   initTime <<= 8;
-  initTime += dump[6];
+  initTime += dump[2];
   initTime <<= 8;
-  initTime += dump[7];
+  initTime += dump[3];
 
   if ((t.unixtime-initTime)> maxTimeInit){
     beep(200,3);
     return;
   }
   
-  for (byte i =0;i<7;i++){
+  for (byte i =0;i<4;i++){
     if(!ntagRead(firstPage)){
       return;
     }  
   }
   
-  for (byte i=0; i<16;i++){
+  for (byte i=0; i<4;i++){
     if (dump[i]!=0){
       beep(200,3);
       return;
