@@ -135,6 +135,8 @@ For example, we want the station to go into standby mode after 6 hours, work wit
 a = 0, b = 4, c = 0, d = 32, e = 0
 SetSt = 0 + 4 + 0 + 32 + 0 = 36
 
+For firmware running with Mifare chips, the parameters with and d are not configured, I use by default (do not check the chip initialization time, number of marks = 42)
+
 ### Removing the station log
 
 During operation, the base station logs - records the fact of a mark by one or another chip number. The time stamp is not recorded, the log is kept only for chips with numbers up to 4000. Using this function, it is possible to restore a part of the data in case of losing chips, checking controversial situations, and searching for lost or lost participants.

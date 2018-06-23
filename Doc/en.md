@@ -1,7 +1,5 @@
 This project is devoted to building a cheap electronic marking system for sports and tourist orienteering based on Arduino.
 
-version 1.3.5
-
 The English translation is rough, sometimes there may be unclear moments, write in the Issue in case of questions
 
 * [User Manual](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/UserManual.md)

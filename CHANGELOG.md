@@ -1,3 +1,7 @@
+## [1.3.6] - 2018-06-23
+### Mifare Bug fixes
+- Fix setting bag fix for Mifare Base Station
+
 ## [1.3.5] - 2018-06-19
 ### Bug fixes
 - The Check station signals the master chips

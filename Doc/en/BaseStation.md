@@ -44,6 +44,8 @@ The time correction at the stations is carried out using a special card. To do t
 
 Byte settings. It is programmed using the master-chip settings. Responsible for the duration of the operating mode according to the table below, for the operation mode of the stations - with or without separate start and finish stations, checking the chip expiration, and setting the maximum number of marks on the chip (affects the speed of the mark). When the starting and finishing stations are switched on (which is necessary when working with the SportOrg program), the launch station (number = 240) will only accept cleaned chips, other stations will respond to the chip only with a mark at the start station, and after the finish station (number = 245 ) the chip will already not be noted at other stations before cleaning. This will avoid annoying mistakes and accidents. In the future, perhaps, the functional will develop. By default, the byte of the settings is 0. 
 
+For firmware working with Mifare cards are not configured set 3, set 4, set 5.
+
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/Setting-byte2.PNG)
 
 ### Clear station.
