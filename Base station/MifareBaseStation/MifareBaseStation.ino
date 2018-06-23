@@ -124,9 +124,6 @@ void setup () {
   uint8_t set2 = setting&0b00000100;
   if (set2 == 0b00000100) startFinish = true;
   else startFinish = false;
-  
-  uint8_t set3 = setting&0b00001000;
-  if (set3 == 0b00001000) checkTimeInit = true;
 
   uint8_t set6 = setting&0b01000000;
   if (set6 == 0b01000000) eraseSetting = true;
@@ -655,22 +652,6 @@ void rfid() {
     return;
   }
   
-  if (checkTimeInit == true){
-  
-    uint32_t timeInit = dump[4];
-    timeInit = timeInit <<8;
-    timeInit += dump[5];
-    timeInit = timeInit <<8;
-    timeInit += dump[6];
-    timeInit = timeInit <<8;
-    timeInit += dump[7];
-
-    if (t.year>2016 && (t.unixtime-timeInit)> maxTimeInit){
-      return;
-    }
-  }
-  
-
   tempDump[0] = 0;
   
   
@@ -822,7 +803,7 @@ void sleepChip(){
   if(!ntagWrite(dataDump,4)){
     return;
   }
-  for (uint8_t i = 0;i<4;i++){
+  for (uint8_t i = 0;i<3;i++){
     pass[i]=0;
     eepromwrite((eepromPass+i*3),0);
   }
