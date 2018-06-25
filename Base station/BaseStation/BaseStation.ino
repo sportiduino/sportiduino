@@ -463,24 +463,11 @@ bool ntagWrite (uint8_t *dataBlock, uint8_t pageAdr){
   }
  
   for (uint8_t i = 0; i < 4; i++) {
-    dump[i]=buffer[i];
+    if (dataBlock[i]!=buffer[i]) return false;
   }
-  if (dataBlock[0]!=0){
-    if (dump[0]!=0 || dump[1]!=0 || dump[2]!=0 || dump[3]!=0){
-      return true;
-    }
-    else{
-      return false;
-    }
-  }
-  else {
-    if (dump[1]==0){
-      return true;
-    }
-    else{
-      return false;
-    }
-  }
+  
+  return true;
+  
 }
 
 bool ntagRead (uint8_t pageAdr){

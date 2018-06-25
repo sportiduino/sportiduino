@@ -1,3 +1,7 @@
+## [1.3.7] - 2018-06-25
+### Fix dump uploading
+- Fix dump uploading
+
 ## [1.3.6] - 2018-06-23
 ### Mifare Bug fixes
 - Fix setting bag fix for Mifare Base Station
