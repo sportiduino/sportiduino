@@ -1,6 +1,6 @@
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/logo.png)
 
-#### Version 1.3.7
+#### Version 1.3.8
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportIDuino/master/Images/Sportiduino.JPG)
 
@@ -59,16 +59,19 @@
 
 ## Обработка данных
 
-Разработка программного обеспечения в IDE Processing вынесена в отдельний [репозиторий](https://github.com/alexandervolikov/sportiduinoProcessing) Реализован базовый функционал для работы с системой.
+### SportiduinoPQ
 
-Разработан [модуль на python](https://github.com/alexandervolikov/sportiduinoPython) для подключения к различным программным продуктам. 
+Настройка чипов и станций производится в программе (SportiduinoPQ)[https://github.com/alexandervolikov/SportiduinoPQ]
+
+Программа основана на [модуле на python](https://github.com/alexandervolikov/sportiduinoPython) а также на пакете PyQt для создания оконных приложений
+
+Также существует аналогичная программа на (Processing)[https://github.com/alexandervolikov/sportiduinoProcessing] , поддежка которой завершена.
 
 ### SportOrg
+
 Чтение чипов реализовано в программе [SportOrg ](https://github.com/sportorg/pysport)
 
 [Сайт с руководством](http://sportorg.o-ural.ru/)
-
-[Группа ВК](https://vk.com/sportorgpro)
 
 
 ***********

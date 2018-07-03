@@ -1,3 +1,8 @@
+## [1.3.8] - 2018-06-25
+### Added a program to work with the system
+- The program is available at (separete rep)[https://github.com/alexandervolikov/SportiduinoPQ]/ It is
+based on [a python module](https://github.com/alexandervolikov/sportiduinoPython) and also on the PyQt package for creating window applications
+
 ## [1.3.7] - 2018-06-25
 ### Fix dump uploading
 - Fix dump uploading

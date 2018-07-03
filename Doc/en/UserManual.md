@@ -50,23 +50,26 @@ It is advisable to print this instruction in large print and hang it for partici
 
 ## Instruction for the production team
 
-To work with stations it is necessary to use the program written on Processing, this is the preparation of chips, the tuning of stations. Reading chips is recommended to do in a more professional program SportOrg.
+To work with stations it is necessary to use the program SportiduinoPQ, it is the preparation of chips, tuning stations. Reading chips and counting the results is implemented in the program SportOrg.
 
-You can download the program for Processing in the latest release https://github.com/alexandervolikov/sportiduinoProcessing/releases. You need to install IDE Processing https://processing.org/ and run the main.pde program from under it, this will additionally allow you to see the log file while using the program in the window under the code. Also the entire log is saved to the data / log folder.
+The program SportiduinoPQ can be downloaded in the latest release https://github.com/alexandervolikov/SportiduinoPQ/releases. In the release there is an exe file that does not require installation. When the program is running, the entire log is saved to the subfolder log.
+
+The SportOrg program is available at: http://sportorg.o-ural.ru/ There is also a user manual
 
 ### Connecting the master station
 
-To connect the station, press the Connect button. If the connection is successful, two additional buttons will appear, and in the Proceesing log "Open com" will be displayed.
-If the station can not be connected, check that the connection is correct. Problems can occur if the system uses a different device connected via com port. In this case, you need to find out the com port number assigned to the station via the Control Panel - Device Manager and drive it into the setting.csv. Also, stations on Arduino Nano with chips CHG340 may not work without installing the appropriate driver.
+To connect the station, press the Connect button. If the connection is successful, the "master station is connected" will be displayed in the log.
+If the station can not be connected, check that the connection is correct. Problems can occur if the system uses a different device connected via com port. In this case, you need to find out the com port number assigned to the station through the Control Panel - Device Manager and select it instead of "auto". Also, stations on Arduino Nano with chips CHG340 may not work without installing the appropriate driver.
 
 ### Preparation of chips.
 
-Empty chips must be initialized (write down the number and current time on them). To do this, open the settings menu - press the Setting button. Then, drive the chip number using the keyboard (you can use only the number keys located above the letters, as well as the Backspace and delete buttons). Bring the chip to the station and click the Initialize button. The initialization process takes 3 to 7 seconds depending on the chip. In case of success, the station will emit one signal, the number in the input field will increase by 1. If the process has failed (three short beeps and one long one), try to repeat the procedure.
+Empty chips must be initialized (write down the number and current time on them). To do this, enter the number of the chip in the Card tab. Bring the chip to the station and press the Init Card button. The initialization process takes 3 to 7 seconds depending on the chip. In case of success, the station will emit one signal. If there is an autoincrement tick, the number in the input field will increase by 1. If the process has failed (three short beeps and one long one), try the procedure again.
 
 The chip number can be set in the range from 1 to 65535. But the base stations with the mark of chips with the number more than 4000 will not remember the fact of their marking, therefore it is recommended to limit numbers to 4000.
 
 When initializing, in addition to the chip number, the initialization time is also recorded, which is necessary for the subsequent reading of the chip, if more than six months have elapsed since the initialization or cleaning, the data will be incorrect. Therefore, it is desirable to initialize the chips not long before the competition.
-You can clear already initialized chips with saving the number on the cleaning station (you need to assign the base station number 249, and update the time at the station).
+
+Already earlier, the initialized chips can be cleared with saving the number on the cleaning station.
 Preparing Stations
 
 ### Master Chips
@@ -77,128 +80,40 @@ To set up stations, if they are in a state of sleep, you must first awaken them 
 
 ### Setting the station time
 
-To set the time, you need to attach the chip to the master station and press Time Master. The station will emit three signals at intervals per second. After the second signal, you must attach the chip to the base station. In this case, the station will emit 3 signals and reboot. If the last signal from the master station and the first signal from the base station have merged into one, then the time is adjusted quite accurately. It is better to set the time in the working mode of the station in view of the shorter inactivity period of the station.
+To set the time, you must attach the chip to the master station and click Set Time in the Station tab. The station will emit three signals at intervals per second. After the second signal, you must attach the chip to the base station. In this case, the station will emit 3 signals and reboot. If the last signal from the master station and the first signal from the base station have merged into one, then the time is adjusted quite accurately. It is better to set the time in the working mode of the station in view of the shorter inactivity period of the station.
 
 Accuracy of the clock (with the use of quality components and compliance with soldering technology) is 1 second per week. For critical stations - start, finish it is recommended to update the time on the day of the competition.
 
 ### Assigning the station number
 
-Dial the station number using the keypad (you can use only the number keys located above the alphabetic ones, as well as the Backspace and delete buttons). Bring the chip to the station and press the Num Master button. Then the chip is brought to the station. The station will issue 5 signals and will reboot with the new number.
+Dial the station number (from 1 to 239), bring the chip to the station and press the Set Number button. Then the chip is brought to the station. The station will issue 5 signals and will reboot with the new number.
 
-Part of the station numbers are used for special purposes:
-240 - start station
-245 - finish station
-248 - verification station
-249 - cleaning station
+To assign special stations, separate buttons are highlighted
+Set Start - start station
+Set Finish - finish station
+Check St - check station
+Clear St cleaning station
 
 ### Putting the stations into sleep mode
 
-After the competition, it is recommended that all stations be put into sleep mode to extend battery life. To do this, you need to bring the chip to the master station, press the Sleep Master and bring it to the base station. The station will emit 4 signals, reboot and go into sleep mode. To output stations from this mode, you need to attach a chip to it for up to 30 seconds.
+After the competition, it is recommended that all stations be put into sleep mode to extend battery life. To do this, you need to bring the chip to the master station, press the Sleep Card and bring it to the base station. The station will emit 4 signals, reboot and go into sleep mode. To output stations from this mode, you need to attach a chip to it for up to 30 seconds.
 
 ### Setting up the station
 
-In the default mode, the station does not use passwords, separate start and finish stations, does not check the initialization time, the chip volume is determined automatically, and the transition time from the operating mode to the standby mode is 6 hours, passwords are not used. If these parameters do not suit, they can be configured. To do this, before opening the program, you need to open the setting.csv file. And set the necessary parameters, and then save. Then turn on the program, bring the chip and press the Pass Master. The master station will issue two signals, bring the chip to the base station, which will also emit two signals and reboot.
+In the default mode, the station does not use passwords, separate start and finish stations, does not check the initialization time, the chip volume is determined automatically, and the transition time from the operating mode to the standby mode is 6 hours, passwords are not used. If these parameters do not suit, they can be configured. To do this, in the Settings tab, you need to change the required parameters, bring the chip and press the Pass Master. The master station will issue two signals, bring the chip to the base station, which will also emit two signals and reboot.
 
-The use of passwords protects the station from the possibility of programming them by someone else's master chips with the wrong password, which can protect against such vandalism. To use passwords, enter three bytes of the old password (numbers from 0 to 255). By default, this is three zeros. It should also be noted that when the stations are put into sleep mode, the password is reset to the default password of 0,0,0. Enter a new password also consisting of three bytes.
+The use of passwords protects the station from the possibility of programming them by someone else's master chips with the wrong password, which can protect against such vandalism. To use passwords, enter three bytes of the old password (numbers from 0 to 255). By default, this is three zeros. Also note that when you put the stations into sleep mode, the password is reset to the default password - 0.
 
-The setSt byte of the station settings is a number from 0 to 255, containing the setting bits responsible for certain functions, the default is 0. The sleep output also resets the settings along with the passwords.
-
-formula byte settings:
-
-setSt = a + b + c + d, where
-
-Standby time
-a = 0, after 6 hours
-a = 1, after 24 hours
-a = 2, always in standby mode
-a = 3, always in operating mode
-
-The operating mode with special start and finish stations
-b = 0, without a special start and finish station
-b = 4, with a special start and finish station
-
-Checking the expiration of chips
-c = 0, do not check the initialization time of the chip
-c = 8, do not mark the chips that were initialized long ago
-
-Maximum number of marks in the chip
-d = 0, the maximum number of marks is determined by the chip type automatically
-d = 16, the maximum number of marks = 32
-d = 32, the maximum number of marks = 64
-d = 48, maximum number of marks = 120
-
-Reset settings when the station enters sleep mode
-e = 0, do not reset
-e = 64, reset
-
-For example, we want the station to go into standby mode after 6 hours, work with the start and finish station, check the chip initialization time, the maximum number of marks = 64, the settings are preserved when the station is put into sleep, then
-a = 0, b = 4, c = 0, d = 32, e = 0
-SetSt = 0 + 4 + 0 + 32 + 0 = 36
-
-For firmware running with Mifare chips, the parameters with and d are not configured, I use by default (do not check the chip initialization time, number of marks = 42)
+Settings along with passwords can be saved by pressing the save button, then you can load them - load. It is recommended to save the settings when setting new passwords to remember them.
 
 ### Removing the station log
 
 During operation, the base station logs - records the fact of a mark by one or another chip number. The time stamp is not recorded, the log is kept only for chips with numbers up to 4000. Using this function, it is possible to restore a part of the data in case of losing chips, checking controversial situations, and searching for lost or lost participants.
-Before work, you need to prepare the files. To do this, go to the data / dump folder. Delete the dump.csv file, make a copy of the dump - Copy.csv file, and rename it to dump.csv. Then you can run the program.
 
-To remove the log, you need to record the master chip, to do this, bring the chip to the master station and press Log Master. The process of master-chip preparation takes 5 seconds. Then bring the master chip to the base station. The process is long, you need to carefully hold the chip in the optimal recording area (0.5 - 1 cm above the orange mark). After successfully removing the log, bring the chip to the master station and click Read Log. The result will appear in the data / damp / dump.csv file as a large matrix chip number / station number. For convenience of work after removing all logs, it is recommended to delete non-working ranges of station numbers and chips.
+To remove the log, you need to record the master chip, for this purpose bring the chip to the master station and press the Sump Card in the Station tab. The process of master-chip preparation takes 5 seconds. Then bring the master chip to the base station. The process is long, you need to carefully hold the chip in the optimal recording area (0.5 - 1 cm above the orange mark). After successfully removing the log, bring the chip to the master station and click Read Dump. The result will appear in the log.
 
-## Reading chips, forming the results of SportOrg
+## Reading chips, generating results
 
 It is recommended to use the SportOrg program to read the chips and generate the results. The peculiarity of using this program is that it is necessary to use the starting station (240) and the finishing station (245), otherwise an error will occur during reading. You can pre-mark all the chips at the start station, give out to the participants, and then in the program set the start time or set the start count from the arbitrary station. It is also possible to move the stations to the start / finish station mode to avoid an error.
 
-Download the latest version and read the instructions on the website:
-http://sportorg.o-ural.ru/
-
-## Reading chips, generating results Processing
-
-For advanced users.
-The use of this program is not trivial and may seem difficult to master. In addition, additional postprocessing of data is required to form the final protocols. Therefore, its use is not recommended. Nevertheless, experienced users (especially those with programming skills) can, using it, conduct the competition in the format they need.
-
-### Preparation
-
-If the summing up of the results is not expected, but you just need to find out what was recorded on the chip, you can skip tuning. The data will be shown in the Processing log when reading.
-Before work, you need to prepare the files. To do this, go to the data / folder. Delete the files correct.csv, protocol.csv, make copies of the files correct - Copy.csv and protocol - Copy, rename them correct.csv, protocol.csv. Go to the data / result folder. Delete all files except alldata - Copy.csv, make a copy of it and rename it to alldata.csv.
-In the data / protocol file, you must enter the start protocol. It is important to follow the existing table, you can not add / delete change column names. You need to save in csv format, encoding - UTF-8, delimiters - comma. It is convenient to do this using Libre Office (in Excel it is more difficult).
-
-In the correct.csv file, make the necessary corrections, if necessary. Similarly, you must follow the specified format. To adjust the Kp, you need to add it to the table. St - number of pcs. plus - add time in seconds to kp. minus - subtract time in seconds to kp. newSt - replace the number of kp. If you put more than 250, then it will be removed from the split.
-You can force all chips to start. It is necessary in case of a general start (for example, race starts or rogaine). For this, you need to type 0 in the newSt column, and in the plus column - the start time in the unixtime format. All at the beginning of the chip will be added taking station 240 (start) with time plus.
-
-### Reading chips
-
-For reading, bring the chip to the master station and click Read Chip. The length of the reading depends on the chip and takes from 1 to 4 seconds. If the reading is successful, the station will emit a signal. The log will show the results: times of marks on the kp as well as the number of kp taken (minus start and finish), total time at the distance (finish start).
-The raw data is stored in data / result / alldata.csv in the form of a cp taken and the corresponding time in unixtime format. Each reading is written to a new line, when the chip is read again, only the last reading is counted in the results. When you turn off the program, the data is not deleted. With the subsequent inclusion of data from the chips continue to be recorded with the preservation of previously recorded earlier.
-
-### Getting Primary Results
-
-The processing of the results can be carried out either gradually as the chips are read, or after reading all the chips. There is no need to connect a master station for processing.
-It is necessary to press the button Calc, as a result in a folder data / result there will be two files - correct.csv and result.csv. The first one contains the raw data corrected according to the file data / correct.csv. In the second - the calculated results without sorting. Each time you click the Calc button, new files are created, the old ones are deleted.
-
-Calculation of results can take a long time. But it can also hang if something was done wrong (incorrectly populated tables first), in which case an error message will appear in the Processing IDE window. You must turn off the program by clicking the stop button in the IDE.
-
-### Postprocessing. Formation of protocols
-
-In the data / result / result.csv file, the results will appear without sorting as a result of the processing. The chip numbers will be assigned data from the protocol. If the read chip number is not in the protocols, then the corresponding data will remain empty. Also, participants from the protocol, for which there are no read chips, will be copied to the end of the results. All the time data in the results are presented in the format of number_seconds / 86400, which corresponds to the standard time representation in the spreadsheet editor, to translate into the usual view in the table editor, you need to select the columns with the times and change the format of the cells to display the time. With time, arithmetic operations can be performed in this format.
-
-The results contain the following columns in addition to those copied from the protocol:
-
-* Time - total time at the distance (finish time - start time)
-* CP - the number of KPs taken, excluding the start and finish stations
-* Rogein is the sum of the first digits taken by the kp, excluding the special start and finish stations and the retrieved kp.
-* TStart - start time
-* TFinish - finish time
-* С0 - start station number
-
-Next are the split:
-
-* С1 - number of the first taken КП
-* T1 - drive time from start to first gear
-* С2 - number of the second taken КП
-* T2 - distillation from the first to the second gearbox
-
-And so on.
-
-Unnecessary columns can be deleted and then calculate the results using a spreadsheet editor, calculate the penalties for the exit per square foot, points for taking a kp or pass kp and so on. It is convenient to use auto filter for sorting by groups, by time, points for assigning places.
-
-Calculation of special distances (specified direction, accounting for intermediate finishes ...) in this version of the program is not provided. But, having some programming skills, you can modify the program to calculate the desired values.
+To quickly view the results for individual chips, you can also use the SportiduinoPQ. To do this, bring the chip to the station and in the Card tab, click Read Chip. The result will be displayed in the log.

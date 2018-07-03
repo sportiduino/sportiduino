@@ -1,5 +1,13 @@
-Software development in IDE Processing is included in a [separate repository](https://github.com/alexandervolikov/sportiduinoProcessing). 
-The functional is minimal.
+### SportiduinoPQ
 
-We are developing a python module for the program [SportOrg](https://github.com/sportorg/pysport)
-The module repository is also [separate](https://github.com/alexandervolikov/sportiduinoPython)
+Cards and stations are tuned in the program (SportiduinoPQ)[https://github.com/alexandervolikov/SportiduinoPQ]
+
+The program is based on [a python module](https://github.com/alexandervolikov/sportiduinoPython) and also on the PyQt package for creating window applications
+
+There is also a similar program on (Processing)[https://github.com/alexandervolikov/sportiduinoProcessing], the support of which is canceled
+
+### SportOrg
+
+Reading chips is implemented in the program [SportOrg](https://github.com/sportorg/pysport)
+
+[Site with programm](http://sportorg.o-ural.ru/)
