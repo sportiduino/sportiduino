@@ -1,6 +1,6 @@
 ﻿![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/logo.png)
 
-#### Version 1.3.8
+#### Version 1.4.0
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportIDuino/master/Images/Sportiduino.JPG)
 

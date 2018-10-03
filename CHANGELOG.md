@@ -1,3 +1,6 @@
+## [1.4.0] - 2018-10-03
+### Added the ability to reduce the power of the antenna to choose the optimal range of the station
+
 ## [1.3.8] - 2018-06-25
 ### Added the program for work with the system
 - The program is available at (separete rep)[https://github.com/alexandervolikov/SportiduinoPQ]/ It is

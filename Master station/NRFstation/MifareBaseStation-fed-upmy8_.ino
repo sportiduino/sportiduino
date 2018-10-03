@@ -1,3 +1,6 @@
+// --------------- NRF24l01
+#define HW_YU
+// --------------- NRF24l01 ---
 
 #include <avr/sleep.h>
 #include <avr/wdt.h>
@@ -7,34 +10,75 @@
 #include <MFRC522.h>
 #include <EEPROM.h>
 
+
+
+
 //Константы и перменные
 
-const uint8_t vers = 104; //version of software
+const uint8_t vers = 103; //version of software
 const uint16_t eepromMaxChip = 4000; //16Kb, default in ds3231 - 4Kb
+
+
+// --------------- NRF24l01
+ 
+bool rf24_online = false;
+#ifdef HW_YU
+ 
+const uint8_t LED = 4; // led diod pin
+const uint8_t BUZ = 3; //pd3 buzzer pin
+const uint8_t VCC_C = 5; //pc3 my
+const uint8_t RST_PIN = 9; //Reset pin of MFRC522, LOW for sleep
+const uint8_t SS_PIN = 10; //SS pin of RFID 
+
+#define RF24_CSN    8 //  CS  на RF module
+#define RF24_CE     2 //  CE  на RF module 
+#define VCC_NRF   7   //  Vcc  на RF module 
+
+#include "nRF24L01.h"
+#include "RF24.h"
+RF24 radio(RF24_CE , RF24_CSN);
+
+const uint8_t nCanalNRF24l01 = 112;      // Установка канала вещания;
+byte addresses[][6] = {"1Master","2Base"};
+
+struct strDataSendNRF
+{ 
+byte ReadDataNRF[16];
+};
+
+strDataSendNRF readNRF;
+#else
+
+// --------------- NRF24l01 ---
+
 
 const uint8_t LED = 4; // led diod pin
 const uint8_t BUZ = 3; // buzzer pin
 const uint8_t VCC_C = 5; // Pin for powering of the clock during their reading
 const uint8_t RST_PIN = 9; //Reset pin of MFRC522, LOW for sleep
 const uint8_t SS_PIN = 10; //SS pin of RFID
+
+// --------------- NRF24l01 
+#endif
+// --------------- NRF24l01 ---
+
 const uint16_t eepromAdrStantion = 800;//start address for storing number of the stantion
 const uint16_t eepromAdrSleep = 900;//start address for storing sleep state
 const uint16_t eepromPass = 850;//start address for storing password and settings
 
 const uint8_t pageCC = 3;
-const uint8_t pageInfo = 4; //block for information about participant and last stantion
+const uint8_t blockInfo = 4; //block for information about participant and last stantion
 const uint8_t pagePass = 5;
 const uint8_t firstPage = 8;
 
-const uint8_t ntag213 = 3;
-const uint8_t ntag215 = 5;
-const uint8_t ntag216 = 6;
+const uint8_t ntag214 = 4;
+const uint8_t ntagValue = 50;
 
 const uint8_t startStantion = 240; //number of start stantion
 const uint8_t finishStantion = 245;//number of finish stantion
-const uint8_t checkStantion = 248;
 const uint8_t clearStantion = 249; //number of clear station
-const uint16_t maxNumChip = 4000;//for EEPROM write. If you exceed, the mark will be made, but the information in EEPROM will not be recorded
+const uint8_t checkStantion = 248;
+const uint16_t maxNumChip = 1500;//for EEPROM write. If you exceed, the mark will be made, but the information in EEPROM will not be recorded
 
 //master chips number in the first three bytes of the chip in the first page
 const uint8_t timeMaster = 250;
@@ -72,18 +116,30 @@ uint32_t maxTimeInit = 2500000UL; //
 uint32_t loopCount = 0; //86400, 691200 - 6, 48 hour work regime
 uint32_t maxCount = 86400UL; //loops before switching to standby mode
 
-uint8_t gain = 0x07 << 4;
 uint8_t lastCleanChip0 = 0;
 uint8_t lastCleanChip1 = 0;
 boolean lastChipClean = false;
 boolean eraseSetting = false;
 
+MFRC522::MIFARE_Key key;
 MFRC522::StatusCode status;
 MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
 struct ts t; //time
 
 
 void setup () {
+  
+  // --------------- NRF24l01
+  
+  Serial.begin(9600);
+ 
+  rf24_online = false;
+   pinMode(VCC_NRF, INPUT);
+  // --------------- NRF24l01 ---
+  
+  for (byte i = 0; i < 6; i++) {
+    key.keyByte[i] = 0xFF;
+  }
   //We read the time. if huddled hours, signaling
   
   pinMode(VCC_C, OUTPUT);
@@ -111,30 +167,19 @@ void setup () {
     pass[0]=pass[1]=pass[2]=setting=0;
   }
 
-  uint8_t set0_1 = setting&0b00000011;
-  if (set0_1 == 0b00000000) maxCount = 86400UL; //6 чаосв
-  if (set0_1 == 0b00000001) maxCount = 691200UL; //24 часа
-  if (set0_1 == 0b00000010) maxCount = 0; // всегда режим ожидания
-  if (set0_1 == 0b00000011) maxCount = 1; // всегда рабочий режим
+  uint8_t timeidl = setting&0b00000011;
+  if (timeidl == 0b00000000) maxCount = 86400UL;
+  if (timeidl == 0b00000001) maxCount = 691200UL;
+  if (timeidl == 0b00000010) maxCount = 0;
+  if (timeidl == 0b00000011) maxCount = 1;
   
   
   uint8_t set2 = setting&0b00000100;
   if (set2 == 0b00000100) startFinish = true;
   else startFinish = false;
-  
-  uint8_t set3 = setting&0b00001000;
-  if (set3 == 0b00001000) checkTimeInit = true;
 
-  uint8_t set4 = setting&0b00010000;
-  if (set4 == 0b00010000) eraseSetting = true;
-
-  uint8_t set5_7 = setting&0b11100000;
-  if (set5_7 == 0 or set5_7 == 0b00100000){
-    gain = 0x07 << 4;
-  }
-  else{
-    gain = set5_7 << 1;
-  }
+  uint8_t set6 = setting&0b01000000;
+  if (set6 == 0b01000000) eraseSetting = true;
   
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
   beep(1000, 1 ); //The signal at system startup or reboote
@@ -157,7 +202,12 @@ void setup () {
  */
 void loop ()
 {
-  
+    
+ // --------------- NRF24l01
+ pinMode(VCC_NRF, INPUT);
+ rf24();
+ 
+ // --------------- NRF24l01 ---
   //enable watch-dog for 1 s
   wdt_enable(WDTO_1S);
 
@@ -169,7 +219,7 @@ void loop ()
     }
   }
 
-  
+ 
   //Look the chip, If founded, writing it
   rfid();
  
@@ -221,12 +271,18 @@ void sleep(boolean light) {
   night = true; //for correct work of watch-dog inerrupt
 
   //Low all pin for power save
+
+ 
   for (uint8_t i = 0; i <= A5; i++)
   {
     pinMode(i, OUTPUT);
     digitalWrite (i, LOW);  //
   }
-
+  
+ // --------------- NRF24l01
+    pinMode(VCC_NRF,INPUT_PULLUP);
+ // --------------- NRF24l01 ---
+ 
   // disable ADC
   ADCSRA = 0;
   if (light) {
@@ -259,6 +315,7 @@ void sleep(boolean light) {
 
 } // end of sleep()
 
+ 
 
 /*
  * Вход в сон на 8000 мс. Сначала ставится флаг для прерывания, что оно приоисходит
@@ -270,12 +327,17 @@ void sleep8s() {
   night = true; //for correct work of watch-dog inerrupt
 
   //Low all pin for power save
+ 
   for (uint8_t i = 0; i <= A5; i++)
   {
     pinMode(i, OUTPUT);
     digitalWrite (i, LOW);  //
   }
- 
+  
+ // --------------- NRF24l01
+    pinMode(VCC_NRF,INPUT_PULLUP);
+ // --------------- NRF24l01 ---
+
   // disable ADC
   ADCSRA = 0;
   MCUSR = 0;
@@ -447,43 +509,83 @@ void voltage() {
 uint8_t dump[16];
 
 //MFRC522::StatusCode MFRC522::MIFARE_Read
-bool ntagWrite (uint8_t *dataBlock, uint8_t pageAdr){
+bool ntagWrite (uint8_t *data, uint8_t pageAdr){
+  byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
 
-  const uint8_t sizePageNtag = 4;
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Ultralight_Write(pageAdr, dataBlock, sizePageNtag);
+  byte dataBlock[16];
+  dataBlock[0]=data[0];
+  dataBlock[1]=data[1];
+  dataBlock[2]=data[2];
+  dataBlock[3]=data[3];
+  
+  byte buffer[18];
+  byte size = sizeof(buffer);
+  byte trailerBlock = blockAddr + (3-blockAddr%4);
+  
+  // Authenticate using key A
+  status = (MFRC522::StatusCode) mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
   if (status != MFRC522::STATUS_OK) {
-    return false;
+      return false;
   }
 
-  uint8_t buffer[18];
-  uint8_t size = sizeof(buffer);
-
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
+  // Write data to the block
+  status = (MFRC522::StatusCode) mfrc522.MIFARE_Write(blockAddr, dataBlock, 16);
   if (status != MFRC522::STATUS_OK) {
-    return false;
+     
+     return false;
+  }
+  
+  // Read data from the block (again, should now be what we have written)
+  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(blockAddr, buffer, &size);
+  if (status != MFRC522::STATUS_OK) {
+      
+      return false;
   }
  
   for (uint8_t i = 0; i < 4; i++) {
-    if (dataBlock[i]!=buffer[i]) return false;
+    dump[i]=buffer[i];
   }
-  
-  return true;
-  
+
+  if (dump[0]==dataBlock[0]){
+    return true;
+  }
+  else{
+    return false;
+  }
+    
 }
 
 bool ntagRead (uint8_t pageAdr){
-  uint8_t buffer[18];
-  uint8_t size = sizeof(buffer);
-
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(pageAdr, buffer, &size);
-  if (status != MFRC522::STATUS_OK) {
-    return false;
-  }
+  byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
   
-  for (uint8_t i = 0; i < 16; i++) {
-    dump[i]=buffer[i];
+  byte buffer[18];
+  byte size = sizeof(buffer);
+  byte trailerBlock = blockAddr + (3-blockAddr%4);
+   // Authenticate using key A
+  status = (MFRC522::StatusCode) mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
+  if (status != MFRC522::STATUS_OK) {
+      return false;
   }
-  return true;
+
+ 
+  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(blockAddr, buffer, &size);
+  if (status != MFRC522::STATUS_OK) {
+      
+      return false;
+  }
+ 
+  byte count = 0;
+  for (byte i = 0; i < 16; i++) {
+      dump[i]=buffer[i];
+      // Compare buffer (= what we've read) with dataBlock (= what we've written)
+ }
+
+ if (pageAdr==3){
+      dump[2]=0;
+ }
+ 
+ return true;
+   
 }
 
 
@@ -522,7 +624,6 @@ void rfid() {
   //включаем SPI ищем карту вблизи. Если не находим выходим из функции чтения чипов
   SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init();    // Init MFRC522
-  mfrc522.PCD_SetAntennaGain(gain);
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -544,13 +645,50 @@ void rfid() {
   }
    
   //читаем блок информации
-  if(!ntagRead(pageInfo)){
+  if(!ntagRead(blockInfo)){
     return;
   }
   
   //в первых трех байтах находятся нули для обычных чипов и заданные числа для мастер-чипов
   uint8_t info = 0;
   if (dump[2]==255) {
+    uint8_t tempdump[16];
+    tempdump[0]=dump[0];
+    tempdump[1]=dump[1];
+    tempdump[2]=dump[2];
+    tempdump[3]=dump[3];
+
+    if(!ntagRead(blockInfo+1)){
+      return;
+    }
+
+    tempdump[4]=dump[0];
+    tempdump[5]=dump[1];
+    tempdump[6]=dump[2];
+    tempdump[7]=dump[3];
+
+    if(!ntagRead(blockInfo+2)){
+      return;
+    }
+
+    tempdump[8]=dump[0];
+    tempdump[9]=dump[1];
+    tempdump[10]=dump[2];
+    tempdump[11]=dump[3];
+
+    if(!ntagRead(blockInfo+3)){
+      return;
+    }
+
+    tempdump[12]=dump[0];
+    tempdump[13]=dump[1];
+    tempdump[14]=dump[2];
+    tempdump[15]=dump[3];
+
+    for (uint8_t h=0;h<16;h++){
+      dump[h]=tempdump[h];
+    }
+    
     info = dump[1];
     //считываем пароль с мастер-чипа
     uint8_t chipPass[3];
@@ -583,23 +721,7 @@ void rfid() {
     checkChip();
     return;
   }
-
-  if (checkTimeInit == true){
   
-    uint32_t timeInit = dump[4];
-    timeInit = timeInit <<8;
-    timeInit += dump[5];
-    timeInit = timeInit <<8;
-    timeInit += dump[6];
-    timeInit = timeInit <<8;
-    timeInit += dump[7];
-
-    if (t.year>2016 && (t.unixtime-timeInit)> maxTimeInit){
-      return;
-    }
-  }
-  
-
   tempDump[0] = 0;
   
   
@@ -609,24 +731,9 @@ void rfid() {
 
   
   uint8_t ntagType = dump[2]%10;
-  uint8_t maxPage = 39;
 
-  if (ntagType==ntag215){
-      newPage = findNewPage(128);
-      maxPage = 127;
-    }
-    else if (ntagType==ntag213){
-      newPage = findNewPage(40);
-      maxPage = 39;
-    }
-    else if (ntagType==ntag216){
-      newPage = findNewPage(224);
-      maxPage = 223;
-    }
-    else{
-      return;
-  }
-  
+  newPage = findNewPage(50);
+ 
 
   //ищем последнюю пустую страницу в чипе для записи
   
@@ -643,6 +750,7 @@ void rfid() {
   
   //проверяем записан ли чип уже полностью и места на нём нет
   //check if memory of chip has finished
+  uint8_t maxPage = 49;
   
   if(newPage > maxPage){
     return;
@@ -687,7 +795,10 @@ void rfid() {
   work = true;
   loopCount = 0;
 
-  
+  // Halt PICC
+    mfrc522.PICC_HaltA();
+    // Stop encryption on PCD
+    mfrc522.PCD_StopCrypto1();
   SPI.end();
 
 } // end of rfid()
@@ -707,10 +818,12 @@ void timeChip() {
   t.sec = dump[14];
 
   uint8_t dataDump[4] ={0, 0, 0,0};
-  
-  if(!ntagWrite(dataDump,4)){
-    return;
+
+ // --------------- NRF24l01
+if (!digitalRead(VCC_NRF)) { 
+   if (!ntagWrite(dataDump,4)){ return; }
   }
+  // --------------- NRF24l01 ---
   
   digitalWrite(VCC_C,HIGH);
   delay(1);
@@ -732,19 +845,21 @@ void stantionChip(){
   uint8_t newnum = dump[8];
   uint8_t dataDump[4] ={0, 0, 0, 0};
   
-  if(!ntagWrite(dataDump,4)){
-    return;
+ // --------------- NRF24l01
+if (!digitalRead(VCC_NRF)) { 
+   if (!ntagWrite(dataDump,4)){ return; }
   }
-    
+ // --------------- NRF24l01 ---
+  
   if (newnum!=0){
     if (stantion != newnum){
-		stantion = newnum;
-		eepromwrite (eepromAdrStantion, newnum);
+      stantion = newnum;
+      eepromwrite (eepromAdrStantion, newnum);
     }
-	beep(500,5);
+    beep(500,5);
     resetFunc(); //reboot
   }
-  else {
+  else{
     beep(50,6);
     return;
   }
@@ -758,10 +873,13 @@ void stantionChip(){
 void sleepChip(){
   
   uint8_t dataDump[4] ={0, 0, 0, 0};
-  
-  if(!ntagWrite(dataDump,4)){
-    return;
+
+ // --------------- NRF24l01
+if (!digitalRead(VCC_NRF)) { 
+   if (!ntagWrite(dataDump,4)){ return; }
   }
+  // --------------- NRF24l01 ---
+  
   for (uint8_t i = 0;i<3;i++){
     pass[i]=0;
     eepromwrite((eepromPass+i*3),0);
@@ -795,7 +913,7 @@ void dumpChip(){
     return;
   }
 
-  for (uint8_t page = 5; page<130;page++){
+  for (uint8_t page = 5; page<50;page++){
   wdt_reset();  
     for (uint8_t m = 0; m<4;m++){
       dataEeprom[m]=EEPROM.read(eepromAdr);
@@ -803,6 +921,7 @@ void dumpChip(){
     }
 
     if(!ntagWrite(dataEeprom,page)){
+      beep(50,3);
       return;
     }
     
@@ -856,9 +975,11 @@ void passChip(){
 
   uint8_t dataDump[4] ={0, 0, 0, 0};
   
-  if(!ntagWrite(dataDump,4)){
-    return;
+ // --------------- NRF24l01
+if (!digitalRead(VCC_NRF)) { 
+   if (!ntagWrite(dataDump,4)){ return; }
   }
+  // --------------- NRF24l01 ---
   
   beep(500,2);
   resetFunc(); //reboot
@@ -871,71 +992,32 @@ void passChip(){
  */
 
 uint8_t findNewPage(uint8_t finishpage){
-  uint8_t finishblock = finishpage/4;
-  uint8_t startblock = 2;
-  uint8_t block = (finishblock-startblock)/2;
+  uint8_t startpage = 8;
+  uint8_t page = (finishpage+startpage)/2;
 
   while (1) {
-    if (finishblock==startblock) {
-      return (finishblock*4);
+    if (finishpage==startpage) {
+      return (finishpage);
     }
        
-    block = (finishblock + startblock)/2;
-     
-    if(!ntagRead(block*4)){
+    page = (finishpage + startpage)/2;
+   
+    if(!ntagRead(page)){
       for (uint8_t i = 0; i<4 ; i++) tempDump[i] = 0;
       return 0;
     }
      
-    boolean empty = true;
-
     if (dump[0]==0){
-      empty = true;
-    }
-    else if (dump[0]!=0 && dump[4]==0){
-      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i];
-      return block*4+1;
-    }
-    else if (dump[4]!=0 && dump[8]==0){
-      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i+4];
-      return block*4+2;
-    }
-    else if (dump[8]!=0 && dump[12]==0){
-      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i+8];
-      return block*4+3;
+      finishpage = (finishpage - startpage)/2 + startpage;
     }
     else {
-      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i+12];
-      empty = false;
+      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i];
+      startpage = finishpage - (finishpage - startpage)/2;
     }
-
-    
-    if (empty){
-      finishblock = (finishblock - startblock)/2 + startblock;
-    }
-    else{
-      startblock = finishblock - (finishblock - startblock)/2;
-    }
-    } 
+  } 
 }
 
 void clearChip(){
-  
-  uint8_t ntagValue = 0;
-  uint8_t ntagType = dump[2]%10;
-
-  if (ntagType==ntag215){
-    ntagValue = 130;
-  }
-  else if (ntagType==ntag213){
-    ntagValue = 40;
-  }
-  else if (ntagType==ntag216){
-    ntagValue = 216;
-  }
-  else{
-    return;
-  }
   
   if ((lastCleanChip0==dump[0])&&(lastCleanChip1==dump[1])&&lastChipClean){
     
@@ -956,8 +1038,6 @@ void clearChip(){
   pinMode (LED, OUTPUT);
   digitalWrite (LED,HIGH);
 
-
-  
   byte Wbuff[] = {255,255,255,255};
   
   for (byte page = firstPage; page < ntagValue; page++) {
@@ -1003,27 +1083,31 @@ void checkChip(){
     beep(200,3);
     return;
   }
+
+  if(!ntagRead(pagePass)){
+    return;
+  }  
   
-  uint32_t initTime = dump[4];
+  uint32_t initTime = dump[0];
   initTime <<= 8;
-  initTime += dump[5];
+  initTime += dump[1];
   initTime <<= 8;
-  initTime += dump[6];
+  initTime += dump[2];
   initTime <<= 8;
-  initTime += dump[7];
+  initTime += dump[3];
 
   if ((t.unixtime-initTime)> maxTimeInit){
     beep(200,3);
     return;
   }
   
-  for (byte i =0;i<7;i++){
+  for (byte i =0;i<4;i++){
     if(!ntagRead(firstPage)){
       return;
     }  
   }
   
-  for (byte i=0; i<16;i++){
+  for (byte i=0; i<4;i++){
     if (dump[i]!=0){
       beep(200,3);
       return;
@@ -1033,3 +1117,92 @@ void checkChip(){
   beep(200,1);
   
 }
+
+ // --------------- NRF24l01
+void rf24_dumpChip(){
+  uint8_t dataEeprom[4];
+  uint16_t eepromAdr = 0;
+
+//  uint8_t dataDump[4] = {stantion,0,0,0};
+//  radio.write( &dataDump, 4 );              // Send the final one back.
+
+  radio.stopListening();                                        // First, stop listening so we can talk
+  for (uint8_t page = 5; page<50;page++){
+//  wdt_reset();
+    for (uint8_t m = 0; m<4;m++){
+      dataEeprom[m]=EEPROM.read(eepromAdr);
+      eepromAdr++;
+    }
+
+    radio.write( &dataEeprom, 4 );              // Send the final one back.
+  }
+  radio.startListening();                                       // Now, resume listening so we catch the next packets.
+
+  beep(500,6);
+  return;
+
+}
+
+void rf24(){
+  delay(200);
+  Serial.println ( digitalRead(VCC_NRF) );
+	while (digitalRead(VCC_NRF)){
+   if (!rf24_online) {
+ Serial.println ( "setupNRF();" );
+    beep(50, 2); delay(200);wdt_reset(); beep(50, 1); delay(300);wdt_reset(); beep(50, 3); 
+ 
+    rf24_online = true;
+    SPI.begin();
+		radio.begin();                           // Setup and configure rf radio
+		radio.setChannel(nCanalNRF24l01);        // Set the channel
+    radio.setRetries(15,15);                  // Optionally, increase the delay between retries. Want the number of auto-retries as high as possible (15)
+		radio.setDataRate(RF24_250KBPS);           // Raise the data rate to reduce transmission distance and increase lossiness
+    radio.setPALevel(RF24_PA_MIN);           // Set PA LOW for this demonstration. We want the radio to be as lossy as possible for this example.
+    radio.setAutoAck(0);                     // Ensure autoACK is enabled	
+		radio.setCRCLength(RF24_CRC_16);         // Set CRC length to 16-bit to ensure quality of data
+    radio.openWritingPipe(addresses[1]);
+    radio.openReadingPipe(1,addresses[0]);
+//    radio.setPayloadSize(16);
+	  radio.startListening();                 // Start listening
+    radio.flush_rx();  
+   }
+  
+     wdt_reset(); 
+ //  delay(10);
+ uint16_t preTime = millis();
+   if( radio.available()){
+      while (radio.available()) {                                   // While there is data ready
+       radio.read( &readNRF, sizeof(readNRF) );             // Get the payload
+       if (millis() - preTime>1000) break;
+      }
+
+	  for (uint8_t h=0;h<16;h++){
+      dump[h]=readNRF.ReadDataNRF[h];
+    }
+		
+beep(50, dump[1] - 249);
+delay(300);
+				switch(dump[1]){
+					case timeMaster:
+            timeChip();
+						break;
+					case numberMaster:
+            stantionChip();
+						break;
+					case sleepMaster:
+            sleepChip();
+						break;
+					case dumpMaster:
+            rf24_dumpChip();
+						break;
+					case passMaster:
+            passChip();
+						break;
+					
+				 }
+			}
+		}
+ rf24_online = false;
+}
+ // --------------- NRF24l01 ---
+

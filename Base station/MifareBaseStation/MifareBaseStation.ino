@@ -9,7 +9,7 @@
 
 //Константы и перменные
 
-const uint8_t vers = 103; //version of software
+const uint8_t vers = 104; //version of software
 const uint16_t eepromMaxChip = 4000; //16Kb, default in ds3231 - 4Kb
 
 const uint8_t LED = 4; // led diod pin
@@ -71,6 +71,7 @@ uint32_t maxTimeInit = 2500000UL; //
 uint32_t loopCount = 0; //86400, 691200 - 6, 48 hour work regime
 uint32_t maxCount = 86400UL; //loops before switching to standby mode
 
+uint8_t gain = 0x07 << 4;
 uint8_t lastCleanChip0 = 0;
 uint8_t lastCleanChip1 = 0;
 boolean lastChipClean = false;
@@ -125,8 +126,16 @@ void setup () {
   if (set2 == 0b00000100) startFinish = true;
   else startFinish = false;
 
-  uint8_t set6 = setting&0b01000000;
-  if (set6 == 0b01000000) eraseSetting = true;
+  uint8_t set4 = setting&0b00010000;
+  if (set4 == 0b00010000) eraseSetting = true;
+
+  uint8_t set5_7 = setting&0b11100000;
+  if (set5_7 == 0 or set5_7 == 0b00100000){
+    gain = 0x07 << 4;
+  }
+  else{
+    gain = set5_7 << 1;
+  }
   
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
   beep(1000, 1 ); //The signal at system startup or reboote
@@ -554,6 +563,7 @@ void rfid() {
   //включаем SPI ищем карту вблизи. Если не находим выходим из функции чтения чипов
   SPI.begin();      // Init SPI bus
   mfrc522.PCD_Init();    // Init MFRC522
+  mfrc522.PCD_SetAntennaGain(gain);
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
