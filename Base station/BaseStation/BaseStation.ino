@@ -397,9 +397,9 @@ void beep_mark() {
   delay (200);
   digitalWrite (LED, LOW);
   
-  delay(500)
+  delay(200);
   digitalWrite (LED, HIGH);
-  delay(200)
+  delay(200);
   digitalWrite (LED, LOW);
   
 } //end of beep

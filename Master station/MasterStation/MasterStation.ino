@@ -8,7 +8,7 @@ const byte LED = 4;
 const byte BUZ = 3;
 const byte RST_PIN = 9;
 const byte SS_PIN = 10;
-uint8_t gain = 0x06 << 4;
+uint8_t gain = 0x07 << 4;
 
 //password for master key
 uint8_t pass[] = {0,0,0};
