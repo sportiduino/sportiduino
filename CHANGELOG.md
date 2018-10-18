@@ -1,3 +1,6 @@
+## [1.4.1] - 2018-10-17
+### mark beep change, reduce power for master station
+
 ## [1.4.0] - 2018-10-03
 ### Added the ability to reduce the power of the antenna to choose the optimal range of the station
 

@@ -8,6 +8,7 @@ const byte LED = 4;
 const byte BUZ = 3;
 const byte RST_PIN = 9;
 const byte SS_PIN = 10;
+uint8_t gain = 0x06 << 4;
 
 //password for master key
 uint8_t pass[] = {0,0,0};
@@ -287,7 +288,8 @@ void findFunc() {
  */
 void writeMasterTime() {
   SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init(); 
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if (!mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -328,7 +330,8 @@ void writeMasterTime() {
  */
 void  writeMasterNum(){
   SPI.begin();          // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init();  
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if (!mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -364,7 +367,8 @@ void  writeMasterNum(){
  */
 void writeMasterPass() {
   SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init();  
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -410,7 +414,8 @@ void writeMasterPass() {
  */
 void writeInit() {
   SPI.begin();          // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init();  
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -487,7 +492,8 @@ void writeInit() {
  */
 void writeInfo(){
   SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init();  
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -519,7 +525,8 @@ void writeInfo(){
  */
 void writeMasterLog(){
   SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init();  
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -578,7 +585,8 @@ void readLog() {
   clearBuffer();
   
   SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init();  
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -628,7 +636,8 @@ void readCard() {
   clearBuffer();
   
   SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init();  
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -722,7 +731,8 @@ void readRawCard() {
   clearBuffer();
   
   SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init();  
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -769,7 +779,8 @@ void readRawCard() {
  */
 void writeMasterSleep() {
   SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();   // Init MFRC522
+  mfrc522.PCD_Init();  
+  mfrc522.PCD_SetAntennaGain(gain);   // Init MFRC522
   // Look for new cards
   if ( ! mfrc522.PICC_IsNewCardPresent()) {
     return;
@@ -836,4 +847,3 @@ void clearBuffer() {
     serialBuffer[k] = 0;
   }
 }
-

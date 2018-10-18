@@ -37,3 +37,5 @@ We try on the case. The board I got a little unsuccessful, the cable barely damp
 After that the body is twisted and ready for use.
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/w06.jpg)
+
+If the station's response range is not optimal (does not work well when the chip is attached to the vplantny one), the antenna power should be reduced. To do this, in the firmware, reduce the variable gain (from 0x07 << 4 to 0x06 << 4) and try again, if not satisfied, decrease it again.

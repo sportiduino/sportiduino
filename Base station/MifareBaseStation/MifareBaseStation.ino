@@ -387,6 +387,22 @@ void beep(uint16_t ms, uint8_t n) {
 
 } //end of beep
 
+void beep_mark() {
+
+  pinMode (LED, OUTPUT);
+  pinMode (BUZ, OUTPUT);
+
+  digitalWrite (LED, HIGH);
+  tone (BUZ, 4000, 200);
+  delay (200);
+  digitalWrite (LED, LOW);
+  
+  delay(500)
+  digitalWrite (LED, HIGH);
+  delay(200)
+  digitalWrite (LED, LOW);
+  
+} //end of beep
 /*
  * Функция считывания напряжения питания МК. 
  * Сравнение происходит по внутреннему источнику опроного напряжения в 1.1 В
@@ -884,7 +900,7 @@ bool writeTime(int newPage){
    uint8_t dataBlock2[4] = {toWrite[0],toWrite[1],toWrite[2],toWrite[3]};
    
    if (ntagWrite(dataBlock2,newPage)){
-     beep(200, 1);
+     beep_mark();
      return true;
    }
    else {
@@ -1048,4 +1064,3 @@ void checkChip(){
   beep(200,1);
   
 }
-
