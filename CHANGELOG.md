@@ -1,3 +1,6 @@
+## [1.4.2] - 2018-10-23
+### delete antena gain from setting-byte
+
 ## [1.4.1] - 2018-10-17
 ### mark beep change, reduce power for master station
 

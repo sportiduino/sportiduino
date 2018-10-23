@@ -101,7 +101,6 @@ After the competition, it is recommended that all stations be put into sleep mod
 ### Setting up the station
 
 In the default mode, the station does not use passwords, separate starting and finishing stations, does not check the initialization time, the transition time from the operating mode to the standby mode is 6 hours, no passwords are used. If these parameters do not suit, they can be configured. To do this, in the Settings tab, you need to change the necessary parameters, bring the chip and press Pass Master. The master station will emit two signals, bring the chip to the base station, which will also emit two signals and reboot.
-Some stations may not work quite well - the chip does not work when you bring it close, which can make it difficult to mark. To do this, you need to gradually reduce the power of the antenna (by default, 48 dB).
 
 The use of passwords protects the station from the possibility of programming them by someone else's master chips with the wrong password, which can protect against such vandalism. To use passwords, enter three bytes of the old password (numbers from 0 to 255). By default, this is three zeros. Also note that when you put the stations into sleep mode, the password is reset to the default password - 0.
 

@@ -1,6 +1,6 @@
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/logo.png)
 
-#### Version 1.4.1
+#### Version 1.4.0
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportIDuino/master/Images/Sportiduino.JPG)
 
@@ -27,6 +27,7 @@
 Пул реквесты приветствуются. Также с удовольствием добавим ссылку на Ваши разработки, работающие с Sportiduino.
 
 Также поддерживается создание форков, развивающие какие-либо новые идеи.
+Например, [форк](https://github.com/halny123/sportiduino) , в которой схема базовой станции дополнена радио-модулем:
 
 Можно помочь с переводом документации. На данный момент он выполнен весьма грубо.
 
@@ -61,11 +62,9 @@
 
 ### SportiduinoPQ
 
-Настройка чипов и станций производится в программе (SportiduinoPQ)[https://github.com/alexandervolikov/SportiduinoPQ]
+Настройка чипов и станций производится в программе [SportiduinoPQ](https://github.com/alexandervolikov/SportiduinoPQ)
 
 Программа основана на [модуле на python](https://github.com/alexandervolikov/sportiduinoPython) а также на пакете PyQt для создания оконных приложений
-
-Также существует аналогичная программа на (Processing)[https://github.com/alexandervolikov/sportiduinoProcessing] , поддежка которой завершена.
 
 ### SportOrg
 

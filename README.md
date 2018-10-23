@@ -1,6 +1,6 @@
 ﻿![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/logo.png)
 
-#### Version 1.4.1
+#### Version 1.4.0
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportIDuino/master/Images/Sportiduino.JPG)
 
@@ -60,11 +60,9 @@ There is also a wireless station with the bluetooth module.
 
 ### SportiduinoPQ
 
-Cards and stations are tuned in the program (SportiduinoPQ)[https://github.com/alexandervolikov/SportiduinoPQ]
+Cards and stations are tuned in the program [SportiduinoPQ](https://github.com/alexandervolikov/SportiduinoPQ)
 
 The program is based on [a python module](https://github.com/alexandervolikov/sportiduinoPython) and also on the PyQt package for creating window applications
-
-There is also a similar program on (Processing)[https://github.com/alexandervolikov/sportiduinoProcessing], the support of which is canceled
 
 ### SportOrg
 

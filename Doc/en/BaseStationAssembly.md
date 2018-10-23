@@ -120,6 +120,9 @@ Apply flux and solder
 ![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/s14.jpg)
 
 Then we test the work of the station. Preliminary it is necessary to record the master chips of the station number, update the time and a couple of ordinary chips. After inserting the batteries, the station flashes three times, which is also indicated by the fact that the clock is not set correctly. Then in 5 seconds there will be a long signal, signaling that the program has entered the work cycle. By default, this is the sleep mode, so the station will react to the chip setting station number only after 25 seconds after it is presented, but you can immediately put the station on the chip before inserting the batteries. The station will record the new number will reboot, and is now able to respond to conventional chips. We bring the chip, wait until 25 seconds, the station goes into working mode. But the clock is still knocked down. In the working cycle, we present the master-chip of time and after rebooting we present the second usual chip. We read it at the gateway and make sure that it works correctly. If so, the station can be laundered. If not, then you need to look for possible errors, primarily in the RFID module spike.
+
+Antenna power is 48 dB by default, in some stations this power is redundant and leads to the fact that the chips are no longer marked when you bring them close. For stations with this problem, it is necessary to gradually reduce power until an optimal response is achieved. For this in line
+uint8_t gain need to reduce the parameter by one (to 0x06 << 4), if the response is still ineffective, try to reduce it further.
  
 ![](https://github.com/alexandervolikov/sportiduino/blob/master/Images/s15.jpg)
 
