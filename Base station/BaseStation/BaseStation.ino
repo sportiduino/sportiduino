@@ -13,7 +13,7 @@ const uint8_t vers = 104; //version of software
 const uint16_t eepromMaxChip = 4000; //16Kb, default in ds3231 - 4Kb
 
 //antena gain. Max = 0x07 << 4, min = 0. Set it manualy
-uint8_t gain = 0x06 << 4;
+uint8_t gain = 0x07 << 4;
 
 const uint8_t LED = 4; // led diod pin
 const uint8_t BUZ = 3; // buzzer pin
