@@ -7,6 +7,14 @@
 #include <MFRC522.h>
 #include <EEPROM.h>
 
+// По умолчанию с завода МК настроен на работу от встроенного RC генератора с делителем на 8
+// В итоге системная частота = 1 МГц
+// Ардуино по умолчанию настроен на частоту 16 МГц, поэтому необходимо отредактировать
+// текстовый файл с настройками платы Ардиуно и установить системную частоту 1 МГц
+
+// Уберите комментарий со строки ниже, если на плате впаян пьезоизлучатель без генератора
+//#define PIEZO_SPEAKER
+
 //Константы и перменные
 
 const uint8_t vers = 104; //version of software
@@ -87,6 +95,9 @@ struct ts t; //time
 
 void setup () {
 
+  wdt_disable();
+  wdt_reset();
+
   for (byte i = 0; i < 6; i++) {
     key.keyByte[i] = 0xFF;
   }
@@ -109,6 +120,11 @@ void setup () {
   
   stantion = eepromread(eepromAdrStantion); //Read the station number from the EEPROM
   deepsleep = eepromread(eepromAdrSleep); //Read on/off mark from EEPROM
+
+  // если номер станции не установлен, то станция по умолчанию будет станцией проверки
+  if(stantion == 0 || stantion == 255)
+    stantion = checkStantion;
+    
   for (uint8_t i=0; i<3;i++){
     pass[i]=eepromread(eepromPass + i*3);
   }
@@ -134,6 +150,10 @@ void setup () {
   
   delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
   beep(1000, 1 ); //The signal at system startup or reboote
+
+  //enable watch-dog for 2 s
+  wdt_enable(WDTO_2S);
+  
 }//end of setup
 
 
@@ -153,10 +173,8 @@ void setup () {
  */
 void loop ()
 {
+  wdt_reset();
   
-  //enable watch-dog for 1 s
-  wdt_enable(WDTO_1S);
-
   if (work){
     loopCount ++;
     if (loopCount > maxCount) {
@@ -169,8 +187,16 @@ void loop ()
   //Look the chip, If founded, writing it
   rfid();
  
-  if (maxCount == 0) work = false;
-  if (maxCount == 1) work = true;
+  if (maxCount == 0) 
+  {
+    work = false;
+    loopCount = 0;
+  }
+  if (maxCount == 1)
+  {
+    work = true;
+    loopCount = 0;
+  }
   
   //Leaving to sleep for 250 ms or 1000 ms in the case of inactivity for more than 6 hours
   sleep(work);
@@ -215,6 +241,7 @@ ISR (WDT_vect)
 //Entrance to sleep for 250 or 1000 ms
 void sleep(boolean light) {
   night = true; //for correct work of watch-dog inerrupt
+  wdt_reset();
 
   //Low all pin for power save
   for (uint8_t i = 0; i <= A5; i++)
@@ -263,6 +290,7 @@ void sleep(boolean light) {
  * После просыпления снимается флаг сна для обработки прерываний
  */
 void sleep8s() {
+  wdt_reset();
   night = true; //for correct work of watch-dog inerrupt
 
   //Low all pin for power save
@@ -369,11 +397,20 @@ void beep(uint16_t ms, uint8_t n) {
   pinMode (BUZ, OUTPUT);
 
   for (uint8_t i = 0; i < n; i++) {
+    wdt_reset();
     digitalWrite (LED, HIGH);
-    tone (BUZ, 4000, ms);
+    #ifdef PIEZO_SPEAKER
+      tone(BUZ, 4000, ms);
+    #else
+      digitalWrite (BUZ, HIGH);
+    #endif
+    
     delay (ms);
+    
     wdt_reset();
     digitalWrite (LED, LOW);
+    digitalWrite (BUZ, LOW);
+    
     if (i < n - 1) {
       delay(ms);
       wdt_reset();
@@ -387,15 +424,30 @@ void beep_mark() {
   pinMode (LED, OUTPUT);
   pinMode (BUZ, OUTPUT);
 
+  wdt_reset();
   digitalWrite (LED, HIGH);
-  tone (BUZ, 4000, 200);
+  #ifdef PIEZO_SPEAKER
+    tone (BUZ, 4000, 200);
+  #else
+    digitalWrite (BUZ, HIGH);
+  #endif
+  
   delay (200);
   digitalWrite (LED, LOW);
-  
+  digitalWrite (BUZ, LOW);
+
+  wdt_reset();
   delay(200);
   digitalWrite (LED, HIGH);
+  #ifdef PIEZO_SPEAKER
+    tone (BUZ, 4000, 200);
+  #else
+    digitalWrite (BUZ, HIGH);
+  #endif
+  
   delay(200);
   digitalWrite (LED, LOW);
+  digitalWrite (BUZ, LOW);
   
 } //end of beep
 
