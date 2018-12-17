@@ -656,10 +656,6 @@ Text Notes 10700 4100 2    50   ~ 0
 SCK
 Text Notes 10700 3900 2    50   ~ 0
 GND
-Entry Wire Line
-	7900 2700 8000 2600
-Entry Wire Line
-	7900 2800 8000 2700
 $Comp
 L MCU_Microchip_ATmega:ATmega328P-AU D2
 U 1 1 5BE4287E
@@ -671,14 +667,6 @@ F 3 "http://ww1.microchip.com/downloads/en/DeviceDoc/ATmega328_P%20AVR%20MCU%20w
 	1    5800 3300
 	1    0    0    -1  
 $EndComp
-Wire Wire Line
-	6400 2700 7900 2700
-Wire Wire Line
-	6400 2800 7900 2800
-Text Label 7700 2700 0    50   ~ 0
-PB6
-Text Label 7700 2800 0    50   ~ 0
-PB7
 Wire Wire Line
 	3550 2600 3800 2600
 $Comp
@@ -770,8 +758,6 @@ Text Notes 10700 5150 2    50   ~ 0
 GND
 Text Notes 10700 5250 2    50   ~ 0
 RST
-Text GLabel 6550 3200 2    50   Input ~ 0
-PC2
 Text GLabel 6550 3300 2    50   Input ~ 0
 PC3
 Connection ~ 3800 1700
@@ -780,18 +766,13 @@ Wire Wire Line
 Wire Bus Line
 	8000 1700 9800 1700
 Text GLabel 9500 3400 2    50   Input ~ 0
-PC2
+PD5
 Text GLabel 9500 3700 2    50   Input ~ 0
 PC3
 Wire Wire Line
-	6400 3200 6550 3200
-Wire Wire Line
 	6400 3300 6550 3300
-Text GLabel 6550 4400 2    50   Input ~ 0
-PD6
 Text Label 9950 2350 0    50   ~ 0
 PD6
-NoConn ~ 6400 4300
 $Comp
 L Device:C C6
 U 1 1 5C2396EF
@@ -807,8 +788,6 @@ Wire Wire Line
 	6400 3800 6550 3800
 Wire Wire Line
 	6400 3900 6550 3900
-Wire Wire Line
-	6400 4400 6550 4400
 Wire Wire Line
 	6400 4200 6900 4200
 Wire Wire Line
@@ -871,8 +850,19 @@ Connection ~ 7200 3400
 Wire Wire Line
 	7500 3500 8300 3500
 Connection ~ 7500 3500
-Wire Bus Line
-	8000 1700 8000 2800
+Text GLabel 6550 4300 2    50   Input ~ 0
+PD5
+NoConn ~ 6400 3200
+Wire Wire Line
+	6400 4300 6550 4300
+NoConn ~ 6400 2700
+NoConn ~ 6400 2800
 Wire Bus Line
 	9800 1700 9800 4200
+Wire Bus Line
+	8000 1700 8000 2600
+Wire Wire Line
+	6400 4400 6550 4400
+Text GLabel 6550 4400 2    50   Input ~ 0
+PD6
 $EndSCHEMATC
