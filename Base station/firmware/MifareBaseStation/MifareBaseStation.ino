@@ -1,11 +1,27 @@
-
-#include <avr/sleep.h>
-#include <avr/wdt.h>
-#include <Wire.h>
-#include <ds3231.h>
-#include <SPI.h>
+#include <deprecated.h>
 #include <MFRC522.h>
+#include <MFRC522Extended.h>
+#include <require_cpp11.h>
+
+#include <Wire.h>
+#include <SPI.h>
 #include <EEPROM.h>
+
+#include <ds3231.h>
+#include <Adafruit_SleepyDog.h>
+
+// Версия прошивки
+#define FIRMWARE_VERSION 105
+
+// Для компиляции проекта необходимо установить бибилиотеки
+// - AdafruitSpeepyDog by Adafruit (https://github.com/adafruit/Adafruit_SleepyDog)
+// - MFRC522 by GithubCommunity (https://github.com/miguelbalboa/rfid)
+// - DS3231FS by Petre Rodan (https://github.com/Jorropo/ds3231)
+// Для этого откройте Скетч->Подключить Библиотеку->Управление Бибилиотеками.
+// В поиске введите соответствующие библиотеки и нажмите для каждой INSTALL
+
+//-------------------------------------------------------------------
+// Настройка
 
 // По умолчанию с завода МК настроен на работу от встроенного RC генератора с делителем на 8
 // В итоге системная частота = 1 МГц
@@ -15,354 +31,555 @@
 // Уберите комментарий со строки ниже, если на плате впаян пьезоизлучатель без генератора
 //#define PIEZO_SPEAKER
 
-//Константы и перменные
+// Коэффициент усиления антенны модуля RC522. Max = (7<<4) (48 dB), Mid = (3<<4) (23 dB), Min = (0<<4) (18 dB)
+#define RC522_ANTENNA_GAIN (7<<4)
 
-const uint8_t vers = 104; //version of software
-const uint16_t eepromMaxChip = 4000; //16Kb, default in ds3231 - 4Kb
+// Максимально-допустимый адерс страницы на карточке = Кол-во блоков на карте - кол-во трейл-блоков + 2
+// Количество отметок = Максимальный адрес - 8
+// MIFARE Classic 1K (MF1S503x) = 50 страниц (Всего 64 блока - 16 трейл-блоков + 2 = 50); 42 отметки = 50 - 8
+// MIFARE Classic 4K (MF1S703x) = 98 страниц (Всего 128 основных блоков - 32 трейл-блока + 2 = 98); 90 отметок = 98 - 8. Расширенные блоки не поддерживаются!
+// MIFARE Classic Mini (MF1 IC S20) = 17 страниц (Всего 20 блоков - 5 трейл-блоков + 2 = 17); 9 отметок = 17 - 8
+// Карты MIFARE Ultralight (MF0ICU1) и MIFARE Ultralight C (MF0ICU2) не поддерживаются!
+#define CARD_PAGE_MAX    50
 
-//antena gain. Max = 0x07 << 4, min = 0. Set it manualy
-uint8_t gain = 0x07 << 4;
+// Срок годности карточки участника (в секундах)
+// 31 день = 2678400
+#define CARD_EXPIRE_TIME 2678400L
 
-const uint8_t LED = 4; // led diod pin
-const uint8_t BUZ = 3; // buzzer pin
-const uint8_t VCC_C = 5; // Pin for powering of the clock during their reading
-const uint8_t RST_PIN = 9; //Reset pin of MFRC522, LOW for sleep
-const uint8_t SS_PIN = 10; //SS pin of RFID
-const uint16_t eepromAdrStantion = 800;//start address for storing number of the stantion
-const uint16_t eepromAdrSleep = 900;//start address for storing sleep state
-const uint16_t eepromPass = 850;//start address for storing password and settings
+// Максимально-допустимый номер карточки
+#define MAX_CARD_NUM              4000
 
-const uint8_t pageCC = 3;
-const uint8_t blockInfo = 4; //block for information about participant and last stantion
-const uint8_t pagePass = 5;
-const uint8_t firstPage = 8;
+// Настройки станции
+// Bit1,Bit0 - Время перехода в режим ожидания при бездействия
+// (0,0) - сон через <период1>;
+// (0,1) - сон через <период2>;
+// (1,0) - всегда проверять чипы через 1 секундe;
+// (1,1) - всегда проверять чипы через 0.25с
+// Bit2 - Проверять отметки стартовой и финишной станции на чипах участников (0 - нет, 1 - да)
+// Bit3 - Проверять время на чипах участников (0 - нет, 1 - да)
+// Bit4 - Сбрасывать настройки при переходе в сон (0 - нет, 1 -да)
+// Bit7 - Настройки валидны (0 - да, 1 - нет)
 
-const uint8_t ntag214 = 4;
-const uint8_t ntagValue = 50;
+#define SETTINGS_INVALID                0x80
+#define SETTINGS_WAIT_PERIOD1           0x0
+#define SETTINGS_WAIT_PERIOD2           0x1
+#define SETTINGS_ALWAYS_WAIT            0x2
+#define SETTINGS_ALWAYS_ACTIVE          0x3
+#define SETTINGS_CHECK_START_FINISH     0x4
+#define SETTINGS_CHECK_CARD_TIME        0x8
+#define SETTINGS_CLEAR_ON_SLEEP         0x10
 
-const uint8_t startStantion = 240; //number of start stantion
-const uint8_t finishStantion = 245;//number of finish stantion
-const uint8_t clearStantion = 249; //number of clear station
-const uint8_t checkStantion = 248;
-const uint16_t maxNumChip = 1500;//for EEPROM write. If you exceed, the mark will be made, but the information in EEPROM will not be recorded
+// Настройки по умолчанию (побитовое или из макросов SETTINGS, например, SETTINGS_WAIT_PERIOD1 | SETTINGS_CHECK_START_FINISH)
+#define DEFAULT_SETTINGS  SETTINGS_WAIT_PERIOD1
 
-//master chips number in the first three bytes of the chip in the first page
-const uint8_t timeMaster = 250;
-const uint8_t numberMaster = 251;
-const uint8_t sleepMaster = 252;
-const uint8_t dumpMaster = 253;
-const uint8_t passMaster = 254;
+// Зарезервированный номер стартовой станции
+#define START_STATION_NUM         240
+// Зарезервированный номер финишной станции
+#define FINISH_STATION_NUM        245
+// Зарезервированный номер станции проверки
+#define CHECK_STATION_NUM         248
+// Зарезервированный номер станции очистки
+#define CLEAR_STATION_NUM         249
+
+// Номер станции по умолчанию после сборки
+#define DEFAULT_STATION_NUM       CHECK_STATION_NUM
+
+// Период1 работы в режиме ожидания (в миллисекундах)
+// 6 часов = 2160000
+#define WAIT_PERIOD1              21600000L
+// Период2 работы в режиме ожидания (в миллисекундах)
+// 48 часов = 172800000
+#define WAIT_PERIOD2              172800000L
+
+// Период проверки чипов в активном режиме (в миллисекундах)
+#define MODE_ACTIVE_CARD_CHECK_PERIOD     250
+// Период проверки чипов в режиме ожидания (в миллисекундах)
+#define MODE_WAIT_CARD_CHECK_PERIOD       1000
+// Период проверки чипов в режиме сна (в миллисекундах)
+#define MODE_SLEEP_CARD_CHECK_PERIOD      25000
+
+// Cигнал при загрузке станции
+#define BEEP_SYSTEM_STARTUP     beep(1000,1)
+
+// Сигнал-ошибка при чтении еепром памяти
+#define BEEP_EEPROM_ERROR       beep(50,2)
+// Сигнал-ошибка не верно идут часы
+#define BEEP_TIME_ERROR         beep(50,3)
+// Сигнал-ошибка не подходит пароль мастер чипа
+#define BEEP_PASS_ERROR         beep(50,4)
+// Сигнал нужно заменить батареи
+#define BEEP_LOW_BATTERY        beep(50,5)
+#define BEEP_BATTERY_OK         beep(500,1)
+// Сигнал чип не прошёл проверку
+
+#define BEEP_CARD_CHECK_ERROR   beep(200,3)
+#define BEEP_CARD_CHECK_OK      beep(500,1)
+// Сигнал записи отметки на карточку участника
+#define BEEP_CARD_MARK_WRITTEN  beep(500,1)
+// Сигнал повторного прикладывания карточки участника
+#define BEEP_CARD_MARK_OK       beep(250,2)
+// Сигнал ошибки записи на карточку участника
+#define BEEP_CARD_MARK_ERROR
+// Сигнал успешной очистки карточку участника
+#define BEEP_CARD_CLEAR_OK      beep(200,1)
+// Сигнал успешной проверки карточки участника
+#define BEEP_CARD_CLEAR_ERROR
+
+// Сигнал прочитан мастер чип паролей
+#define BEEP_MASTER_CARD_PASS_OK            beep(500,2)
+#define BEEP_MASTER_CARD_PASS_ERROR
+// Сигнал прочитан мастер-чип времени
+#define BEEP_MASTER_CARD_TIME_OK            beep(500,3)
+#define BEEP_MASTER_CARD_TIME_ERROR
+// Сигнал прочитан мастер-чип сна
+#define BEEP_MASTER_CARD_SLEEP_OK           beep(500,4)
+#define BEEP_MASTER_CARD_SLEEP_ERROR
+// Сигнал прочитан мастер-чип номера станции
+#define BEEP_MASTER_CARD_STATION_OK         beep(500,5)
+#define BEEP_MASTER_CARD_STATION_ERROR      beep(50,6)
+// Сигнал прочитан мастер-чип дампа
+#define BEEP_MASTER_CARD_DUMP_OK            beep(500,6)
+#define BEEP_MASTER_CARD_DUMP_ERROR
+
+//--------------------------------------------------------------------
+// Пины
+
+#define LED           4
+#define BUZ           3
+#define RC522_RST     9
+#define RC522_SDA     10
+#define RC522_IRQ     6
+#define DS3231_IRQ    A3
+#define DS3231_32K    5
+
+#define UNKNOWN_PIN 0xFF
+
+//--------------------------------------------------------------------
+// Константы
+
+#define SET_TIME_MASTER_CARD        250
+#define SET_NUMBER_MASTER_CARD      251
+#define SLEEP_MASTER_CARD           252
+#define READ_DUMP_MASTER_CARD       253
+#define SET_PASS_MASTER_CARD        254
+
+// Адрес страницы на карторчке с информацией о ней
+#define CARD_PAGE_INFO              4
+// Адрес страницы на карточке со временем инициализации чипа
+#define CARD_PAGE_INIT_TIME         5
+// Адрес страницы на карточке с информацией о последней отметке (не используется!)
+#define CARD_PAGE_LAST_RECORD_INFO  6
+// Адрес начала отметок на чипе
+#define CARD_PAGE_START             8
+
+#define EEPROM_STATION_NUM_ADDR     800
+#define EEPROM_PASS_ADDR            850
+#define EEPROM_SETTINGS_ADDR        859
+
+//--------------------------------------------------------------------
+// Переменные
+
+// Текущие дата и время
+struct ts t;
+// Время работы (в миллисекундах)
+uint32_t workTimer;
+// Пароль для проверки мастер-чипов
+uint8_t pass[3];
+// Ключ шифрования карточек
+MFRC522::MIFARE_Key key;
+// RC522
+MFRC522 mfrc522(RC522_SDA, RC522_RST);
+// Номер станции
+uint8_t stationNum;
+// Настройки станции
+uint8_t settings;
+// режим работы станции
+uint8_t mode;
+
+#define MODE_ACTIVE   0
+#define MODE_WAIT     1
+#define MODE_SLEEP    2
+
+#define DEFAULT_MODE MODE_WAIT
+
+//--------------------------------------------------------------------
+// Прототипы функций
+
+/**
+ * Фунцкия программной перезагрузки
+ */
+void(*resetFunc)(void) = 0;
+
+/**
+ * Возвращает текущий режим работы пина
+ */
+uint8_t getPinMode(uint8_t pin);
+
+/**
+ * Функция записи во внутреннюю память микроконтроллера
+ * Запись приосходит с мажоритарным резервированием в три подряд ячейки
+ */
+void eepromWrite (uint16_t adr, uint8_t val);
+
+/**
+ * Считывание ячейки из внутренней памяти МК с учетом мажоритарного резервирования
+ */
+uint8_t eepromRead(uint16_t adr);
+
+/**
+ * Переводит устройство в энергосберегающий режим сна на заданное время
+ */
+void sleep(uint16_t ms);
+
+/**
+ * Запись ячейки соответствующей номеру чипа во внутреннюю память. Только факт отметки.
+ */
+void writeNumEeprom (uint16_t num);
+
+/**
+ * Очистка внутренней памяти станции
+ * адреса 0 - 750
+ */
+void cleanEeprom ();
+
+/**
+ * Выдача сигнала. Принимает продолжительность сигнала и число сигналов подряд
+ * В ходе работы сбрасывает вотчдог, чтобы не произошла перезагрузка
+ */
+void beep(uint16_t ms, uint8_t n);
+
+/**
+ * Функция считывания напряжения питания МК. 
+ * Сравнение происходит по внутреннему источнику опроного напряжения в 1.1 В
+ */
+uint32_t readVcc(uint32_t refConst);
+
+/**
+ * Измерение напряжения. Включает диод на 5 секунд. Затем происходит измерение.
+ * Если напряжение меньше 3.1 В, то станция выдает три длинные сигнала. Если больше, то один.
+ */
+void voltage();
+
+/**
+ * Читает страницу карточки. Эта функция должна вызываться после инициализации RC522.
+ * 
+ * @param data Указатель на буфер, куда будут сохранены данные. Длина буфера должна быть не менее 18 байт
+ * @param size Указатель на переменную, хранящую размер буфера, после чтения в этой переменной будет количество прочитанных байт
+ */
+bool cardPageRead(uint8_t pageAdr, byte *data, byte *size);
+
+/**
+ * Записывает блок данных на карточку
+ * 
+ * @param data Буфер данных. Размер буфер должен быть не менее 16 байт
+ * @param size Размер буфера
+ */
+bool cardPageWrite(uint8_t pageAdr, byte *data, byte size);
+
+/**
+ * Основная функция работы с чипами
+ */
+void rfid();
+
+/**
+ * Функция обработки мастер-чипа времени.
+ * С чипа считыввается новое время и устанавливается 
+ * внутреннее время. Станция пикает 5 раз в случае успеха
+ */
+void processTimeMasterCard(byte *data, byte dataSize);
 
 
-/*
+/**
+ * Функция установки нового номера станции
+ * станция считывает чип, записывает новый номер
+ * во внутреннюю память, пикает 5 раз и перезагружается
+ */
+void processStationMasterCard(byte *data, byte dataSize);
+
+/**
+ * Функция обработки мастер-чипа сна. 
+ * Станция стирает данные о пароле и настройках,
+ * пикает три раза и входит в сон
+ */
+void processSleepMasterCard(byte *data, byte dataSize);
+
+/**
+ * Функция записи дамп-чипа. Станция считывает все данные по чипам из внутренней памяти
+ * и записывает их последовательно на дамп-чип. После чего один раз пикает и выходит.
+ */
+void processDumpMasterCard(byte *data, byte dataSize);
+
+/**
+ * Функция обработки мастер-чипа смены пароля. Станция считывает новый пароль и байт настроек. Записывает его в память.
+ * Пикает два раза и перезагружается.
+ */
+void processPassMasterCard(byte *data, byte dataSize);
+
+/**
+ * Функция обработки карточки участника
+ */
+void processParticipantCard(uint16_t cardNum);
+
+/**
+ * Функция поиска последней записанной страницы по алгоритму бинарного поиска.
+ * 
+ * @note Проще не использовать бинарный поиск и при отметке станции на чипе записывать, например,
+ * в страницу 6 номер последней станции и адрес свободной страницы. Но при этом эта страница
+ * будет очень часто перезаписываться и чип быстро выйдет из строя. Поэтому реализован
+ * бинарный поиск свободной страницы
+ * 
+ * @param newPage Указатель на переменную, куда будет сохранен номер первой чистой страницы
+ * @param lastNum Указатель на переменную, куда будет сохранён номер последней записанной станции
+ */
+void findNewPage(uint8_t *newPage, uint8_t *lastNum);
+
+/**
+ * Функция записи отметки в карточку участника.
+ * Записывает номер и поседние 3 байта юникстайм в чип.
+ */
+bool writeMarkToParticipantCard(uint8_t newPage);
+
+/**
+ * Функция очистки карточки участника
+ */
+void clearParticipantCard();
+
+/**
+ * Функция проверки карточки участника
+ */
+void checkParticipantCard();
+
+/**
+ * Проверяет время инициализации чипа
+ */
+bool doesCardExpire();
+
+//--------------------------------------------------------------------
+// Реализация
+
+/**
  * После запуска или перезагрузки станция считывает показание часов
  * Если они сбиты, то издает три коротких звуковых сигнала
  * Запоминает промежуточное время temph, чтобы вовремя перейти в режим ожиданиния при бездействии
  * 
  * Далее присходит счтиывание из EEPROM памяти настроек станций:
  * - номера станции
- * - состояние сна
  * - паролей мастер-чипа
  * - байта настроек работы станции
  * 
  * Затем станция выжидает 5 секунд и после длинного сигнала выходит в цикл loop
  */
+void setup()
+{
+  // Блокируем и сбрасываем вотчдог
+  Watchdog.disable();
+  Watchdog.reset();
 
-uint8_t pass[3] = {0,0,0}; //pass for reading master chip
-uint8_t setting = 0;
+  // Настраиваем пины
+  pinMode(LED,OUTPUT);
+  pinMode(BUZ,OUTPUT);
+  pinMode(RC522_RST,OUTPUT);
+  pinMode(RC522_SDA,OUTPUT);
+  pinMode(RC522_IRQ,INPUT_PULLUP);
+  pinMode(DS3231_IRQ,INPUT_PULLUP);
+  pinMode(DS3231_32K,INPUT_PULLUP);
 
-uint8_t stantion = 0; //number of station. default 0, can not be written to the chip
-boolean startFinish = false;
-boolean work = false; // Default station in standby mode, true - the operating mode
-boolean night = false; // When triggered watchdog if the station does not sleep, there is a reboot
-boolean deepsleep = false; //On / off stantion. In off regime sleep 8 s
-boolean checkTimeInit = false; //реагирование станций на чипы с просроченой инициализацией
-uint32_t maxTimeInit = 2500000UL; //
-
-uint32_t loopCount = 0; //86400, 691200 - 6, 48 hour work regime
-uint32_t maxCount = 86400UL; //loops before switching to standby mode
-
-uint8_t lastCleanChip0 = 0;
-uint8_t lastCleanChip1 = 0;
-boolean lastChipClean = false;
-boolean eraseSetting = false;
-
-MFRC522::MIFARE_Key key;
-MFRC522::StatusCode status;
-MFRC522 mfrc522(SS_PIN, RST_PIN); // Create MFRC522 instance
-struct ts t; //time
-
-
-void setup () {
-
-  wdt_disable();
-  wdt_reset();
-
-  for (byte i = 0; i < 6; i++) {
-    key.keyByte[i] = 0xFF;
-  }
-  //We read the time. if huddled hours, signaling
+  digitalWrite(LED,LOW);
+  digitalWrite(BUZ,LOW);
+  digitalWrite(RC522_RST,LOW);
   
-  pinMode(VCC_C, OUTPUT);
-  digitalWrite(VCC_C, HIGH);
-  delay(1);
-  DS3231_init(DS3231_INTCN);
+  // Настраиваем неиспользуемые пины
+  // Согласно документации на них лучше включить встроенные pull-up резисторы
+  for(byte pin = 0; pin < A5; pin++)
+  {
+    if(getPinMode(pin) == INPUT)
+      pinMode(pin, INPUT_PULLUP);
+  }
+  
+  // Настраиваем RTC
+  // Сбрасываем все прерывания
+  DS3231_clear_a1f();
+  DS3231_clear_a2f();
+  // Внимание: DS3231_Init выключает выход 32 кГц!
+  DS3231_init(DS3231_INTCN);// | DS3231_A1IE);
+  // Читаем текущее время
   DS3231_get(&t);
-  digitalWrite(VCC_C, LOW);
   
-  
-  if (t.year < 2017) {
-    //Error: watch wrong
-    beep(50, 3);
+  if(t.year < 2017)
+  {
+    // Часы не настроены
+    BEEP_TIME_ERROR;
   }
 
-  set_sleep_mode (SLEEP_MODE_PWR_DOWN); // the most power save sleep mode
-  
-  stantion = eepromread(eepromAdrStantion); //Read the station number from the EEPROM
-  deepsleep = eepromread(eepromAdrSleep); //Read on/off mark from EEPROM
+  // Читаем настройки из EEPROM
+  stationNum = eepromRead(EEPROM_STATION_NUM_ADDR);
 
-  // если номер станции не установлен, то станция по умолчанию будет станцией проверки
-  if(stantion == 0 || stantion == 255)
-    stantion = checkStantion;
+  for (uint8_t i = 0; i < 3; i++)
+    pass[i] = eepromRead(EEPROM_PASS_ADDR + i*3);
     
-  for (uint8_t i=0; i<3;i++){
-    pass[i]=eepromread(eepromPass + i*3);
+  settings = eepromRead(EEPROM_SETTINGS_ADDR);
+
+  // После сборки станции номер не установлен, применяем по умолчанию
+  if(stationNum == 0 || stationNum == 255)
+    stationNum = DEFAULT_STATION_NUM;
+
+  // Применяем настройки по умолчанию после сборки станции
+  if(settings & SETTINGS_INVALID)
+  {
+    settings = DEFAULT_SETTINGS;
+    pass[0] = pass[1] = pass[2] = 0;
+
+    // Сохраняем настройки и пароль по умолчаню в EEPROM
+    eepromWrite(EEPROM_SETTINGS_ADDR, settings);
+    for (uint8_t i = 0; i < 3; i++)
+      eepromWrite(EEPROM_PASS_ADDR + i*3, pass[i]);
   }
-  setting = eepromread(eepromPass + 9);
-  if (pass[0]==255){
-    pass[0]=pass[1]=pass[2]=setting=0;
-  }
 
-  uint8_t timeidl = setting&0b00000011;
-  if (timeidl == 0b00000000) maxCount = 86400UL;
-  if (timeidl == 0b00000001) maxCount = 691200UL;
-  if (timeidl == 0b00000010) maxCount = 0;
-  if (timeidl == 0b00000011) maxCount = 1;
+  // Устанавливаем режим работы по умолчанию
+  mode = DEFAULT_MODE;
+
+  // Перенастраиваем режим в соответствии с настройками
+  if(settings & SETTINGS_ALWAYS_WAIT)
+    mode = MODE_WAIT;
+  else if(settings & SETTINGS_ALWAYS_ACTIVE)
+    mode = MODE_ACTIVE;
+ 
+  // Инициализруем ключ для карточек MIFARE
+  for (byte i = 0; i < 6; i++)
+    key.keyByte[i] = 0xFF;
   
-  
-  uint8_t set2 = setting&0b00000100;
-  if (set2 == 0b00000100) startFinish = true;
-  else startFinish = false;
+  // Проверяем батарейки
+  voltage();
+  // Сигнализируем о переходе в основной цикл
+  BEEP_SYSTEM_STARTUP;
+  // Сбрасываем программный таймер
+  workTimer = 0;
+  // Включаем вотчдог для защиты от зависаний
+  Watchdog.enable(8000);
+}
 
-  uint8_t set4 = setting&0b00010000;
-  if (set4 == 0b00010000) eraseSetting = true;
-
-  
-  delay(5000); //is necessary to to reflash station. in sleep mode it is not possible.
-  beep(1000, 1 ); //The signal at system startup or reboote
-
-  //enable watch-dog for 2 s
-  wdt_enable(WDTO_2S);
-  
-}//end of setup
-
-
-/*
- * В цикле работы станции. Сначала включается вотчдог на 1 секунду.
- * Если какой-либо процесс затянется на время большее, то приозойдёт перезагрузка станции
- * 
- * Затем проверяется время. Не пора ли переключаться из рабочего режима в режим ожидания при бездействии
- * 
- * Далее вызывается функция работы с чипами - rfid()
- * 
- * После опроса чипа станция проверяет режим работы - ожидания или рабочий. И соответственно входит в сон на разное время
- * В настройках можно настроить worktime таким образом, чтобы станция была постоянно в одном режиме.
- * 
- * Если станция в режиме сна, то происходит её усыпление на 24 секунды.
- * 
- */
-void loop ()
+void loop()
 {
-  wdt_reset();
+  Watchdog.reset();
   
-  if (work){
-    loopCount ++;
-    if (loopCount > maxCount) {
-      work = false;
-      loopCount = 0;
-    }
-  }
-
-  
-  //Look the chip, If founded, writing it
   rfid();
- 
-  if (maxCount == 0) 
+
+  switch(mode)
   {
-    work = false;
-    loopCount = 0;
-  }
-  if (maxCount == 1)
-  {
-    work = true;
-    loopCount = 0;
-  }
-  
-  //Leaving to sleep for 250 ms or 1000 ms in the case of inactivity for more than 6 hours
-  sleep(work);
-  
-
-  //Power down regime: sleep 24 s
-  if (deepsleep) {
-    for (uint8_t i = 0; i<3; i++){
-      sleep8s();
-    }
-  }
-
-} // end of loop
-
-
-/*
- * Фунцкия программной перезагрузки
- */
-void(* resetFunc) (void) = 0; // Reset MC function
-
-/*
- * Настройка перервания по вотчдогу. 
- * Если прерывание вызвано не сном, то станция перезагружается
- */
-// watchdog interrupt
-ISR (WDT_vect)
-{
-  wdt_disable();  // disable watchdog
-  if (!night) {
-    resetFunc();
-  }
-
-}  // end of WDT_vect
-
-
-/*
- * Вход в сон на 250 или 1000 мс. Сначала ставится флаг для прерывания, что оно приоисходит
- * в следствии сна. Затем присходит выставление всех пинов на OUTPUT и все оин кладустся на землю
- * Выключается АДЦ для большей экономии энергии. Затем настраиваются биты перехода в сон и засыпление станции
- * После просыпления снимается флаг сна для обработки прерываний
- */
-//Entrance to sleep for 250 or 1000 ms
-void sleep(boolean light) {
-  night = true; //for correct work of watch-dog inerrupt
-  wdt_reset();
-
-  //Low all pin for power save
-  for (uint8_t i = 0; i <= A5; i++)
-  {
-    pinMode(i, OUTPUT);
-    digitalWrite (i, LOW);  //
-  }
-
-  // disable ADC
-  ADCSRA = 0;
-  if (light) {
-    MCUSR = 0;
-    // allow changes, disable reset
-    WDTCSR = bit (WDCE) | bit (WDE);
-    // set interrupt mode and an interval
-    WDTCSR = bit (WDIE) | bit (WDP2);    // set WDIE, and 0.25 second delay
-    wdt_reset();  // pat the dog
-  }
-  if (!light) {
-    WDTCSR = bit (WDCE) | bit (WDE);
-    // set interrupt mode and an interval
-    WDTCSR = bit (WDIE) | bit (WDP2) | bit (WDP1) ;    // set WDIE, and 1 second delay
-    wdt_reset();  // pat the dog
-  }
-
-  noInterrupts ();           // timed sequence follows
-  sleep_enable();
-
-  // turn off brown-out enable in software
-  MCUCR = bit (BODS) | bit (BODSE);
-  MCUCR = bit (BODS);
-  interrupts ();             // guarantees next instruction executed
-  sleep_cpu ();
-
-  // cancel sleep as a precaution
-  sleep_disable();
-  night = false;
-
-} // end of sleep()
-
-
-/*
- * Вход в сон на 8000 мс. Сначала ставится флаг для прерывания, что оно приоисходит
- * в следствии сна. Затем присходит выставление всех пинов на OUTPUT и все оин кладутся на землю
- * Выключается АЦП для большей экономии энергии. Затем настраиваются биты перехода в сон и засыпление станции
- * После просыпления снимается флаг сна для обработки прерываний
- */
-void sleep8s() {
-  wdt_reset();
-  night = true; //for correct work of watch-dog inerrupt
-
-  //Low all pin for power save
-  for (uint8_t i = 0; i <= A5; i++)
-  {
-    pinMode(i, OUTPUT);
-    digitalWrite (i, LOW);  //
-  }
- 
-  // disable ADC
-  ADCSRA = 0;
-  MCUSR = 0;
-  // allow changes, disable reset
-  WDTCSR = bit (WDCE) | bit (WDE);
-  // set interrupt mode and an interval
-  WDTCSR = bit (WDIE) | bit (WDP3) | bit (WDP0);    // set WDIE, and 8 second delay
-  wdt_reset();  // pat the dog
-
-  noInterrupts ();           // timed sequence follows
-  sleep_enable();
-
-  // turn off brown-out enable in software
-  MCUCR = bit (BODS) | bit (BODSE);
-  MCUCR = bit (BODS);
-  interrupts ();             // guarantees next instruction executed
-  sleep_cpu ();
-
-  // cancel sleep as a precaution
-  sleep_disable();
-  night = false;
-
-} // end of sleep8s()
-
-
-/*
- * Функция записи во внутреннюю память микроконтроллера
- * Запись приосходит с мажоритарным резервированием в три подряд ячейки
- */
-
-//write to EEPROM 3 value from adress to adress+2
-void eepromwrite (uint16_t adr, uint8_t val) {
-  for (uint8_t i = 0; i < 3; i++) {
-    EEPROM.write(adr + i, val);
+    case MODE_ACTIVE:
+      sleep(MODE_ACTIVE_CARD_CHECK_PERIOD);
+      if(settings & SETTINGS_ALWAYS_ACTIVE)
+      {
+         workTimer = 0;
+      }
+      else if(workTimer >= WAIT_PERIOD1)
+      {
+        workTimer = 0;
+        mode = MODE_WAIT;
+      }
+      break;
+    case MODE_WAIT:
+      sleep(MODE_WAIT_CARD_CHECK_PERIOD);
+      if(settings & SETTINGS_ALWAYS_WAIT)
+      {
+        workTimer = 0;
+      }
+      else if(workTimer >= WAIT_PERIOD1 && (settings & SETTINGS_WAIT_PERIOD1))
+      {
+        workTimer = 0;
+        mode = MODE_SLEEP;
+      }
+      else if(workTimer >= WAIT_PERIOD2 && (settings & SETTINGS_WAIT_PERIOD2))
+      {
+        workTimer = 0;
+        mode = MODE_SLEEP;
+      }
+      break;
+    case MODE_SLEEP:
+      sleep(MODE_SLEEP_CARD_CHECK_PERIOD);
+      break;
   }
 }
 
-/*
- * Считывание ячейки из внутренней памяти МК с учетом мажоритарного резервирования
- */
+uint8_t getPinMode(uint8_t pin)
+{
+  uint8_t bit = digitalPinToBitMask(pin);
+  uint8_t port = digitalPinToPort(pin);
 
-//Getting info from the EEPROM
-uint8_t eepromread(uint16_t adr) {
-  if (EEPROM.read(adr) == EEPROM.read(adr + 1) ||
-      EEPROM.read(adr) == EEPROM.read(adr + 2)) {
-    return EEPROM.read(adr);
+  // I don't see an option for mega to return this, but whatever...
+  if (NOT_A_PIN == port) return UNKNOWN_PIN;
+
+  // Is there a bit we can check?
+  if (0 == bit) return UNKNOWN_PIN;
+
+  // Is there only a single bit set?
+  if (bit & bit - 1) return UNKNOWN_PIN;
+
+  volatile uint8_t *reg, *out;
+  reg = portModeRegister(port);
+  out = portOutputRegister(port);
+
+  if (*reg & bit)
+    return OUTPUT;
+  else if (*out & bit)
+    return INPUT_PULLUP;
+  else
+    return INPUT;
+}
+
+void sleep(uint16_t ms)
+{
+  uint16_t period;
+  // Выключаем модуль RC522
+  digitalWrite(RC522_RST,LOW);
+  // Выключаем светодиод
+  digitalWrite(LED,LOW);
+  // Выключаем буззер
+  digitalWrite(BUZ,LOW);
+  // Сбрасываем вотчдог и засыпаем
+  Watchdog.reset();
+  period = Watchdog.sleep(ms);
+  workTimer += period;
+  // Используем рекурсию, если время проведённое во сне меньше заданного
+  if(ms > period)
+    sleep(ms - period);
+}
+
+void eepromWrite (uint16_t adr, uint8_t val)
+{
+  for(uint16_t i = 0; i < 3; i++)
+    EEPROM.write(adr + i, val);
+}
+
+uint8_t eepromRead(uint16_t adr)
+{
+  uint8_t val1 = EEPROM.read(adr);
+  uint8_t val2 = EEPROM.read(adr + 1);
+  uint8_t val3 = EEPROM.read(adr + 2);
+  
+  if(val1 == val2 || val1 == val3)
+  {
+    return val1;
   }
-  else if (EEPROM.read(adr + 1) == EEPROM.read(adr + 2)) {
-    return EEPROM.read(adr + 1);
+  else if(val2 == val3)
+  {
+    return val2;
   }
-  else {
-    beep(50, 2);
+  else
+  {
+    BEEP_EEPROM_ERROR;
     return 0;
   }
+}
 
-} // end of eepromstantion
-
-/*
- * Запись ячейки соответствующей номеру чипа во внутреннюю память. Только факт отметки.
- */
-
-// write number of chip to eeprom
-void writeNumEeprom (uint16_t num){
+void writeNumEeprom (uint16_t num)
+{
+  if(num > MAX_CARD_NUM)
+  {
+    BEEP_EEPROM_ERROR;
+    return;
+  }
+    
   uint16_t byteAdr = num/8;
   uint16_t bitAdr = num%8;
   uint8_t eepromByte = EEPROM.read(byteAdr);
@@ -370,745 +587,576 @@ void writeNumEeprom (uint16_t num){
   EEPROM.write(byteAdr, eepromByte);
 }
 
-/*
- * Очистка внутренней памяти чипа
- * адреса 0 - 750
- */
-
-//clean eeprom from number chip
-void cleanEeprom (){
-  for (uint16_t a = 0; a <750; a++){
-    if (a%100==0) wdt_reset();
+void cleanEeprom ()
+{
+  for (uint16_t a = 0; a < 750; a++)
+  {
+    if(a%100 == 0)
+      Watchdog.reset();
+      
     EEPROM.write(a,0);
+    
     delay(5);
   }
 }
 
-
-/*
- * Выдача сигнала. Принимает продолжительность сигнала и число сигналов подряд
- * В ходе работы сбрасывает вотчдог, чтобы не произошла перезагрузка
- */
-
-// led and buzzer signal
-void beep(uint16_t ms, uint8_t n) {
-
-  pinMode (LED, OUTPUT);
-  pinMode (BUZ, OUTPUT);
-
-  for (uint8_t i = 0; i < n; i++) {
-    wdt_reset();
-    digitalWrite (LED, HIGH);
+void beep(uint16_t ms, uint8_t n)
+{
+  for (uint8_t i = 0; i < n; i++)
+  {
+    Watchdog.reset();
+    
+    digitalWrite(LED, HIGH);
     #ifdef PIEZO_SPEAKER
       tone(BUZ, 4000, ms);
     #else
       digitalWrite (BUZ, HIGH);
     #endif
     
-    delay (ms);
+    delay(ms);
+    Watchdog.reset();
     
-    wdt_reset();
-    digitalWrite (LED, LOW);
-    digitalWrite (BUZ, LOW);
+    digitalWrite(LED, LOW);
+    digitalWrite(BUZ, LOW);
     
-    if (i < n - 1) {
+    if (i < n - 1)
+    {
       delay(ms);
-      wdt_reset();
+      Watchdog.reset();
     }
   }
+}
 
-} //end of beep
-
-void beep_mark() {
-
-  pinMode (LED, OUTPUT);
-  pinMode (BUZ, OUTPUT);
-
-  wdt_reset();
-  digitalWrite (LED, HIGH);
-  #ifdef PIEZO_SPEAKER
-    tone (BUZ, 4000, 200);
-  #else
-    digitalWrite (BUZ, HIGH);
-  #endif
-  
-  delay (200);
-  digitalWrite (LED, LOW);
-  digitalWrite (BUZ, LOW);
-
-  wdt_reset();
-  delay(200);
-  digitalWrite (LED, HIGH);
-  #ifdef PIEZO_SPEAKER
-    tone (BUZ, 4000, 200);
-  #else
-    digitalWrite (BUZ, HIGH);
-  #endif
-  
-  delay(200);
-  digitalWrite (LED, LOW);
-  digitalWrite (BUZ, LOW);
-  
-} //end of beep
-
-/*
- * Функция считывания напряжения питания МК. 
- * Сравнение происходит по внутреннему источнику опроного напряжения в 1.1 В
- */
-
-// voltmeter on
-uint32_t  readVcc(uint32_t constanta) {
-  ADCSRA |=  bit (ADEN);   // turn ADC on
+uint32_t readVcc(uint32_t refConst)
+{
+  // Включаем АЦП
+  ADCSRA |=  bit(ADEN); 
   ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+  // Ждём стабилиазции опорного источника
+  delay(5);
+  // Начинаем измерение
+  ADCSRA |= _BV(ADSC);
+  while(bit_is_set(ADCSRA, ADSC));
 
-
-  delay(75); // Wait for Vref to settle
-  ADCSRA |= _BV(ADSC); // Start conversion
-  while (bit_is_set(ADCSRA, ADSC)); // measuring
-
-  uint8_t low  = ADCL; // must read ADCL first - it then locks ADCH
-  uint8_t high = ADCH; // unlocks both
+  // Читаем обязательно сначала младший байт, затем старший
+  uint8_t low  = ADCL;
+  uint8_t high = ADCH;
 
   uint32_t result = (high << 8) | low;
 
-  result = constanta / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-  return result; // Vcc in millivolts
+  result = refConst / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+  // Выключаем АЦП
+  ADCSRA ^= bit(ADEN);
+  
+  return result;
 }
 
-/*
- * Измерение напряжения. Включает диод на 5 секунд. Затем происходит измерение.
- * Если напряжение меньше 3.1 В, то станция выдает три длинные сигнала. Если больше, то один.
- */
+void voltage()
+{
+  const uint32_t refConst = 1125300L; //voltage constanta
+  uint32_t value = 0;
 
-//measuring voltage of battery and make signal.
-void voltage() {
-  wdt_enable(WDTO_8S);
-  wdt_reset();
+  Watchdog.reset();
 
-  const uint32_t constant = 1125300L; //voltage constanta
-
-  pinMode(LED, OUTPUT);
   digitalWrite(LED, HIGH);
   delay(5000);
 
-  uint32_t value = 0;
-  for (uint8_t i = 0; i < 10; i++) {
-    value += readVcc(constant);
-  }
+  for (uint8_t i = 0; i < 10; i++)
+    value += readVcc(refConst);
+
   value /= 10;
 
-
-  if (value < 3100) {
-    beep(50, 5);
-  }
-  else {
-    beep(500, 1);
-  }
   digitalWrite(LED, LOW);
-  wdt_reset();
-
-}//end of voltage
-
-uint8_t dump[16];
-
-//MFRC522::StatusCode MFRC522::MIFARE_Read
-bool ntagWrite (uint8_t *data, uint8_t pageAdr){
-  byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
-
-  byte dataBlock[16];
-  dataBlock[0]=data[0];
-  dataBlock[1]=data[1];
-  dataBlock[2]=data[2];
-  dataBlock[3]=data[3];
+  delay(500);
   
-  byte buffer[18];
-  byte size = sizeof(buffer);
-  byte trailerBlock = blockAddr + (3-blockAddr%4);
-  
-  // Authenticate using key A
-  status = (MFRC522::StatusCode) mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
-  if (status != MFRC522::STATUS_OK) {
-      return false;
-  }
+  Watchdog.reset();
 
-  // Write data to the block
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Write(blockAddr, dataBlock, 16);
-  if (status != MFRC522::STATUS_OK) {
-     
-     return false;
-  }
-  
-  // Read data from the block (again, should now be what we have written)
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(blockAddr, buffer, &size);
-  if (status != MFRC522::STATUS_OK) {
-      
-      return false;
-  }
- 
-  for (uint8_t i = 0; i < 4; i++) {
-    dump[i]=buffer[i];
-  }
+  if (value < 3100)
+    BEEP_LOW_BATTERY;
+  else
+    BEEP_BATTERY_OK;
+}
 
-  if (dump[0]==dataBlock[0]){
-    return true;
-  }
-  else{
+bool cardPageRead(uint8_t pageAdr, byte *data, byte *size)
+{
+  if(pageAdr < 3)
     return false;
-  }
     
-}
-
-bool ntagRead (uint8_t pageAdr){
+  MFRC522::StatusCode status;
+  // Адрес читаемого блока
   byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
-  
-  byte buffer[18];
-  byte size = sizeof(buffer);
+  // Адрес блока ключей
   byte trailerBlock = blockAddr + (3-blockAddr%4);
-   // Authenticate using key A
-  status = (MFRC522::StatusCode) mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
-  if (status != MFRC522::STATUS_OK) {
-      return false;
-  }
 
+  // Авторизация по ключу А
+  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
+  
+  if(status != MFRC522::STATUS_OK)
+    return false;
+  
+  status = mfrc522.MIFARE_Read(blockAddr, data, size);
+  
+  if(status != MFRC522::STATUS_OK)
+    return false;
  
-  status = (MFRC522::StatusCode) mfrc522.MIFARE_Read(blockAddr, buffer, &size);
-  if (status != MFRC522::STATUS_OK) {
-      
-      return false;
-  }
- 
-  byte count = 0;
-  for (byte i = 0; i < 16; i++) {
-      dump[i]=buffer[i];
-      // Compare buffer (= what we've read) with dataBlock (= what we've written)
- }
-
- if (pageAdr==3){
-      dump[2]=0;
- }
- 
- return true;
-   
+  return true; 
 }
 
-
-
-/*
- * Проверка не прошли более чем время заданное в worktime с момента последней успешной записи чипа.
- */
-
-//get time
-void getTime(){
+bool cardPageWrite(uint8_t pageAdr, byte *data, byte size)
+{
+  MFRC522::StatusCode status;
   
-  digitalWrite(VCC_C, HIGH);
-  delay(1);
-  
-  DS3231_get(&t);
-  digitalWrite(VCC_C, LOW);
+  byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
+  byte trailerBlock = blockAddr + (3-blockAddr%4);
 
+  // Авторизация по ключу А
+  status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
+  
+  if(status != MFRC522::STATUS_OK)
+    return false;
+
+  // Записываем данные в блок
+  status = mfrc522.MIFARE_Write(blockAddr, data, size);
+  
+  if(status != MFRC522::STATUS_OK)
+    return false;
 }
 
-/*
- * Основная функция работы с чипами
- */
+void rfid()
+{
+  byte pageData[18];
+  byte dataSize;
+  byte masterCardData[16];
+  bool result;
 
-uint8_t tempDump[4] = {255,0,0,0};
-
-//Writing the chip
-void rfid() {
-  //инициализируем переменные
-  uint8_t lastNum = 0; //last writed number of stantion in memory of chip
-  uint8_t newPage = 0;
-  uint16_t chipNum = 0; //number of chip from 1-st block
-  uint16_t partNumFirst =0; //part of number
-  uint16_t partNumSecond = 0; //part of number
-
+  // Включаем SPI и RC522. Ищем карту вблизи. Если не находим выходим из функции чтения чипов
+  SPI.begin();
+  mfrc522.PCD_Init();
+  mfrc522.PCD_AntennaOff();
+  mfrc522.PCD_SetAntennaGain(RC522_ANTENNA_GAIN);
+  mfrc522.PCD_AntennaOn();
   
-  //включаем SPI ищем карту вблизи. Если не находим выходим из функции чтения чипов
-  SPI.begin();      // Init SPI bus
-  mfrc522.PCD_Init();    // Init MFRC522
-  mfrc522.PCD_SetAntennaGain(gain);
-  // Look for new cards
-  if ( ! mfrc522.PICC_IsNewCardPresent()) {
-    return;
-  }
-
-  // Select one of the cards
-  if ( ! mfrc522.PICC_ReadCardSerial()) {
-    return;
-  }
-
-  getTime();
- 
-  //просываемся, если станция была в спяящем режиме. Измеряем напряжение на батарее
-  if (deepsleep == true) {
-    deepsleep = false;
-    eepromwrite (eepromAdrSleep, 0);
-    voltage();
-    resetFunc();
-  }
-   
-  //читаем блок информации
-  if(!ntagRead(blockInfo)){
-    return;
-  }
+  delay(5);
   
-  //в первых трех байтах находятся нули для обычных чипов и заданные числа для мастер-чипов
-  uint8_t info = 0;
-  if (dump[2]==255) {
-    uint8_t tempdump[16];
-    tempdump[0]=dump[0];
-    tempdump[1]=dump[1];
-    tempdump[2]=dump[2];
-    tempdump[3]=dump[3];
+  if(mfrc522.PICC_IsNewCardPresent())
+  {
+    if(mfrc522.PICC_ReadCardSerial())
+    {
+      // Переходим в активный режим
+      mode = MODE_ACTIVE;
+      //Читаем блок информации
+      dataSize = sizeof(pageData);
+      if(cardPageRead(CARD_PAGE_INFO, pageData, &dataSize))
+      {
+        // Проверяем тип чипа
+        if(pageData[2] == 0xFF)
+        {
+          // Мастер-чип
+          
+          // Копируем информацию о мастер-чипе
+          memcpy(masterCardData, pageData, 4);
+          // Читаем данные с мастер-чипа
+          result = true;
+          
+          dataSize = sizeof(pageData);
+          result &= cardPageRead(CARD_PAGE_INFO + 1, pageData, &dataSize);
+          if(result)
+            memcpy(masterCardData + 4, pageData, 4);
+            
+          dataSize = sizeof(pageData);
+          result &= cardPageRead(CARD_PAGE_INFO + 2, pageData, &dataSize);
+          if(result)
+            memcpy(masterCardData + 8, pageData, 4);
+          
+          dataSize = sizeof(pageData);
+          result &= cardPageRead(CARD_PAGE_INFO + 3, pageData, &dataSize);
+          if(result)
+            memcpy(masterCardData + 12, pageData, 4);
 
-    if(!ntagRead(blockInfo+1)){
-      return;
-    }
+          if(result)
+          {
+            // Обрабатываем мастер-чип
 
-    tempdump[4]=dump[0];
-    tempdump[5]=dump[1];
-    tempdump[6]=dump[2];
-    tempdump[7]=dump[3];
-
-    if(!ntagRead(blockInfo+2)){
-      return;
-    }
-
-    tempdump[8]=dump[0];
-    tempdump[9]=dump[1];
-    tempdump[10]=dump[2];
-    tempdump[11]=dump[3];
-
-    if(!ntagRead(blockInfo+3)){
-      return;
-    }
-
-    tempdump[12]=dump[0];
-    tempdump[13]=dump[1];
-    tempdump[14]=dump[2];
-    tempdump[15]=dump[3];
-
-    for (uint8_t h=0;h<16;h++){
-      dump[h]=tempdump[h];
-    }
-    
-    info = dump[1];
-    //считываем пароль с мастер-чипа
-    uint8_t chipPass[3];
-    chipPass[0] = dump[4];
-    chipPass[1] = dump[5];
-    chipPass[2] = dump[6];
-
-    //сверяем пароль. Если не подходит - пищим и выходим
-    if ((pass[0] != chipPass[0])||
-        (pass[1] != chipPass[1])||
-        (pass[2] != chipPass[2])){
-      beep(50,4);
-      return;
-    }
-    //вызов функций соответствующим мастер-чипам
-    if (info == timeMaster) timeChip();
-    else if (info == numberMaster) stantionChip();
-    else if (info == sleepMaster) sleepChip();
-    else if (info == dumpMaster) dumpChip();
-    else if (info == passMaster) passChip();
-    return; 
-  }
-
-  if (stantion == clearStantion){
-    clearChip();
-    return;
-  }
-
-  if (stantion == checkStantion){
-    checkChip();
-    return;
-  }
-  
-  tempDump[0] = 0;
-  
-  
-  //считыввание номер с чипа. Склеивание старшего и младшего байта в номер.
-  chipNum = (dump[0]<<8) + dump[1];
-  if (chipNum==0) return;
-
-  
-  uint8_t ntagType = dump[2]%10;
-
-  newPage = findNewPage(50);
- 
-
-  //ищем последнюю пустую страницу в чипе для записи
-  
-  //если поиск вышел неудачным, функция возвращает ноль и выходит
-  
-  if (newPage == 0) return;
-
-  //во время поиска последнюю записанную страницу поместили в tempDump. Считываем из неё номер, чтобы убедится, что последняя записанная станция отличается 
-  lastNum = tempDump[0];
-  if (stantion == lastNum){
-    beep(500,1);
-    return;
-  }
-  
-  //проверяем записан ли чип уже полностью и места на нём нет
-  //check if memory of chip has finished
-  uint8_t maxPage = 49;
-  
-  if(newPage > maxPage){
-    return;
-  }
-
-  /*
-  * если включена функция старта-финиша. То станция старта принимает только пустые чипы
-  * все остальные станции принимают только не пустые чипы
-  * после станции финиша на чип нельзя записать отметку
-  */
-  uint8_t startPage = 8;
-  if (startFinish){
-    //first section can be write just by start stantion
-    if (newPage == startPage){
-      if (stantion!=startStantion){
-        return;
-      }
-    }
-    //if chip has finished it isnt be written
-    if (lastNum == finishStantion){
-      return;
-    }
-    //if chip not empty it can be started
-    if (stantion == startStantion){
-      if (newPage!=startPage){
-        return;
-      }
+            // Проверяем пароль
+            if( (pass[0] == masterCardData[4]) &&
+                (pass[1] == masterCardData[5]) &&
+                (pass[2] == masterCardData[6]) )
+            {
+              switch(masterCardData[1])
+              {
+                case SET_TIME_MASTER_CARD:
+                  processTimeMasterCard(masterCardData, sizeof(masterCardData));
+                  break;
+                case SET_NUMBER_MASTER_CARD:
+                  processStationMasterCard(masterCardData, sizeof(masterCardData));
+                  break;
+                case SLEEP_MASTER_CARD:
+                  processSleepMasterCard(masterCardData, sizeof(masterCardData));
+                  break;
+                case READ_DUMP_MASTER_CARD:
+                  processDumpMasterCard(masterCardData, sizeof(masterCardData));
+                  break;
+                case SET_PASS_MASTER_CARD:
+                  processPassMasterCard(masterCardData, sizeof(masterCardData));
+                  break;
+              }
+              // Засыпаем на 3 секунды, чтобы спокойно убрать мастер-чип
+              Watchdog.sleep(3000);
+            }
+            else
+              BEEP_PASS_ERROR;
+          }
+        } // Конец обработки мастер-чипа
+        else
+        {
+          // Обработка чипа участника
+          switch(stationNum)
+          {
+            case CLEAR_STATION_NUM:
+              clearParticipantCard();
+              break;
+            case CHECK_STATION_NUM:
+              checkParticipantCard();
+              break;
+            default:
+              processParticipantCard((((uint16_t)pageData[0])<<8) + pageData[1]);
+              break;
+          }
+        }
+      } 
     }
   }
-  //Записываем отметку
-  //write time mark
-  if (!writeTime(newPage)){
-    return;
-  }
-  //записывааем номер чипа во внутреннюю память и если есть внешняя память, записываем туда время
-  //write num of chip to eeprom
-  if ((chipNum<maxNumChip)&&(chipNum>0)){
-    writeNumEeprom (chipNum);
-  }
-
-  //переходим в рабочий режим
-  work = true;
-  loopCount = 0;
-
-  // Halt PICC
-    mfrc522.PICC_HaltA();
-    // Stop encryption on PCD
-    mfrc522.PCD_StopCrypto1();
+  // Завершаем работу с карточкой
+  mfrc522.PICC_HaltA();
+  // Завершаем работу с SPI
   SPI.end();
-
-} // end of rfid()
-
-/*
- * функция обработки мастер-чипа времени
- * С чипа считыввается новое время и устанавливается 
- * внутреннее время. Станция пикает 5 раз и перезагружается
- */
-void timeChip() {
-    
-  t.mon = dump[8];
-  t.year = dump[9]+2000;
-  t.mday = dump[10];
-  t.hour = dump[12];
-  t.min = dump[13];
-  t.sec = dump[14];
-
-  uint8_t dataDump[4] ={0, 0, 0,0};
-  
-  if(!ntagWrite(dataDump,4)){
-    return;
-  }
-  
-  digitalWrite(VCC_C,HIGH);
-  delay(1);
-  DS3231_set(t); //correct time
-  digitalWrite(VCC_C,LOW);
-  
-  beep(500,3);
-  resetFunc(); //reboot
+  // Переводим RC522 в хард-ресет
+  digitalWrite(RC522_RST,LOW);
 }
 
-/*
- * Функция установки нового номера станции
- * станция считывает чип, записывает новый номер
- * во внутреннюю память, пикает 5 раз и перезагружается
- */
-
-void stantionChip(){
-  
-  uint8_t newnum = dump[8];
-  uint8_t dataDump[4] ={0, 0, 0, 0};
-  
-  if(!ntagWrite(dataDump,4)){
+void processTimeMasterCard(byte *data, byte dataSize)
+{
+  if(dataSize < 16)
+  {
+    BEEP_MASTER_CARD_TIME_ERROR;
     return;
   }
     
-  if (newnum!=0){
-    if (stantion != newnum){
-      stantion = newnum;
-      eepromwrite (eepromAdrStantion, newnum);
-    }
-    beep(500,5);
-    resetFunc(); //reboot
-  }
-  else{
-    beep(50,6);
-    return;
-  }
+  t.mon = data[8];
+  t.year = data[9]+2000;
+  t.mday = data[10];
+  t.hour = data[12];
+  t.min = data[13];
+  t.sec = data[14];
+
+  DS3231_set(t);
+  
+  BEEP_MASTER_CARD_TIME_OK;
 }
 
-/*
- * Функция обработки мастер-чипа сна. 
- * Станция стирает данные о пароле и настройках,
- * пикает три раза и входит в сон
- */
-void sleepChip(){
-  
-  uint8_t dataDump[4] ={0, 0, 0, 0};
-  
-  if(!ntagWrite(dataDump,4)){
-    return;
-  }
-  for (uint8_t i = 0;i<3;i++){
-    pass[i]=0;
-    eepromwrite((eepromPass+i*3),0);
-  }
-
-  if (eraseSetting){
-    eepromwrite((eepromPass+9),0);
-  }
-  
-  deepsleep = true;
-  eepromwrite (eepromAdrSleep, 255); //write sleep mode to EEPROM in case of failures
-  
-  beep(500,4);
-
-  cleanEeprom();
-
-  resetFunc(); //reboot
-}
-
-/*
- * Функция записи дамп-чипа. Станция считывает все данные по чипам из внутренней памяти
- * и записывает их последовательно на дамп-чип. После чего один раз пикает и выходит.
- */
-void dumpChip(){
-  uint8_t dataEeprom[4];
-  uint16_t eepromAdr = 0;
-
-  uint8_t dataDump[4] = {stantion,0,0,0};
-  
-  if(!ntagWrite(dataDump,4)){
+void processStationMasterCard(byte *data, byte dataSize)
+{
+  if(dataSize < 16)
+  {
+    BEEP_MASTER_CARD_STATION_ERROR;
     return;
   }
 
-  for (uint8_t page = 5; page<50;page++){
-  wdt_reset();  
-    for (uint8_t m = 0; m<4;m++){
-      dataEeprom[m]=EEPROM.read(eepromAdr);
-      eepromAdr++;
-    }
+  bool checkOk = false;
+  uint8_t newNum = data[8];
 
-    if(!ntagWrite(dataEeprom,page)){
-      beep(50,3);
-      return;
-    }
+  if(newNum > 0)
+  {
+    checkOk = true;
     
-  }
-
-  beep(500,6);
-  return;
-  
-}
-
-/*
- * Функция записи отметки в чип. 
- * Записывает номер и поседние 3 байта юникстайм в чип. Если удалось, пикает и выдает true
- */
-bool writeTime(int newPage){
-
-   uint32_t code = stantion;
-   code = code<<24;
-   code += (t.unixtime&0x00FFFFFF);
-
-   uint8_t toWrite[4] = {0,0,0,0};
-   toWrite[0]=(code&0xFF000000)>>24;
-   toWrite[1]=(code&0x00FF0000)>>16;
-   toWrite[2]=(code&0x0000FF00)>>8;
-   toWrite[3]=(code&0x000000FF);
-   
-   uint8_t dataBlock2[4] = {toWrite[0],toWrite[1],toWrite[2],toWrite[3]};
-   
-   if (ntagWrite(dataBlock2,newPage)){
-     beep_mark();
-     return true;
-   }
-   else {
-     return false;
-   }
-}
-
-/*
- * Функция обработки мастер-чипа смены пароля. Станция считывает новый пароль и байт настроек. Записывает его в память.
- * Пикает два раза и перезагружается.
- */
-
-void passChip(){
-  
-  for (uint8_t i = 0;i<3;i++){
-    pass[i]=dump[i+8];
-    eepromwrite((eepromPass+i*3),pass[i]);
-  }
-  setting = dump[11];
-  eepromwrite(eepromPass+9,setting);
-
-  uint8_t dataDump[4] ={0, 0, 0, 0};
-  
-  if(!ntagWrite(dataDump,4)){
-    return;
-  }
-  
-  beep(500,2);
-  resetFunc(); //reboot
-  
-}
-
-
-/*
- * функция поиска последней записанной страницы по алгоритму бинарного поиска.
- */
-
-uint8_t findNewPage(uint8_t finishpage){
-  uint8_t startpage = 8;
-  uint8_t page = (finishpage+startpage)/2;
-
-  while (1) {
-    if (finishpage==startpage) {
-      return (finishpage);
-    }
-       
-    page = (finishpage + startpage)/2;
-   
-    if(!ntagRead(page)){
-      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = 0;
-      return 0;
-    }
-     
-    if (dump[0]==0){
-      finishpage = (finishpage - startpage)/2 + startpage;
-    }
-    else {
-      for (uint8_t i = 0; i<4 ; i++) tempDump[i] = dump[i];
-      startpage = finishpage - (finishpage - startpage)/2;
-    }
-  } 
-}
-
-void clearChip(){
-  
-  if ((lastCleanChip0==dump[0])&&(lastCleanChip1==dump[1])&&lastChipClean){
-    
-    if(!ntagRead(firstPage)){
-       return;
-    }
-
-    if (dump[0]==0 && dump[1]==0 && dump[2]==0 && dump[3]==0){
-      beep(500, 1 );
-      return;
-    }
-    
-  }
-  lastChipClean = false;
-  lastCleanChip0 = dump[0];
-  lastCleanChip1 = dump[1];
-
-  pinMode (LED, OUTPUT);
-  digitalWrite (LED,HIGH);
-
-  byte Wbuff[] = {255,255,255,255};
-  
-  for (byte page = firstPage; page < ntagValue; page++) {
-    wdt_reset();
-    if (!ntagWrite(Wbuff,page)) {
-      return;
-    }
-  }
-
-  byte Wbuff2[] = {0,0,0,0};
-  
-  for (byte page = (ntagValue-1); page > (firstPage-1); page--) {
-    wdt_reset();
-    if (!ntagWrite(Wbuff2, page)) {
-      return;
-    }
-  }
-
-   uint32_t utime = t.unixtime;
-   
-   uint8_t dataBlock2[4] = {0,0,0,0};
-   dataBlock2[0]=(utime&0xFF000000)>>24;
-   dataBlock2[1]=(utime&0x00FF0000)>>16;
-   dataBlock2[2]=(utime&0x0000FF00)>>8;
-   dataBlock2[3]=(utime&0x000000FF);
-  
-  if(!ntagWrite(dataBlock2, pagePass)) {
-    return;
-  }
-  digitalWrite (LED,LOW);
-  beep(200, 1 );
-
-  lastChipClean = true;
-  
-}
-
-/*
- * 
- */
-void checkChip(){
-
-  if (dump[2]==0){
-    beep(200,3);
-    return;
-  }
-
-  if(!ntagRead(pagePass)){
-    return;
-  }  
-  
-  uint32_t initTime = dump[0];
-  initTime <<= 8;
-  initTime += dump[1];
-  initTime <<= 8;
-  initTime += dump[2];
-  initTime <<= 8;
-  initTime += dump[3];
-
-  if ((t.unixtime-initTime)> maxTimeInit){
-    beep(200,3);
-    return;
-  }
-  
-  for (byte i =0;i<4;i++){
-    if(!ntagRead(firstPage)){
-      return;
+    if(stationNum != newNum)
+    {
+      stationNum = newNum;
+      eepromWrite(EEPROM_STATION_NUM_ADDR, stationNum);
     }  
   }
   
-  for (byte i=0; i<4;i++){
-    if (dump[i]!=0){
-      beep(200,3);
+  if(checkOk)
+    BEEP_MASTER_CARD_STATION_OK;
+  else
+    BEEP_MASTER_CARD_STATION_ERROR;
+}
+
+void processSleepMasterCard(byte *data, byte dataSize)
+{
+  if(dataSize < 16)
+  {
+    BEEP_MASTER_CARD_SLEEP_ERROR;
+    return;
+  }
+    
+  mode = MODE_SLEEP;
+  
+  if(settings & SETTINGS_CLEAR_ON_SLEEP)
+  {
+    settings = DEFAULT_SETTINGS;
+    eepromWrite(EEPROM_SETTINGS_ADDR,settings);
+  }
+
+  cleanEeprom();
+
+  BEEP_MASTER_CARD_SLEEP_OK;
+}
+
+void processDumpMasterCard(byte *data, byte dataSize)
+{
+  if(dataSize < 16)
+  {
+    BEEP_MASTER_CARD_DUMP_ERROR;
+    return;
+  }
+    
+  uint8_t dataEeprom[16];
+  uint16_t eepromAdr = 0;
+
+  memset(dataEeprom, 0, sizeof(dataEeprom));
+
+  for(uint8_t page = CARD_PAGE_INIT_TIME; page <= CARD_PAGE_MAX; page++)
+  {
+    Watchdog.reset();
+    for(uint8_t m = 0; m < 4; m++)
+    {
+      dataEeprom[m] = EEPROM.read(eepromAdr);
+      eepromAdr++;
+    }
+
+    if(!cardPageWrite(page, dataEeprom, sizeof(dataEeprom)))
+    {
+      BEEP_MASTER_CARD_DUMP_ERROR;
       return;
     }
   }
 
-  beep(200,1);
+  BEEP_MASTER_CARD_DUMP_OK;
+  return;
+}
+
+void processPassMasterCard(byte *data, byte dataSize)
+{
+  if(dataSize < 16)
+  {
+    BEEP_MASTER_CARD_PASS_ERROR;
+    return;
+  }
+    
+  for(uint8_t i = 0; i < 3; i++)
+  {
+    pass[i] = data[i + 8];
+    eepromWrite(EEPROM_PASS_ADDR + i*3, pass[i]);
+  }
   
+  settings = data[11];
+  eepromWrite(EEPROM_SETTINGS_ADDR, settings);
+
+  BEEP_MASTER_CARD_PASS_OK;
+}
+
+void processParticipantCard(uint16_t cardNum)
+{
+  uint8_t lastNum = 0;
+  uint8_t newPage = 0;
+  bool checkOk = false;
+
+  if(cardNum)
+  {
+    //Ищем последнюю пустую страницу в чипе для записи
+    findNewPage(&newPage, &lastNum);
+  
+    if(newPage >= CARD_PAGE_START && newPage <= CARD_PAGE_MAX)
+    {
+      if(lastNum != stationNum)
+      {
+        /*
+         * если включена функция старта-финиша. То станция старта принимает только пустые чипы
+         * все остальные станции принимают только не пустые чипы
+         * после станции финиша на чип нельзя записать отметку
+         */
+        checkOk = true;
+        if(settings & SETTINGS_CHECK_START_FINISH)
+        {
+          if(newPage == CARD_PAGE_START && stationNum != START_STATION_NUM)
+            checkOk = false;
+          else if(stationNum == START_STATION_NUM && newPage != CARD_PAGE_START)
+            checkOk = false;
+          else if(lastNum == FINISH_STATION_NUM)
+            checkOk = false;
+          else if(stationNum == FINISH_STATION_NUM && newPage == CARD_PAGE_START)
+            checkOk = false;
+        }
+
+        if(settings & SETTINGS_CHECK_CARD_TIME)
+        {
+          checkOk = !doesCardExpire();
+        }
+
+        // Записываем отметку
+        if(checkOk)
+        {
+          if(writeMarkToParticipantCard(newPage))
+          {
+            // Записывааем номер чипа во внутреннюю память
+            writeNumEeprom(cardNum);
+              
+            BEEP_CARD_MARK_WRITTEN;
+          }
+        }
+      }
+      else
+      {
+        checkOk = true;
+        BEEP_CARD_MARK_OK;
+      }
+    }
+  }
+
+  if(!checkOk)
+    BEEP_CARD_MARK_ERROR;
+}
+
+void findNewPage(uint8_t *newPage, uint8_t *lastNum)
+{
+  uint8_t startPage = CARD_PAGE_START;
+  uint8_t endPage = CARD_PAGE_MAX;
+  uint8_t page;
+  byte pageData[18];
+  byte dataSize;
+  byte num;
+
+  *newPage = 0;
+  *lastNum = 0;
+
+  while(startPage < endPage)
+  {   
+    page = (startPage + endPage)/2;
+
+    dataSize = sizeof(pageData);
+    if(!cardPageRead(page, pageData, &dataSize))
+      return;
+
+    num = pageData[0];
+     
+    if(num == 0)
+      endPage = page;
+    else
+      startPage = (startPage != page)? page : page + 1;
+  }
+
+  *newPage = page + 1;
+  *lastNum = num;
+}
+
+bool writeMarkToParticipantCard(uint8_t newPage)
+{
+  byte pageData[16];
+  byte dataSize = sizeof(pageData);
+  
+  // Читаем текущее время
+  DS3231_get(&t);
+
+  pageData[0] = stationNum;
+  pageData[1] = (t.unixtime & 0x00FF0000)>>16;
+  pageData[2] = (t.unixtime & 0x0000FF00)>>8;
+  pageData[3] = (t.unixtime & 0x000000FF);
+      
+  return cardPageWrite(newPage, pageData, dataSize);
+}
+
+/**
+ * Функция очистки карточки участника
+ */
+void clearParticipantCard()
+{
+  byte pageData[16];
+  byte dataSize = sizeof(pageData);
+  bool result = true;
+
+  memset(pageData, 0, dataSize);
+
+  for(uint8_t page = CARD_PAGE_INIT_TIME; page <= CARD_PAGE_MAX; page++)
+  {
+    Watchdog.reset();
+    digitalWrite(LED,HIGH);
+    result &= cardPageWrite(page, pageData, dataSize);
+    digitalWrite(LED,LOW);
+  }
+
+  if(result)
+  {
+    DS3231_get(&t);
+    
+    pageData[0] = (t.unixtime&0xFF000000)>>24;
+    pageData[1] = (t.unixtime&0x00FF0000)>>16;
+    pageData[2] = (t.unixtime&0x0000FF00)>>8;
+    pageData[3] = (t.unixtime&0x000000FF);
+
+    result &= cardPageWrite(CARD_PAGE_INIT_TIME, pageData, dataSize);
+  }
+
+  if(result)
+    BEEP_CARD_CLEAR_OK;
+  else
+    BEEP_CARD_CLEAR_ERROR;
+}
+
+void checkParticipantCard()
+{
+  byte pageData[18];
+  byte dataSize = sizeof(pageData);
+  uint16_t cardNum = 0;
+  uint8_t newPage = 0;
+  uint8_t lastNum = 0;
+  bool result = false;
+  
+  if(cardPageRead(CARD_PAGE_INFO, pageData, &dataSize))
+  {
+    // Проверяем номер чипа 
+    cardNum = ((uint16_t)pageData[0])<<8 + pageData[1];
+    if(cardNum > 0 && pageData[2] != 0xFF)
+    {
+      // Проверяем количество отметок на чипе
+      findNewPage(&newPage, &lastNum);
+      if(newPage == CARD_PAGE_START && lastNum == 0)
+      {
+        result = true;
+        // Проверяем время инициализации чипа
+        if(settings & SETTINGS_CHECK_CARD_TIME)
+          result = !doesCardExpire();
+      }
+    }
+  }
+
+  if(result)
+    BEEP_CARD_CHECK_OK;
+  else
+    BEEP_CARD_CHECK_ERROR;
+}
+
+bool doesCardExpire()
+{
+  byte pageData[18];
+  byte dataSize = sizeof(pageData);
+  uint32_t cardTime = 0;
+  bool result = true;
+  
+  if(cardPageRead(CARD_PAGE_INIT_TIME, pageData, &dataSize))
+  {
+    DS3231_get(&t);
+
+    cardTime = (((uint32_t)pageData[0]) & 0xFF000000)<<24;
+    cardTime |= (((uint32_t)pageData[1]) & 0x00FF0000)<<16;
+    cardTime |= (((uint32_t)pageData[2]) & 0x0000FF00)<<8;
+    cardTime |= (((uint32_t)pageData[3]) & 0x000000FF);
+
+    if(t.unixtime - cardTime >= CARD_EXPIRE_TIME)
+      result = true;
+    else
+      result = false;
+  }
+
+  return result;
 }
