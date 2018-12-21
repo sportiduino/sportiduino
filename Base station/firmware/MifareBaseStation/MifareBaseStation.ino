@@ -16,12 +16,12 @@
 // Для компиляции проекта необходимо установить бибилиотеки
 // - AdafruitSpeepyDog by Adafruit (https://github.com/adafruit/Adafruit_SleepyDog)
 // - MFRC522 by GithubCommunity (https://github.com/miguelbalboa/rfid)
-// - DS3231FS by Petre Rodan (https://github.com/Jorropo/ds3231)
+// - DS3231-master из папки Sportiduino/Libraries/DS3231-master
 // Для этого откройте Скетч->Подключить Библиотеку->Управление Бибилиотеками.
 // В поиске введите соответствующие библиотеки и нажмите для каждой INSTALL
 
 //-------------------------------------------------------------------
-// Настройка
+// НАСТРОЙКА
 
 // По умолчанию с завода МК настроен на работу от встроенного RC генератора с делителем на 8
 // В итоге системная частота = 1 МГц
@@ -98,8 +98,11 @@
 // Период проверки чипов в режиме сна (в миллисекундах)
 #define MODE_SLEEP_CARD_CHECK_PERIOD      25000
 
+// Время сна после чтения мастер-чипа, очистки чипа (Этот сон нужен, чтобы спокойно убрать мастер-чип)
+#define SLEEP_BETWEEN_MASTER_CARD         3000
+
 // Cигнал при загрузке станции
-#define BEEP_SYSTEM_STARTUP     beep(1000,1)
+#define BEEP_SYSTEM_STARTUP     //beep(1000,1)
 
 // Сигнал-ошибка при чтении еепром памяти
 #define BEEP_EEPROM_ERROR       beep(50,2)
@@ -121,7 +124,7 @@
 // Сигнал ошибки записи на карточку участника
 #define BEEP_CARD_MARK_ERROR
 // Сигнал успешной очистки карточку участника
-#define BEEP_CARD_CLEAR_OK      beep(200,1)
+#define BEEP_CARD_CLEAR_OK      beep(500,1)
 // Сигнал успешной проверки карточки участника
 #define BEEP_CARD_CLEAR_ERROR
 
@@ -134,8 +137,9 @@
 // Сигнал прочитан мастер-чип сна
 #define BEEP_MASTER_CARD_SLEEP_OK           beep(500,4)
 #define BEEP_MASTER_CARD_SLEEP_ERROR
-// Сигнал прочитан мастер-чип номера станции
-#define BEEP_MASTER_CARD_STATION_OK         beep(500,5)
+// Сигнал изменён номер станции
+#define BEEP_MASTER_CARD_STATION_WRITTEN    beep(500,5)
+#define BEEP_MASTER_CARD_STATION_OK         beep(500,1)
 #define BEEP_MASTER_CARD_STATION_ERROR      beep(50,6)
 // Сигнал прочитан мастер-чип дампа
 #define BEEP_MASTER_CARD_DUMP_OK            beep(500,6)
@@ -179,8 +183,6 @@
 //--------------------------------------------------------------------
 // Переменные
 
-// Текущие дата и время
-struct ts t;
 // Время работы (в миллисекундах)
 uint32_t workTimer;
 // Пароль для проверки мастер-чипов
@@ -372,6 +374,7 @@ bool doesCardExpire();
 void setup()
 {
   // Блокируем и сбрасываем вотчдог
+  MCUSR &= ~(1 << WDRF);
   Watchdog.disable();
   Watchdog.reset();
 
@@ -397,10 +400,9 @@ void setup()
   }
   
   // Настраиваем RTC
-  // Сбрасываем все прерывания
-  DS3231_clear_a1f();
-  DS3231_clear_a2f();
-  // Внимание: DS3231_Init выключает выход 32 кГц!
+  ts t;
+  // Сбрасываем все прерывания и выключаем выход 32 кГц
+  DS3231_set_addr(DS3231_STATUS_ADDR, 0);
   DS3231_init(DS3231_INTCN);// | DS3231_A1IE);
   // Читаем текущее время
   DS3231_get(&t);
@@ -450,6 +452,8 @@ void setup()
   
   // Проверяем батарейки
   voltage();
+  // Для разделения сигналов от батарейки и перезагрузки
+  delay(1000);
   // Сигнализируем о переходе в основной цикл
   BEEP_SYSTEM_STARTUP;
   // Сбрасываем программный таймер
@@ -667,7 +671,7 @@ void voltage()
   value /= 10;
 
   digitalWrite(LED, LOW);
-  delay(500);
+  delay(250);
   
   Watchdog.reset();
 
@@ -720,6 +724,8 @@ bool cardPageWrite(uint8_t pageAdr, byte *data, byte size)
   
   if(status != MFRC522::STATUS_OK)
     return false;
+
+  return true;
 }
 
 void rfid()
@@ -728,6 +734,7 @@ void rfid()
   byte dataSize;
   byte masterCardData[16];
   bool result;
+  bool sleepBtwCard = false;
 
   // Включаем SPI и RC522. Ищем карту вблизи. Если не находим выходим из функции чтения чипов
   SPI.begin();
@@ -744,6 +751,7 @@ void rfid()
     {
       // Переходим в активный режим
       mode = MODE_ACTIVE;
+      workTimer = 0;
       //Читаем блок информации
       dataSize = sizeof(pageData);
       if(cardPageRead(CARD_PAGE_INFO, pageData, &dataSize))
@@ -800,8 +808,8 @@ void rfid()
                   processPassMasterCard(masterCardData, sizeof(masterCardData));
                   break;
               }
-              // Засыпаем на 3 секунды, чтобы спокойно убрать мастер-чип
-              Watchdog.sleep(3000);
+
+              sleepBtwCard = true;
             }
             else
               BEEP_PASS_ERROR;
@@ -814,6 +822,7 @@ void rfid()
           {
             case CLEAR_STATION_NUM:
               clearParticipantCard();
+              sleepBtwCard = true;
               break;
             case CHECK_STATION_NUM:
               checkParticipantCard();
@@ -832,6 +841,11 @@ void rfid()
   SPI.end();
   // Переводим RC522 в хард-ресет
   digitalWrite(RC522_RST,LOW);
+
+  // Дополнительная задеркжа между чтением чипов
+  // Нужна, чтобы спокойно можно было убрать мастер-чип после обработки
+  if(sleepBtwCard)
+    sleep(SLEEP_BETWEEN_MASTER_CARD);
 }
 
 void processTimeMasterCard(byte *data, byte dataSize)
@@ -841,6 +855,9 @@ void processTimeMasterCard(byte *data, byte dataSize)
     BEEP_MASTER_CARD_TIME_ERROR;
     return;
   }
+  
+  ts t;
+  memset(&t, 0, sizeof(t));
     
   t.mon = data[8];
   t.year = data[9]+2000;
@@ -850,6 +867,11 @@ void processTimeMasterCard(byte *data, byte dataSize)
   t.sec = data[14];
 
   DS3231_set(t);
+  memset(&t, 0, sizeof(t));
+  DS3231_get(&t);
+
+  if(t.year < 2017)
+    BEEP_TIME_ERROR;
   
   BEEP_MASTER_CARD_TIME_OK;
 }
@@ -862,22 +884,20 @@ void processStationMasterCard(byte *data, byte dataSize)
     return;
   }
 
-  bool checkOk = false;
   uint8_t newNum = data[8];
 
   if(newNum > 0)
   {
-    checkOk = true;
-    
     if(stationNum != newNum)
     {
       stationNum = newNum;
       eepromWrite(EEPROM_STATION_NUM_ADDR, stationNum);
-    }  
+
+      BEEP_MASTER_CARD_STATION_WRITTEN;
+    }
+    else
+      BEEP_MASTER_CARD_STATION_OK;
   }
-  
-  if(checkOk)
-    BEEP_MASTER_CARD_STATION_OK;
   else
     BEEP_MASTER_CARD_STATION_ERROR;
 }
@@ -1046,12 +1066,16 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum)
       startPage = (startPage != page)? page : page + 1;
   }
 
-  *newPage = page + 1;
+  if(num > 0)
+    page++;
+
+  *newPage = page;
   *lastNum = num;
 }
 
 bool writeMarkToParticipantCard(uint8_t newPage)
 {
+  ts t;
   byte pageData[16];
   byte dataSize = sizeof(pageData);
   
@@ -1071,6 +1095,7 @@ bool writeMarkToParticipantCard(uint8_t newPage)
  */
 void clearParticipantCard()
 {
+  ts t;
   byte pageData[16];
   byte dataSize = sizeof(pageData);
   bool result = true;
@@ -1082,6 +1107,7 @@ void clearParticipantCard()
     Watchdog.reset();
     digitalWrite(LED,HIGH);
     result &= cardPageWrite(page, pageData, dataSize);
+    delay(70);
     digitalWrite(LED,LOW);
   }
 
@@ -1138,6 +1164,7 @@ void checkParticipantCard()
 
 bool doesCardExpire()
 {
+  ts t;
   byte pageData[18];
   byte dataSize = sizeof(pageData);
   uint32_t cardTime = 0;

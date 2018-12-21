@@ -87,6 +87,7 @@ struct ts t; //time
 
 void setup () {
 
+  MCUSR &= ~(1 << WDRF);
   wdt_disable();
   wdt_reset();
 
