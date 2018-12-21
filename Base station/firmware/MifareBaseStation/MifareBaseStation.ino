@@ -47,7 +47,7 @@
 #define CARD_EXPIRE_TIME 2678400L
 
 // Максимально-допустимый номер карточки
-#define MAX_CARD_NUM              4000
+#define MAX_CARD_NUM             (CARD_PAGE_MAX - 5)*4*8
 
 // Настройки станции
 // Bit1,Bit0 - Время перехода в режим ожидания при бездействия
@@ -234,15 +234,15 @@ uint8_t eepromRead(uint16_t adr);
 void sleep(uint16_t ms);
 
 /**
- * Запись ячейки соответствующей номеру чипа во внутреннюю память. Только факт отметки.
+ * Запись номера карточки участника в лог. Только факт отметки, время отметки не записывается
  */
-void writeNumEeprom (uint16_t num);
+void writeCardNumToLog(uint16_t num);
 
 /**
- * Очистка внутренней памяти станции
+ * Очистка лога отметок
  * адреса 0 - 750
  */
-void cleanEeprom ();
+void clearMarkLog();
 
 /**
  * Выдача сигнала. Принимает продолжительность сигнала и число сигналов подряд
@@ -431,6 +431,9 @@ void setup()
     settings = DEFAULT_SETTINGS;
     pass[0] = pass[1] = pass[2] = 0;
 
+    // Очищаем лог отметок
+    clearMarkLog();
+
     // Сохраняем настройки и пароль по умолчаню в EEPROM
     eepromWrite(EEPROM_SETTINGS_ADDR, settings);
     for (uint8_t i = 0; i < 3; i++)
@@ -576,7 +579,7 @@ uint8_t eepromRead(uint16_t adr)
   }
 }
 
-void writeNumEeprom (uint16_t num)
+void writeCardNumToLog(uint16_t num)
 {
   if(num > MAX_CARD_NUM)
   {
@@ -591,16 +594,14 @@ void writeNumEeprom (uint16_t num)
   EEPROM.write(byteAdr, eepromByte);
 }
 
-void cleanEeprom ()
+void clearMarkLog()
 {
-  for (uint16_t a = 0; a < 750; a++)
+  uint16_t endAdr = (CARD_PAGE_MAX - 5)*4;
+  for (uint16_t a = 0; a <= endAdr; a++)
   {
-    if(a%100 == 0)
-      Watchdog.reset();
-      
+    Watchdog.reset();
     EEPROM.write(a,0);
-    
-    delay(5);
+    delay(2);
   }
 }
 
@@ -918,7 +919,7 @@ void processSleepMasterCard(byte *data, byte dataSize)
     eepromWrite(EEPROM_SETTINGS_ADDR,settings);
   }
 
-  cleanEeprom();
+  clearMarkLog();
 
   BEEP_MASTER_CARD_SLEEP_OK;
 }
@@ -933,26 +934,33 @@ void processDumpMasterCard(byte *data, byte dataSize)
     
   uint8_t dataEeprom[16];
   uint16_t eepromAdr = 0;
+  bool result = true;
 
   memset(dataEeprom, 0, sizeof(dataEeprom));
 
   for(uint8_t page = CARD_PAGE_INIT_TIME; page <= CARD_PAGE_MAX; page++)
   {
     Watchdog.reset();
+    delay(50);
+    
+    digitalWrite(LED,HIGH);
+    
     for(uint8_t m = 0; m < 4; m++)
     {
       dataEeprom[m] = EEPROM.read(eepromAdr);
       eepromAdr++;
     }
 
-    if(!cardPageWrite(page, dataEeprom, sizeof(dataEeprom)))
-    {
-      BEEP_MASTER_CARD_DUMP_ERROR;
-      return;
-    }
+    result &= cardPageWrite(page, dataEeprom, sizeof(dataEeprom));
+    
+    digitalWrite(LED, LOW);
   }
 
-  BEEP_MASTER_CARD_DUMP_OK;
+  if(result)
+    BEEP_MASTER_CARD_DUMP_OK;
+  else
+    BEEP_MASTER_CARD_DUMP_ERROR;
+    
   return;
 }
 
@@ -1020,7 +1028,7 @@ void processParticipantCard(uint16_t cardNum)
           if(writeMarkToParticipantCard(newPage))
           {
             // Записывааем номер чипа во внутреннюю память
-            writeNumEeprom(cardNum);
+            writeCardNumToLog(cardNum);
               
             BEEP_CARD_MARK_WRITTEN;
           }
@@ -1105,9 +1113,12 @@ void clearParticipantCard()
   for(uint8_t page = CARD_PAGE_INIT_TIME; page <= CARD_PAGE_MAX; page++)
   {
     Watchdog.reset();
+    delay(50);
+    
     digitalWrite(LED,HIGH);
+    
     result &= cardPageWrite(page, pageData, dataSize);
-    delay(70);
+    
     digitalWrite(LED,LOW);
   }
 
