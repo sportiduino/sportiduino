@@ -40,14 +40,14 @@
 // MIFARE Classic 4K (MF1S703x) = 98 страниц (Всего 128 основных блоков - 32 трейл-блока + 2 = 98); 90 отметок = 98 - 8. Расширенные блоки не поддерживаются!
 // MIFARE Classic Mini (MF1 IC S20) = 17 страниц (Всего 20 блоков - 5 трейл-блоков + 2 = 17); 9 отметок = 17 - 8
 // Карты MIFARE Ultralight (MF0ICU1) и MIFARE Ultralight C (MF0ICU2) не поддерживаются!
-#define CARD_PAGE_MAX    50
+#define CARD_PAGE_MAX 50
 
 // Срок годности карточки участника (в секундах)
 // 31 день = 2678400
 #define CARD_EXPIRE_TIME 2678400L
 
 // Максимально-допустимый номер карточки
-#define MAX_CARD_NUM             (CARD_PAGE_MAX - 5)*4*8
+#define MAX_CARD_NUM (CARD_PAGE_MAX - 5)*4*8
 
 // Настройки станции
 // Bit1,Bit0 - Время перехода в режим ожидания при бездействия
@@ -115,7 +115,7 @@
 #define BEEP_BATTERY_OK         beep(500,1)
 // Сигнал чип не прошёл проверку
 
-#define BEEP_CARD_CHECK_ERROR   beep(200,3)
+#define BEEP_CARD_CHECK_ERROR   //beep(200,3)
 #define BEEP_CARD_CHECK_OK      beep(500,1)
 // Сигнал записи отметки на карточку участника
 #define BEEP_CARD_MARK_WRITTEN  beep(500,1)
@@ -475,6 +475,7 @@ void loop()
   {
     case MODE_ACTIVE:
       sleep(MODE_ACTIVE_CARD_CHECK_PERIOD);
+
       if(settings & SETTINGS_ALWAYS_ACTIVE)
       {
          workTimer = 0;
@@ -487,6 +488,7 @@ void loop()
       break;
     case MODE_WAIT:
       sleep(MODE_WAIT_CARD_CHECK_PERIOD);
+
       if(settings & SETTINGS_ALWAYS_WAIT)
       {
         workTimer = 0;
@@ -751,7 +753,11 @@ void rfid()
     if(mfrc522.PICC_ReadCardSerial())
     {
       // Переходим в активный режим
-      mode = MODE_ACTIVE;
+      if(settings & SETTINGS_ALWAYS_WAIT)
+        mode = MODE_WAIT;
+      else
+        mode = MODE_ACTIVE;
+      // Сбрасываем таймер времени работы в текущем режиме
       workTimer = 0;
       //Читаем блок информации
       dataSize = sizeof(pageData);
@@ -1152,7 +1158,7 @@ void checkParticipantCard()
   if(cardPageRead(CARD_PAGE_INFO, pageData, &dataSize))
   {
     // Проверяем номер чипа 
-    cardNum = ((uint16_t)pageData[0])<<8 + pageData[1];
+    cardNum = (((uint16_t)pageData[0])<<8) + pageData[1];
     if(cardNum > 0 && pageData[2] != 0xFF)
     {
       // Проверяем количество отметок на чипе
