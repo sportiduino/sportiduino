@@ -12,6 +12,8 @@ const byte BUZ = 3;
 const byte RST_PIN = 9;
 const byte SS_PIN = 10;
 
+#define RESP_CODE_VERSION  0x66
+
 //password for master key
 uint8_t pass[] = {0,0,0};
 uint8_t stantionConfig = 0;
@@ -317,6 +319,9 @@ void findFunc() {
     case 0x4E:
       writeMasterSleep();
       break;
+    case 0x4F:
+      applyPassword();
+      break;
     case 0x58:
       signalError(0);
       break;
@@ -459,6 +464,19 @@ void writeMasterPass() {
   // Stop encryption on PCD
   mfrc522.PCD_StopCrypto1();
   SPI.end();
+}
+
+void applyPassword()
+{
+  pass[0] = dataBuffer[2];
+  pass[1] = dataBuffer[3];
+  pass[2] = dataBuffer[4];
+  
+  eepromwrite(eepromPass, dataBuffer[2]);
+  eepromwrite(eepromPass+3, dataBuffer[3]);
+  eepromwrite(eepromPass+6, dataBuffer[4]);
+  
+  signalOK();
 }
 
 /*
@@ -865,12 +883,16 @@ void signalOK() {
 }
 
 void getVersion() {
-  function = 0x66;
+  
 
   clearBuffer();
 
-  addData(vers, function);
-  sendData(function, dataCount);
+  addData(vers, RESP_CODE_VERSION);
+  addData(pass[0], RESP_CODE_VERSION);
+  addData(pass[1], RESP_CODE_VERSION);
+  addData(pass[2], RESP_CODE_VERSION);
+  addData(stantionConfig, RESP_CODE_VERSION);
+  sendData(RESP_CODE_VERSION, dataCount);
   packetCount = 0;
 }
 
