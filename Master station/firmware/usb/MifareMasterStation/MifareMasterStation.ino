@@ -822,6 +822,16 @@ void writeMasterSleep() {
   if(!ntagWrite(dataBlock2, pagePass)) {
     return;
   }
+  // wakeup time
+  byte dataBlock3[] = {dataBuffer[3], dataBuffer[2], dataBuffer[4], 0};
+  if(!ntagWrite(dataBlock3, pageInfo1)){
+    return;
+  }
+
+  byte dataBlock4[] = {dataBuffer[5], dataBuffer[6], dataBuffer[7], 0};
+  if(!ntagWrite(dataBlock4, pageInfo2)) {
+    return;
+  }
 
   signalOK();
   // Halt PICC
@@ -873,4 +883,3 @@ void clearBuffer() {
     serialBuffer[k] = 0;
   }
 }
-
