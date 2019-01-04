@@ -1,14 +1,11 @@
-#include <deprecated.h>
-#include <MFRC522.h>
-#include <MFRC522Extended.h>
-#include <require_cpp11.h>
-
 #include <Wire.h>
 #include <SPI.h>
 #include <EEPROM.h>
 
+#include <MFRC522.h>
 #include <ds3231.h>
 #include <Adafruit_SleepyDog.h>
+#include <PinChangeInterrupt.h>
 
 // Версия прошивки
 #define FIRMWARE_VERSION 105
@@ -17,6 +14,7 @@
 // - AdafruitSpeepyDog by Adafruit (https://github.com/adafruit/Adafruit_SleepyDog)
 // - MFRC522 by GithubCommunity (https://github.com/miguelbalboa/rfid)
 // - DS3231-master из папки Sportiduino/Libraries/DS3231-master
+// - PinChangeInterrupt by NicoHood https://github.com/NicoHood/PinChangeInterrupt
 // Для этого откройте Скетч->Подключить Библиотеку->Управление Бибилиотеками.
 // В поиске введите соответствующие библиотеки и нажмите для каждой INSTALL
 
@@ -30,6 +28,8 @@
 
 // Уберите комментарий со строки ниже, если на плате установлен пьезоизлучатель без генератора (например, HC0905A)
 //#define PIEZO_FREQ 3200
+
+// Внимание: DS3231 настраиваются по времени UTC!
 
 // Коэффициент усиления антенны модуля RC522. Max = (7<<4) (48 dB), Mid = (3<<4) (23 dB), Min = (0<<4) (18 dB)
 #define RC522_ANTENNA_GAIN (7<<4)
@@ -195,8 +195,16 @@ MFRC522 mfrc522(RC522_SDA, RC522_RST);
 uint8_t stationNum;
 // Настройки станции
 uint8_t settings;
-// режим работы станции
+// Режим работы станции
 uint8_t mode;
+// Дата/Время
+ts t;
+// Год для выхода из режима сна (эта переменная нужна, потому что DS321 не поддерживает год и месяц в Alarms)
+int16_t alarmYear;
+// Месяц для выхода из режима сна (эта переменная нужна, потому что DS321 не поддерживает год и месяц в Alarms)
+uint8_t alarmMonth;
+// Этот флаг устанавливается, когда приходит прерывание от DS3231
+uint8_t rtcAlarmFlag;
 
 #define MODE_ACTIVE   0
 #define MODE_WAIT     1
@@ -232,6 +240,11 @@ uint8_t eepromRead(uint16_t adr);
  * Переводит устройство в энергосберегающий режим сна на заданное время
  */
 void sleep(uint16_t ms);
+
+/**
+ *  Устанавливает текущий режим работы
+ */
+void setMode(uint8_t md);
 
 /**
  * Запись номера карточки участника в лог. Только факт отметки, время отметки не записывается
@@ -356,6 +369,11 @@ void checkParticipantCard();
  */
 bool doesCardExpire();
 
+/**
+ * Обработчик прерывания от RTC
+ */
+void rtcAlarmIrq();
+
 //--------------------------------------------------------------------
 // Реализация
 
@@ -400,10 +418,12 @@ void setup()
   }
   
   // Настраиваем RTC
-  ts t;
   // Сбрасываем все прерывания и выключаем выход 32 кГц
   DS3231_set_addr(DS3231_STATUS_ADDR, 0);
-  DS3231_init(DS3231_INTCN);// | DS3231_A1IE);
+  DS3231_init(DS3231_INTCN | DS3231_A1IE);
+  alarmYear = 0;
+  alarmMonth = 0;
+  memset(&t, 0, sizeof(t));
   // Читаем текущее время
   DS3231_get(&t);
   
@@ -412,6 +432,9 @@ void setup()
     // Часы не настроены
     BEEP_TIME_ERROR;
   }
+
+  // Настраиваем приём прерываний от RTC
+  attachPCINT(digitalPinToPCINT(DS3231_IRQ), rtcAlarmIrq, FALLING);
 
   // Читаем настройки из EEPROM
   stationNum = eepromRead(EEPROM_STATION_NUM_ADDR);
@@ -441,13 +464,7 @@ void setup()
   }
 
   // Устанавливаем режим работы по умолчанию
-  mode = DEFAULT_MODE;
-
-  // Перенастраиваем режим в соответствии с настройками
-  if(settings & SETTINGS_ALWAYS_WAIT)
-    mode = MODE_WAIT;
-  else if(settings & SETTINGS_ALWAYS_ACTIVE)
-    mode = MODE_ACTIVE;
+  setMode(DEFAULT_MODE);
  
   // Инициализруем ключ для карточек MIFARE
   for (byte i = 0; i < 6; i++)
@@ -468,13 +485,31 @@ void setup()
 void loop()
 {
   Watchdog.reset();
-  
+
+  // Обрабатываем прерывание от RTC
+  if(rtcAlarmFlag)
+  {
+    // Сбрасываем флаг прерывания RTC
+    rtcAlarmFlag = 0;
+    DS3231_clear_a1f();
+    // Узнаем текущую дату
+    DS3231_get(&t);
+    // DS3231 не поддерживает месяц и год в Alarms! Поэтому проверка реализована на MCU
+    if(t.year == alarmYear && t.mon == alarmMonth)
+    {
+      setMode(MODE_ACTIVE);
+    }
+  }
+
+  // Обрабатываем карточки
   rfid();
 
+  // Управление режимами работы
   switch(mode)
   {
     case MODE_ACTIVE:
       sleep(MODE_ACTIVE_CARD_CHECK_PERIOD);
+      digitalWrite(LED,HIGH);
 
       if(settings & SETTINGS_ALWAYS_ACTIVE)
       {
@@ -482,12 +517,12 @@ void loop()
       }
       else if(workTimer >= WAIT_PERIOD1)
       {
-        workTimer = 0;
-        mode = MODE_WAIT;
+        setMode(MODE_WAIT);
       }
       break;
     case MODE_WAIT:
       sleep(MODE_WAIT_CARD_CHECK_PERIOD);
+      digitalWrite(LED,HIGH);
 
       if(settings & SETTINGS_ALWAYS_WAIT)
       {
@@ -495,17 +530,16 @@ void loop()
       }
       else if(workTimer >= WAIT_PERIOD1 && (settings & SETTINGS_WAIT_PERIOD1))
       {
-        workTimer = 0;
-        mode = MODE_SLEEP;
+        setMode(MODE_SLEEP);
       }
       else if(workTimer >= WAIT_PERIOD2 && (settings & SETTINGS_WAIT_PERIOD2))
       {
-        workTimer = 0;
-        mode = MODE_SLEEP;
+        setMode(MODE_SLEEP);
       }
       break;
     case MODE_SLEEP:
       sleep(MODE_SLEEP_CARD_CHECK_PERIOD);
+      digitalWrite(LED,HIGH);
       break;
   }
 }
@@ -538,6 +572,10 @@ uint8_t getPinMode(uint8_t pin)
 
 void sleep(uint16_t ms)
 {
+  // Мы не можем уснуть, если есть необработанное прерывание от DS3231
+  if(rtcAlarmFlag)
+    return;
+    
   uint16_t period;
   // Выключаем модуль RC522
   digitalWrite(RC522_RST,LOW);
@@ -552,6 +590,18 @@ void sleep(uint16_t ms)
   // Используем рекурсию, если время проведённое во сне меньше заданного
   if(ms > period)
     sleep(ms - period);
+}
+
+void setMode(uint8_t md)
+{
+  mode = md;
+  workTimer = 0;
+
+  // Перенастраиваем режим в соответствии с настройками
+  if(settings & SETTINGS_ALWAYS_WAIT)
+    mode = MODE_WAIT;
+  else if(settings & SETTINGS_ALWAYS_ACTIVE)
+    mode = MODE_ACTIVE;
 }
 
 void eepromWrite (uint16_t adr, uint8_t val)
@@ -753,12 +803,7 @@ void rfid()
     if(mfrc522.PICC_ReadCardSerial())
     {
       // Переходим в активный режим
-      if(settings & SETTINGS_ALWAYS_WAIT)
-        mode = MODE_WAIT;
-      else
-        mode = MODE_ACTIVE;
-      // Сбрасываем таймер времени работы в текущем режиме
-      workTimer = 0;
+      setMode(MODE_ACTIVE);
       //Читаем блок информации
       dataSize = sizeof(pageData);
       if(cardPageRead(CARD_PAGE_INFO, pageData, &dataSize))
@@ -862,10 +907,10 @@ void processTimeMasterCard(byte *data, byte dataSize)
     BEEP_MASTER_CARD_TIME_ERROR;
     return;
   }
-  
-  ts t;
+
+  // Внимание: часы настраиваются на время UTC
   memset(&t, 0, sizeof(t));
-    
+
   t.mon = data[8];
   t.year = data[9]+2000;
   t.mday = data[10];
@@ -916,7 +961,9 @@ void processSleepMasterCard(byte *data, byte dataSize)
     BEEP_MASTER_CARD_SLEEP_ERROR;
     return;
   }
-    
+
+  // вне зависимости от настроек, всегда засыпаем
+  // поэтому не используется setMode
   mode = MODE_SLEEP;
   
   if(settings & SETTINGS_CLEAR_ON_SLEEP)
@@ -924,6 +971,19 @@ void processSleepMasterCard(byte *data, byte dataSize)
     settings = DEFAULT_SETTINGS;
     eepromWrite(EEPROM_SETTINGS_ADDR,settings);
   }
+
+  // Настраиваем будильник в DS3231
+  uint8_t flags[5] = {0,0,0,0,0};
+  memset(&t, 0, sizeof(t));
+  alarmMonth = t.mon = data[8];
+  alarmYear = t.year = ((int16_t)data[9]) + 2000;
+  t.mday = data[10];
+  t.hour = data[12];
+  t.min = data[13];
+  t.sec = data[14];
+
+  DS3231_clear_a1f();
+  DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
 
   clearMarkLog();
 
@@ -1089,7 +1149,6 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum)
 
 bool writeMarkToParticipantCard(uint8_t newPage)
 {
-  ts t;
   byte pageData[16];
   byte dataSize = sizeof(pageData);
   
@@ -1109,7 +1168,6 @@ bool writeMarkToParticipantCard(uint8_t newPage)
  */
 void clearParticipantCard()
 {
-  ts t;
   byte pageData[16];
   byte dataSize = sizeof(pageData);
   bool result = true;
@@ -1181,7 +1239,6 @@ void checkParticipantCard()
 
 bool doesCardExpire()
 {
-  ts t;
   byte pageData[18];
   byte dataSize = sizeof(pageData);
   uint32_t cardTime = 0;
@@ -1203,4 +1260,12 @@ bool doesCardExpire()
   }
 
   return result;
+}
+
+void rtcAlarmIrq()
+{
+  // Мы не можем обработать здесь прерывание
+  // Потому что это повесит процессор из-за операций с I2C
+  // Поэтому устанвливаем флаг и обрабатываем прерывание в основном цикле
+  rtcAlarmFlag = 1;
 }
