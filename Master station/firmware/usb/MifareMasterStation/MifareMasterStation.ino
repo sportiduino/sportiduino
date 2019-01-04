@@ -322,6 +322,9 @@ void findFunc() {
     case 0x4F:
       applyPassword();
       break;
+    case 0x50:
+      createGetInfoCard();
+      break;
     case 0x58:
       signalError(0);
       break;
@@ -630,6 +633,42 @@ void writeMasterLog(){
   mfrc522.PCD_StopCrypto1();
   SPI.end();
 }
+
+/*
+ * 
+ */
+void createGetInfoCard(){
+  SPI.begin();      // Init SPI bus
+  mfrc522.PCD_Init(); 
+  mfrc522.PCD_SetAntennaGain(gain);    // Init MFRC522
+  // Look for new cards
+  if ( ! mfrc522.PICC_IsNewCardPresent()) {
+    return;
+  }
+  // Select one of the cards
+  if ( ! mfrc522.PICC_ReadCardSerial()) {
+    return;
+  }
+
+  byte dataBlock[4] = {0, 249, 255, vers};
+  if(!ntagWrite(dataBlock, pageInit)) {
+    return;
+  }
+
+  byte dataBlock2[] = {pass[0], pass[1], pass[2], 0};
+  if(!ntagWrite(dataBlock2, pagePass)) {
+    return;
+  }
+
+  signalOK();
+
+  // Halt PICC
+  mfrc522.PICC_HaltA();
+  // Stop encryption on PCD
+  mfrc522.PCD_StopCrypto1();
+  SPI.end();
+}
+
 
 /*
  * 

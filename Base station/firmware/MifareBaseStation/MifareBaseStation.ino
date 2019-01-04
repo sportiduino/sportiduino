@@ -144,6 +144,9 @@
 // Сигнал прочитан мастер-чип дампа
 #define BEEP_MASTER_CARD_DUMP_OK            beep(500,6)
 #define BEEP_MASTER_CARD_DUMP_ERROR
+// Сигнал прочитан мастер-чип чтения информации о станции
+#define BEEP_MASTER_CARD_GET_INFO_OK        beep(250,1)
+#define BEEP_MASTER_CARD_GET_INFO_ERROR     beep(250,2)
 
 //--------------------------------------------------------------------
 // Пины
@@ -161,11 +164,12 @@
 //--------------------------------------------------------------------
 // Константы
 
-#define SET_TIME_MASTER_CARD        250
-#define SET_NUMBER_MASTER_CARD      251
-#define SLEEP_MASTER_CARD           252
-#define READ_DUMP_MASTER_CARD       253
-#define SET_PASS_MASTER_CARD        254
+#define MASTER_CARD_GET_INFO        249
+#define MASTER_CARD_SET_TIME        250
+#define MASTER_CARD_SET_NUMBER      251
+#define MASTER_CARD_SLEEP           252
+#define MASTER_CARD_READ_DUMP       253
+#define MASTER_CARD_SET_PASS        254
 
 // Адрес страницы на карторчке с информацией о ней
 #define CARD_PAGE_INFO              4
@@ -272,8 +276,10 @@ uint32_t readVcc(uint32_t refConst);
 /**
  * Измерение напряжения. Включает диод на 5 секунд. Затем происходит измерение.
  * Если напряжение меньше 3.1 В, то станция выдает три длинные сигнала. Если больше, то один.
+ * 
+ * @return true если напряжение на батарее в норме
  */
-void voltage();
+bool voltage();
 
 /**
  * Читает страницу карточки. Эта функция должна вызываться после инициализации RC522.
@@ -329,6 +335,11 @@ void processDumpMasterCard(byte *data, byte dataSize);
  * Пикает два раза и перезагружается.
  */
 void processPassMasterCard(byte *data, byte dataSize);
+
+/**
+ * Функция обработки мастер-чипа получения информации о работе станции
+ */
+void processGetInfoMasterCard(byte *data, byte dataSize);
 
 /**
  * Функция обработки карточки участника
@@ -604,7 +615,7 @@ void setMode(uint8_t md)
     mode = MODE_ACTIVE;
 }
 
-void eepromWrite (uint16_t adr, uint8_t val)
+void eepromWrite(uint16_t adr, uint8_t val)
 {
   for(uint16_t i = 0; i < 3; i++)
     EEPROM.write(adr + i, val);
@@ -708,10 +719,11 @@ uint32_t readVcc(uint32_t refConst)
   return result;
 }
 
-void voltage()
+bool voltage()
 {
   const uint32_t refConst = 1125300L; //voltage constanta
   uint32_t value = 0;
+  bool result = false;
 
   Watchdog.reset();
 
@@ -728,10 +740,18 @@ void voltage()
   
   Watchdog.reset();
 
-  if (value < 3100)
+  if(value < 3100)
+  {
     BEEP_LOW_BATTERY;
+    result = false;
+  }
   else
+  {
     BEEP_BATTERY_OK;
+    result = true;
+  }
+
+  return result;
 }
 
 bool cardPageRead(uint8_t pageAdr, byte *data, byte *size)
@@ -802,8 +822,6 @@ void rfid()
   {
     if(mfrc522.PICC_ReadCardSerial())
     {
-      // Переходим в активный режим
-      setMode(MODE_ACTIVE);
       //Читаем блок информации
       dataSize = sizeof(pageData);
       if(cardPageRead(CARD_PAGE_INFO, pageData, &dataSize))
@@ -812,6 +830,10 @@ void rfid()
         if(pageData[2] == 0xFF)
         {
           // Мастер-чип
+
+          // Переходим в активный режим, если это не карточка чтения информации
+          if(pageData[1] != MASTER_CARD_GET_INFO)
+            setMode(MODE_ACTIVE);
           
           // Копируем информацию о мастер-чипе
           memcpy(masterCardData, pageData, 4);
@@ -844,21 +866,23 @@ void rfid()
             {
               switch(masterCardData[1])
               {
-                case SET_TIME_MASTER_CARD:
+                case MASTER_CARD_SET_TIME:
                   processTimeMasterCard(masterCardData, sizeof(masterCardData));
                   break;
-                case SET_NUMBER_MASTER_CARD:
+                case MASTER_CARD_SET_NUMBER:
                   processStationMasterCard(masterCardData, sizeof(masterCardData));
                   break;
-                case SLEEP_MASTER_CARD:
+                case MASTER_CARD_SLEEP:
                   processSleepMasterCard(masterCardData, sizeof(masterCardData));
                   break;
-                case READ_DUMP_MASTER_CARD:
+                case MASTER_CARD_READ_DUMP:
                   processDumpMasterCard(masterCardData, sizeof(masterCardData));
                   break;
-                case SET_PASS_MASTER_CARD:
+                case MASTER_CARD_SET_PASS:
                   processPassMasterCard(masterCardData, sizeof(masterCardData));
                   break;
+                case MASTER_CARD_GET_INFO:
+                  processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
               }
 
               sleepBtwCard = true;
@@ -869,6 +893,8 @@ void rfid()
         } // Конец обработки мастер-чипа
         else
         {
+          // Переходим в активный режим
+          setMode(MODE_ACTIVE);
           // Обработка чипа участника
           switch(stationNum)
           {
@@ -1048,6 +1074,50 @@ void processPassMasterCard(byte *data, byte dataSize)
   eepromWrite(EEPROM_SETTINGS_ADDR, settings);
 
   BEEP_MASTER_CARD_PASS_OK;
+}
+
+void processGetInfoMasterCard(byte *data, byte dataSize)
+{
+  if(dataSize < 16)
+  {
+    BEEP_MASTER_CARD_GET_INFO_ERROR;
+    return;
+  }  
+
+  byte pageData[16];
+  memset(pageData, 0, sizeof(pageData));
+  
+  bool batteryOk = voltage();
+  DS3231_get(&t);
+
+  pageData[0] = FIRMWARE_VERSION;
+  bool result = cardPageWrite(CARD_PAGE_START, pageData, sizeof(pageData));
+
+  memset(pageData, 0, sizeof(pageData));
+
+  pageData[0] = stationNum;
+  pageData[1] = settings;
+  pageData[2] = batteryOk;
+  pageData[3] = mode;
+  result &= cardPageWrite(CARD_PAGE_START + 1, pageData, sizeof(pageData));
+
+  memset(pageData, 0, sizeof(pageData));
+
+  pageData[0] = (t.unixtime & 0xFF000000)>>24;
+  pageData[1] = (t.unixtime & 0x00FF0000)>>16;
+  pageData[2] = (t.unixtime & 0x0000FF00)>>8;
+  pageData[3] = (t.unixtime & 0x000000FF);
+
+  result &= cardPageWrite(CARD_PAGE_START + 2, pageData, sizeof(pageData));
+
+  // Чтобы отличить звук заряженной батареи от звука об ошибке
+  Watchdog.reset();
+  delay(1000);
+
+  if(result)
+    BEEP_MASTER_CARD_GET_INFO_OK;
+  else
+    BEEP_MASTER_CARD_GET_INFO_ERROR;
 }
 
 void processParticipantCard(uint16_t cardNum)
