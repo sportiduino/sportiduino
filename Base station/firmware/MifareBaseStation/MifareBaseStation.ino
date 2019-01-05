@@ -61,6 +61,7 @@
 // Bit2 - Проверять отметки стартовой и финишной станции на чипах участников (0 - нет, 1 - да)
 // Bit3 - Проверять время на чипах участников (0 - нет, 1 - да)
 // Bit4 - Сбрасывать настройки при переходе в сон (0 - нет, 1 -да)
+// Bit5 - Режим быстрой отметки
 // Bit7 - Настройки валидны (0 - да, 1 - нет)
 
 #define SETTINGS_INVALID                0x80
@@ -71,6 +72,7 @@
 #define SETTINGS_CHECK_START_FINISH     0x4
 #define SETTINGS_CHECK_CARD_TIME        0x8
 #define SETTINGS_CLEAR_ON_SLEEP         0x10
+#define SETTINGS_FAST_MARK              0x20
 
 // Настройки по умолчанию (побитовое или из макросов SETTINGS, например, SETTINGS_WAIT_PERIOD1 | SETTINGS_CHECK_START_FINISH)
 #define DEFAULT_SETTINGS  SETTINGS_WAIT_PERIOD1
@@ -178,7 +180,7 @@
 #define CARD_PAGE_INFO              4
 // Адрес страницы на карточке со временем инициализации чипа
 #define CARD_PAGE_INIT_TIME         5
-// Адрес страницы на карточке с информацией о последней отметке (не используется!)
+// Адрес страницы на карточке с информацией о последней отметке
 #define CARD_PAGE_LAST_RECORD_INFO  6
 // Адрес начала отметок на чипе
 #define CARD_PAGE_START             8
@@ -1148,12 +1150,28 @@ void processParticipantCard(uint16_t cardNum)
 {
   uint8_t lastNum = 0;
   uint8_t newPage = 0;
+  byte pageData[18];
+  byte dataSize = sizeof(pageData);
   bool checkOk = false;
 
   if(cardNum)
   {
     //Ищем последнюю пустую страницу в чипе для записи
-    findNewPage(&newPage, &lastNum);
+    if(settings & SETTINGS_FAST_MARK)
+    {
+      if(cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData, &dataSize))
+      {
+        lastNum = pageData[0];
+        newPage = pageData[1] + 1;
+
+        if(newPage < CARD_PAGE_START || newPage > CARD_PAGE_MAX)
+          newPage = CARD_PAGE_START;
+      }
+    }
+    else
+    {
+      findNewPage(&newPage, &lastNum);
+    }
   
     if(newPage >= CARD_PAGE_START && newPage <= CARD_PAGE_MAX)
     {
@@ -1245,6 +1263,9 @@ bool writeMarkToParticipantCard(uint8_t newPage)
 {
   byte pageData[16];
   byte dataSize = sizeof(pageData);
+  bool result = false;
+
+  memset(pageData, 0, sizeof(pageData));
   
   // Читаем текущее время
   DS3231_get(&t);
@@ -1254,7 +1275,16 @@ bool writeMarkToParticipantCard(uint8_t newPage)
   pageData[2] = (t.unixtime & 0x0000FF00)>>8;
   pageData[3] = (t.unixtime & 0x000000FF);
       
-  return cardPageWrite(newPage, pageData, dataSize);
+  result = cardPageWrite(newPage, pageData, dataSize);
+
+  if((settings & SETTINGS_FAST_MARK) && result)
+  {
+    pageData[0] = stationNum;
+    pageData[1] = newPage;
+    result &= cardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData, dataSize);
+  }
+
+  return result;
 }
 
 /**
