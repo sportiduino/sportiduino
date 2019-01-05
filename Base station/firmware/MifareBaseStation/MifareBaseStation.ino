@@ -31,6 +31,9 @@
 
 // Внимание: DS3231 настраиваются по времени UTC!
 
+// Уберите комментарий ниже для отладки
+//#define DEBUG
+
 // Коэффициент усиления антенны модуля RC522. Max = (7<<4) (48 dB), Mid = (3<<4) (23 dB), Min = (0<<4) (18 dB)
 #define RC522_ANTENNA_GAIN (7<<4)
 
@@ -432,8 +435,8 @@ void setup()
   // Сбрасываем все прерывания и выключаем выход 32 кГц
   DS3231_set_addr(DS3231_STATUS_ADDR, 0);
   DS3231_init(DS3231_INTCN | DS3231_A1IE);
-  alarmYear = 0;
-  alarmMonth = 0;
+  alarmYear = 2017;
+  alarmMonth = 1;
   memset(&t, 0, sizeof(t));
   // Читаем текущее время
   DS3231_get(&t);
@@ -520,7 +523,10 @@ void loop()
   {
     case MODE_ACTIVE:
       sleep(MODE_ACTIVE_CARD_CHECK_PERIOD);
-      digitalWrite(LED,HIGH);
+
+      #ifdef DEBUG
+        digitalWrite(LED,HIGH);
+      #endif
 
       if(settings & SETTINGS_ALWAYS_ACTIVE)
       {
@@ -533,7 +539,10 @@ void loop()
       break;
     case MODE_WAIT:
       sleep(MODE_WAIT_CARD_CHECK_PERIOD);
-      digitalWrite(LED,HIGH);
+
+      #ifdef DEBUG
+        digitalWrite(LED,HIGH);
+      #endif
 
       if(settings & SETTINGS_ALWAYS_WAIT)
       {
@@ -550,7 +559,11 @@ void loop()
       break;
     case MODE_SLEEP:
       sleep(MODE_SLEEP_CARD_CHECK_PERIOD);
-      digitalWrite(LED,HIGH);
+
+      #ifdef DEBUG
+        digitalWrite(LED,HIGH);
+      #endif
+      
       break;
   }
 }
@@ -1086,30 +1099,41 @@ void processGetInfoMasterCard(byte *data, byte dataSize)
 
   byte pageData[16];
   memset(pageData, 0, sizeof(pageData));
-  
+  // Проверяем батарейки
   bool batteryOk = voltage();
+  // Получаем текущую дату и время
   DS3231_get(&t);
-
+  // Записываем версию прошивки
   pageData[0] = FIRMWARE_VERSION;
   bool result = cardPageWrite(CARD_PAGE_START, pageData, sizeof(pageData));
-
+  // Записываем информацию о станции
   memset(pageData, 0, sizeof(pageData));
-
   pageData[0] = stationNum;
   pageData[1] = settings;
   pageData[2] = batteryOk;
   pageData[3] = mode;
   result &= cardPageWrite(CARD_PAGE_START + 1, pageData, sizeof(pageData));
-
+  // Записываем текущее время станции
   memset(pageData, 0, sizeof(pageData));
-
   pageData[0] = (t.unixtime & 0xFF000000)>>24;
   pageData[1] = (t.unixtime & 0x00FF0000)>>16;
   pageData[2] = (t.unixtime & 0x0000FF00)>>8;
   pageData[3] = (t.unixtime & 0x000000FF);
-
   result &= cardPageWrite(CARD_PAGE_START + 2, pageData, sizeof(pageData));
-
+  // Записываем время пробуждения станции
+  memset(&t, 0, sizeof(t));
+  t.sec = bcdtodec(DS3231_get_addr(0x07));
+  t.min = bcdtodec(DS3231_get_addr(0x08));
+  t.hour = bcdtodec(DS3231_get_addr(0x09));
+  t.mday = bcdtodec(DS3231_get_addr(0x0A));
+  t.mon = alarmMonth;
+  t.year = alarmYear;
+  t.unixtime = get_unixtime(t);
+  pageData[0] = (t.unixtime & 0xFF000000)>>24;
+  pageData[1] = (t.unixtime & 0x00FF0000)>>16;
+  pageData[2] = (t.unixtime & 0x0000FF00)>>8;
+  pageData[3] = (t.unixtime & 0x000000FF);
+  result &= cardPageWrite(CARD_PAGE_START + 3, pageData, sizeof(pageData));
   // Чтобы отличить звук заряженной батареи от звука об ошибке
   Watchdog.reset();
   delay(1000);
