@@ -32,7 +32,7 @@
 // Внимание: DS3231 настраиваются по времени UTC!
 
 // Уберите комментарий ниже для отладки
-//#define DEBUG
+#define DEBUG
 
 // Коэффициент усиления антенны модуля RC522. Max = (7<<4) (48 dB), Mid = (3<<4) (23 dB), Min = (0<<4) (18 dB)
 #define RC522_ANTENNA_GAIN (7<<4)
@@ -152,6 +152,9 @@
 // Сигнал прочитан мастер-чип чтения информации о станции
 #define BEEP_MASTER_CARD_GET_INFO_OK        beep(250,1)
 #define BEEP_MASTER_CARD_GET_INFO_ERROR     beep(250,2)
+// Сигнал успешной обработки команды, полученной по UART
+#define BEEP_SERIAL_OK                      beep(250,1)
+#define BEEP_SERIAL_ERROR                   beep(250,2)
 
 //--------------------------------------------------------------------
 // Пины
@@ -206,6 +209,13 @@ uint8_t stationNum;
 uint8_t settings;
 // Режим работы станции
 uint8_t mode;
+
+#define MODE_ACTIVE   0
+#define MODE_WAIT     1
+#define MODE_SLEEP    2
+
+#define DEFAULT_MODE MODE_WAIT
+
 // Дата/Время
 ts t;
 // Год для выхода из режима сна (эта переменная нужна, потому что DS321 не поддерживает год и месяц в Alarms)
@@ -214,12 +224,23 @@ int16_t alarmYear;
 uint8_t alarmMonth;
 // Этот флаг устанавливается, когда приходит прерывание от DS3231
 uint8_t rtcAlarmFlag;
+// Буфер данных полученных по UART
+#define SERIAL_DATA_LENGTH  32
+byte serialData[SERIAL_DATA_LENGTH];
+// Индекс байта последнего байта полученного по UART
+uint8_t serialRxPos;
 
-#define MODE_ACTIVE   0
-#define MODE_WAIT     1
-#define MODE_SLEEP    2
-
-#define DEFAULT_MODE MODE_WAIT
+// Формат сообщения по UART: 0x01, 0x02, <func>, <func data>, CRC8 (XOR сообщения без признаков начала и конца), 0x03, 0x04
+// Признак начала сообщения по UART
+#define SERIAL_MSG_START1           0x01
+#define SERIAL_MSG_START2           0x02
+// Признак конца сообщения по UART
+#define SERIAL_MSG_END1             0x03
+#define SERIAL_MSG_END2             0x04
+// Функция чтения состояния станции по UART
+#define SERIAL_FUNC_READ_INFO       0xF0
+// Функция записи настроек по UART
+#define SERIAL_FUNC_WRITE_SETTINGS  0xF1
 
 //--------------------------------------------------------------------
 // Прототипы функций
@@ -390,6 +411,16 @@ bool doesCardExpire();
  */
 void rtcAlarmIrq();
 
+/**
+ * Обработчик функции чтения состояния станции по UART
+ */
+void serialFuncReadInfo(byte *data, byte dataSize);
+
+ /**
+  * Обработчик настройки станции по UART
+  */
+void serialFuncWriteSettings(byte *data, byte dataSize);
+
 //--------------------------------------------------------------------
 // Реализация
 
@@ -485,7 +516,9 @@ void setup()
   // Инициализруем ключ для карточек MIFARE
   for (byte i = 0; i < 6; i++)
     key.keyByte[i] = 0xFF;
-  
+  // Включаем UART для быстрого чтения/записи настроек
+  Serial.begin(9600);
+  serialRxPos = 0;
   // Проверяем батарейки
   voltage();
   // Для разделения сигналов от батарейки и перезагрузки
@@ -568,6 +601,138 @@ void loop()
       
       break;
   }
+
+  if(Serial.available() > 0)
+    serialEvent();
+}
+
+void serialEvent()
+{
+  #ifdef DEBUG
+  digitalWrite(LED,HIGH);
+  delay(1000);
+  #endif
+  while(Serial.available())
+  {
+    setMode(MODE_ACTIVE);
+
+    serialData[serialRxPos] = Serial.read();
+    serialRxPos++;
+
+    if( serialRxPos > 1 &&
+        serialData[serialRxPos - 1] == SERIAL_MSG_START2 &&
+        serialData[serialRxPos - 2] == SERIAL_MSG_START1)
+    {
+      serialData[0] = SERIAL_MSG_START1;
+      serialData[1] = SERIAL_MSG_START2;
+      serialRxPos = 2;
+    }
+
+    if( serialRxPos > 1 && 
+        serialData[serialRxPos - 1] == SERIAL_MSG_END2 &&
+        serialData[serialRxPos - 2] == SERIAL_MSG_END1)
+    {
+      byte func = serialData[0];
+      uint8_t crc8 = 0;
+      // Проверяем контрольную сумму
+      for(uint8_t i = 2; i < serialRxPos - 2; i++)
+        crc8 ^= serialData[i];
+
+      if(crc8 == serialData[serialRxPos - 3])
+      {
+        switch(func)
+        {
+          case SERIAL_FUNC_READ_INFO:
+            serialFuncReadInfo(serialData, serialRxPos);
+            break;
+          case SERIAL_FUNC_WRITE_SETTINGS:
+            serialFuncWriteSettings(serialData, serialRxPos);
+            break;
+          default:
+            BEEP_SERIAL_ERROR;
+            break;
+        }
+      }
+      else
+        BEEP_SERIAL_ERROR;
+
+      serialRxPos = 0;      
+    }
+
+    if(serialRxPos >= SERIAL_DATA_LENGTH)
+    {
+      serialRxPos = 0;
+      BEEP_SERIAL_ERROR;
+    }
+  }
+}
+
+void serialFuncReadInfo(byte *data, byte dataSize)
+{
+  byte crc8 = 0;
+  byte pos = 0;
+  byte sendData[SERIAL_DATA_LENGTH];
+  // Проверяем пароль
+  if( dataSize < 5 ||
+      data[3] != pass[0] ||
+      data[4] != pass[1] ||
+      data[5] != pass[2])
+  {
+    BEEP_PASS_ERROR;
+    return;
+  }
+  // Проверяем батарейки
+  bool batteryOk = voltage();
+  // Получаем текущую дату и время
+  DS3231_get(&t);
+  // Записываем признак начала сообщения
+  sendData[pos++] = SERIAL_MSG_START1;
+  sendData[pos++] = SERIAL_MSG_START2;
+  // Записываем версию прошивки
+  sendData[pos++] = FIRMWARE_VERSION;
+  // Записываем информацию о станции
+  sendData[pos++] = stationNum;
+  sendData[pos++] = settings;
+  sendData[pos++] = batteryOk;
+  sendData[pos++] = mode;
+  // Записываем текущее время станции
+  sendData[pos++] = (t.unixtime & 0xFF000000)>>24;
+  sendData[pos++] = (t.unixtime & 0x00FF0000)>>16;
+  sendData[pos++] = (t.unixtime & 0x0000FF00)>>8;
+  sendData[pos++] = (t.unixtime & 0x000000FF);
+  // Записываем время пробуждения станции
+  t.sec = bcdtodec(DS3231_get_addr(0x07));
+  t.min = bcdtodec(DS3231_get_addr(0x08));
+  t.hour = bcdtodec(DS3231_get_addr(0x09));
+  t.mday = bcdtodec(DS3231_get_addr(0x0A));
+  t.mon = alarmMonth;
+  t.year = alarmYear;
+  t.unixtime = get_unixtime(t);
+  sendData[pos++] = (t.unixtime & 0xFF000000)>>24;
+  sendData[pos++] = (t.unixtime & 0x00FF0000)>>16;
+  sendData[pos++] = (t.unixtime & 0x0000FF00)>>8;
+  sendData[pos++] = (t.unixtime & 0x000000FF);
+
+  // Считаем контрольную сумму
+  for(uint8_t i = 2; i < pos; i++)
+    crc8 = sendData[i];
+
+  sendData[pos++] = crc8;
+  sendData[pos++] = SERIAL_MSG_END1;
+  sendData[pos++] = SERIAL_MSG_END2;
+
+  Serial.write(sendData, pos);
+  
+  // Чтобы отличить звук заряженной батареи от звука об ошибке
+  Watchdog.reset();
+  delay(1000);
+
+  BEEP_SERIAL_OK;
+}
+
+void serialFuncWriteSettings(byte *data, byte dataSize)
+{
+  
 }
 
 uint8_t getPinMode(uint8_t pin)
