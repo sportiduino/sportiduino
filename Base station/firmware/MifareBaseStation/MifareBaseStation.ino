@@ -166,6 +166,7 @@
 #define RC522_IRQ     6
 #define DS3231_IRQ    A3
 #define DS3231_32K    5
+#define UART_RX       0
 
 #define UNKNOWN_PIN 0xFF
 
@@ -412,6 +413,12 @@ bool doesCardExpire();
 void rtcAlarmIrq();
 
 /**
+ *  Эта функция вызывается в прерывание PCINT по входу UART-RX.
+ *  Для того чтобы разбудить CPU и начать принимать данные по UART
+ */
+void wakeupByUartRx();
+
+/**
  * Обработчик функции чтения состояния станции по UART
  */
 void serialFuncReadInfo(byte *data, byte dataSize);
@@ -608,14 +615,8 @@ void loop()
 
 void serialEvent()
 {
-  #ifdef DEBUG
-  digitalWrite(LED,HIGH);
-  delay(1000);
-  #endif
   while(Serial.available())
   {
-    setMode(MODE_ACTIVE);
-
     serialData[serialRxPos] = Serial.read();
     serialRxPos++;
 
@@ -632,10 +633,10 @@ void serialEvent()
         serialData[serialRxPos - 1] == SERIAL_MSG_END2 &&
         serialData[serialRxPos - 2] == SERIAL_MSG_END1)
     {
-      byte func = serialData[0];
+      byte func = serialData[2];
       uint8_t crc8 = 0;
       // Проверяем контрольную сумму
-      for(uint8_t i = 2; i < serialRxPos - 2; i++)
+      for(uint8_t i = 2; i < serialRxPos - 3; i++)
         crc8 ^= serialData[i];
 
       if(crc8 == serialData[serialRxPos - 3])
@@ -735,6 +736,12 @@ void serialFuncWriteSettings(byte *data, byte dataSize)
   
 }
 
+void wakeupByUartRx()
+{
+  // Процессор проснулся, UART заработал, прерывания больше не нужны
+  detachPCINT(digitalPinToPCINT(UART_RX));
+}
+
 uint8_t getPinMode(uint8_t pin)
 {
   uint8_t bit = digitalPinToBitMask(pin);
@@ -763,8 +770,8 @@ uint8_t getPinMode(uint8_t pin)
 
 void sleep(uint16_t ms)
 {
-  // Мы не можем уснуть, если есть необработанное прерывание от DS3231
-  if(rtcAlarmFlag)
+  // Мы не можем уснуть, если есть необработанное прерывание от DS3231 или есть данные от UART
+  if(rtcAlarmFlag || Serial.available() > 0)
     return;
     
   uint16_t period;
@@ -774,6 +781,8 @@ void sleep(uint16_t ms)
   digitalWrite(LED,LOW);
   // Выключаем буззер
   digitalWrite(BUZ,LOW);
+  // Включаем прерывания PCINT для того, чтобы разбудить CPU, когда придут данные по UART
+  attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
   // Сбрасываем вотчдог и засыпаем
   Watchdog.reset();
   period = Watchdog.sleep(ms);
