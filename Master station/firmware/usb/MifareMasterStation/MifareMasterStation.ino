@@ -2,10 +2,15 @@
 #include <MFRC522.h>
 #include <EEPROM.h>
 
-const byte vers = 104; //version of software
+const byte vers = 105; //version of software
 
 //antena gain. Max = 0x07 << 4, min = 0. Set it manualy
-uint8_t gain = 0x07 << 4;
+
+#define MAX_ANTENNA_GAIN      7<<4
+#define MIN_ANTENNA_GAIN      2<<4
+#define DEFAULT_ANTENNA_GAIN  MAX_ANTENNA_GAIN
+
+uint8_t gain = DEFAULT_ANTENNA_GAIN;
 
 const byte LED = 4;
 const byte BUZ = 3;
@@ -65,6 +70,10 @@ void setup() {
   pass[1] = eepromread(eepromPass+3);
   pass[2] = eepromread(eepromPass+6);
   stantionConfig = eepromread(eepromPass+9);
+  gain = eepromread(eepromPass+12);
+
+  if(gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN)
+    gain = DEFAULT_ANTENNA_GAIN;
 }
 
 void loop() {
@@ -440,8 +449,12 @@ void writeMasterPass() {
     return;
   }
 
+  gain = dataBuffer[9];
 
-  byte dataBlock2[] = {dataBuffer[5],dataBuffer[6],dataBuffer[7],0};
+  if(gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN)
+    gain = DEFAULT_ANTENNA_GAIN;
+
+  byte dataBlock2[] = {dataBuffer[5],dataBuffer[6],dataBuffer[7],gain};
   if(!ntagWrite(dataBlock2, pagePass)) {
     return;
   }
@@ -455,6 +468,7 @@ void writeMasterPass() {
   eepromwrite(eepromPass+3, dataBuffer[3]);
   eepromwrite(eepromPass+6, dataBuffer[4]);
   eepromwrite(eepromPass+9, dataBuffer[8]);  
+  eepromwrite(eepromPass+12, gain);
   
   byte dataBlock3[] = {pass[0],pass[1],pass[2],stantionConfig};
   if(!ntagWrite(dataBlock3, pageInfo1)) {
@@ -931,6 +945,7 @@ void getVersion() {
   addData(pass[1], RESP_CODE_VERSION);
   addData(pass[2], RESP_CODE_VERSION);
   addData(stantionConfig, RESP_CODE_VERSION);
+  addData(gain, RESP_CODE_VERSION);
   sendData(RESP_CODE_VERSION, dataCount);
   packetCount = 0;
 }

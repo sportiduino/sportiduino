@@ -34,8 +34,10 @@
 // Уберите комментарий ниже для отладки
 //#define DEBUG
 
-// Коэффициент усиления антенны модуля RC522. Max = (7<<4) (48 dB), Mid = (3<<4) (23 dB), Min = (0<<4) (18 dB)
-#define RC522_ANTENNA_GAIN (7<<4)
+// Коэффициент усиления антенны модуля RC522 по умолчанию (можно изменить в настройках)
+#define MIN_ANTENNA_GAIN      2<<4
+#define MAX_ANTENNA_GAIN      7<<4
+#define DEFAULT_ANTENNA_GAIN  MAX_ANTENNA_GAIN
 
 // Максимально-допустимый адерс страницы на карточке = Кол-во блоков на карте - кол-во трейл-блоков + 2
 // Количество отметок = Максимальный адрес - 8
@@ -189,9 +191,10 @@
 // Адрес начала отметок на чипе
 #define CARD_PAGE_START             8
 
-#define EEPROM_STATION_NUM_ADDR     800
-#define EEPROM_PASS_ADDR            850
-#define EEPROM_SETTINGS_ADDR        859
+#define EEPROM_STATION_NUM_ADDR     0x3EE
+#define EEPROM_PASS_ADDR            0x3F1
+#define EEPROM_SETTINGS_ADDR        0x3FA
+#define EEPROM_ANTENNA_GAIN_ADDR    0x3FD
 
 //--------------------------------------------------------------------
 // Переменные
@@ -215,7 +218,7 @@ uint8_t mode;
 #define MODE_WAIT     1
 #define MODE_SLEEP    2
 
-#define DEFAULT_MODE MODE_WAIT
+#define DEFAULT_MODE MODE_SLEEP
 
 // Дата/Время
 ts t;
@@ -230,6 +233,8 @@ uint8_t rtcAlarmFlag;
 byte serialData[SERIAL_DATA_LENGTH];
 // Индекс байта последнего байта полученного по UART
 uint8_t serialRxPos;
+// Коэффициент усиления антенны
+uint8_t antennaGain;
 
 // Формат сообщения по UART: 0x01, 0x02, <func>, <func data>, CRC8 (XOR сообщения без признаков начала и конца), 0x03, 0x04
 // Признак начала сообщения по UART
@@ -301,6 +306,11 @@ void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, u
  * Устанавливает время пробуждения
  */
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
+
+/**
+ * Устанавливает новый коэффициент усиления для RC522 и сохраняет их в EEPROM
+ */
+void setAntennaGain(uint8_t gain);
 
 /**
  * Запись номера карточки участника в лог. Только факт отметки, время отметки не записывается
@@ -522,10 +532,15 @@ void setup()
     pass[i] = eepromRead(EEPROM_PASS_ADDR + i*3);
     
   settings = eepromRead(EEPROM_SETTINGS_ADDR);
+  antennaGain = eepromRead(EEPROM_ANTENNA_GAIN_ADDR);
 
   // После сборки станции номер не установлен, применяем по умолчанию
   if(stationNum == 0)
     setStationNum(DEFAULT_STATION_NUM);
+
+  // После сборки усиление антенны может быть не правильным
+  if(antennaGain > MAX_ANTENNA_GAIN || antennaGain < MIN_ANTENNA_GAIN)
+    setAntennaGain(DEFAULT_ANTENNA_GAIN);
 
   // Применяем настройки по умолчанию после сборки станции
   if(settings & SETTINGS_INVALID)
@@ -536,6 +551,7 @@ void setup()
     setSettings(DEFAULT_SETTINGS);
     setPwd(0,0,0);
     setStationNum(DEFAULT_STATION_NUM);
+    setAntennaGain(DEFAULT_ANTENNA_GAIN);
   }
 
   // Устанавливаем режим работы по умолчанию
@@ -734,6 +750,8 @@ void serialFuncReadInfo(byte *data, byte dataSize)
   sendData[pos++] = (t.unixtime & 0x00FF0000)>>16;
   sendData[pos++] = (t.unixtime & 0x0000FF00)>>8;
   sendData[pos++] = (t.unixtime & 0x000000FF);
+  // Настройки антенны
+  sendData[pos++] = antennaGain;
 
   // Считаем контрольную сумму
   for(uint8_t i = 2; i < pos; i++)
@@ -755,7 +773,7 @@ void serialFuncReadInfo(byte *data, byte dataSize)
 void serialFuncWriteSettings(byte *data, byte dataSize)
 {
   // Проверяем пароль
-  if( dataSize < 22 ||
+  if( dataSize < 23 ||
       data[3] != pass[0] ||
       data[4] != pass[1] ||
       data[5] != pass[2])
@@ -774,6 +792,8 @@ void serialFuncWriteSettings(byte *data, byte dataSize)
   setSettings(data[16]);
   // Устанавливаем время пробуждения
   setWakeupTime(data[17] + 2000, data[18], data[19], data[20], data[21], data[22]);
+  // Настраиваем антенну
+  setAntennaGain(data[23]);
 
   // Переводим станцию в режим сна
   setMode(MODE_SLEEP);
@@ -871,6 +891,15 @@ void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t
 
   DS3231_clear_a1f();
   DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
+}
+
+void setAntennaGain(uint8_t gain)
+{
+  if(antennaGain == gain || gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN)
+    return;
+
+  antennaGain = gain;
+  eepromWrite(EEPROM_ANTENNA_GAIN_ADDR, antennaGain);
 }
 
 void sleep(uint16_t ms)
@@ -1107,7 +1136,7 @@ void rfid()
   SPI.begin();
   mfrc522.PCD_Init();
   mfrc522.PCD_AntennaOff();
-  mfrc522.PCD_SetAntennaGain(RC522_ANTENNA_GAIN);
+  mfrc522.PCD_SetAntennaGain(antennaGain);
   mfrc522.PCD_AntennaOn();
   
   delay(5);
@@ -1337,6 +1366,7 @@ void processPassMasterCard(byte *data, byte dataSize)
     return;
   }
 
+  setAntennaGain(data[7]);
   setPwd(data[8], data[9], data[10]);
   setSettings(data[11]);
 
@@ -1357,8 +1387,9 @@ void processGetInfoMasterCard(byte *data, byte dataSize)
   bool batteryOk = voltage();
   // Получаем текущую дату и время
   DS3231_get(&t);
-  // Записываем версию прошивки
+  // Записываем версию прошивки и усиление антенны
   pageData[0] = FIRMWARE_VERSION;
+  pageData[3] = antennaGain;
   bool result = cardPageWrite(CARD_PAGE_START, pageData, sizeof(pageData));
   // Записываем информацию о станции
   memset(pageData, 0, sizeof(pageData));
