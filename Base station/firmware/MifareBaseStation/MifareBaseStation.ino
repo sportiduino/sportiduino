@@ -233,11 +233,11 @@ uint8_t serialRxPos;
 
 // Формат сообщения по UART: 0x01, 0x02, <func>, <func data>, CRC8 (XOR сообщения без признаков начала и конца), 0x03, 0x04
 // Признак начала сообщения по UART
-#define SERIAL_MSG_START1           0x01
-#define SERIAL_MSG_START2           0x02
+#define SERIAL_MSG_START1           0xFE
+#define SERIAL_MSG_START2           0xEF
 // Признак конца сообщения по UART
-#define SERIAL_MSG_END1             0x03
-#define SERIAL_MSG_END2             0x04
+#define SERIAL_MSG_END1             0xFD
+#define SERIAL_MSG_END2             0xDF
 // Функция чтения состояния станции по UART
 #define SERIAL_FUNC_READ_INFO       0xF0
 // Функция записи настроек по UART
