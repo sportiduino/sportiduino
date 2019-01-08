@@ -32,7 +32,7 @@
 // Внимание: DS3231 настраиваются по времени UTC!
 
 // Уберите комментарий ниже для отладки
-#define DEBUG
+//#define DEBUG
 
 // Коэффициент усиления антенны модуля RC522. Max = (7<<4) (48 dB), Mid = (3<<4) (23 dB), Min = (0<<4) (18 dB)
 #define RC522_ANTENNA_GAIN (7<<4)
@@ -278,6 +278,31 @@ void sleep(uint16_t ms);
 void setMode(uint8_t md);
 
 /**
+ * Устанавливает новый пароль и сохраняет его в EEPROM
+ */
+void setPwd(uint8_t pwd0, uint8_t pwd1, uint8_t pwd2);
+
+/**
+ * Устанавливает новый номер станции и сохраняет его в EEPROM
+ */
+void setStationNum(uint8_t num);
+
+/**
+ * Устанавливает новые настройки станции и сохраняет их в EEPROM
+ */
+void setSettings(uint8_t value);
+
+/**
+ * Устанавливает текущее время
+ */
+void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
+
+/**
+ * Устанавливает время пробуждения
+ */
+void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
+
+/**
  * Запись номера карточки участника в лог. Только факт отметки, время отметки не записывается
  */
 void writeCardNumToLog(uint16_t num);
@@ -499,22 +524,18 @@ void setup()
   settings = eepromRead(EEPROM_SETTINGS_ADDR);
 
   // После сборки станции номер не установлен, применяем по умолчанию
-  if(stationNum == 0 || stationNum == 255)
-    stationNum = DEFAULT_STATION_NUM;
+  if(stationNum == 0)
+    setStationNum(DEFAULT_STATION_NUM);
 
   // Применяем настройки по умолчанию после сборки станции
   if(settings & SETTINGS_INVALID)
   {
-    settings = DEFAULT_SETTINGS;
-    pass[0] = pass[1] = pass[2] = 0;
-
     // Очищаем лог отметок
     clearMarkLog();
-
     // Сохраняем настройки и пароль по умолчаню в EEPROM
-    eepromWrite(EEPROM_SETTINGS_ADDR, settings);
-    for (uint8_t i = 0; i < 3; i++)
-      eepromWrite(EEPROM_PASS_ADDR + i*3, pass[i]);
+    setSettings(DEFAULT_SETTINGS);
+    setPwd(0,0,0);
+    setStationNum(DEFAULT_STATION_NUM);
   }
 
   // Устанавливаем режим работы по умолчанию
@@ -733,7 +754,31 @@ void serialFuncReadInfo(byte *data, byte dataSize)
 
 void serialFuncWriteSettings(byte *data, byte dataSize)
 {
-  
+  // Проверяем пароль
+  if( dataSize < 22 ||
+      data[3] != pass[0] ||
+      data[4] != pass[1] ||
+      data[5] != pass[2])
+  {
+    BEEP_PASS_ERROR;
+    return;
+  }
+
+  // Устанавливаем текущее время
+  setTime(data[6] + 2000, data[7], data[8], data[9], data[10], data[11]);
+  // Устанавливаем новый пароль
+  setPwd(data[12], data[13], data[14]);
+  // Устанавливаем номер станции
+  setStationNum(data[15]);
+  // Устанавливаем настройки
+  setSettings(data[16]);
+  // Устанавливаем время пробуждения
+  setWakeupTime(data[17] + 2000, data[18], data[19], data[20], data[21], data[22]);
+
+  // Переводим станцию в режим сна
+  setMode(MODE_SLEEP);
+
+  BEEP_SERIAL_OK;
 }
 
 void wakeupByUartRx()
@@ -766,6 +811,66 @@ uint8_t getPinMode(uint8_t pin)
     return INPUT_PULLUP;
   else
     return INPUT;
+}
+
+void setPwd(uint8_t pwd1, uint8_t pwd2, uint8_t pwd3)
+{
+  if(pass[0] == pwd1 && pass[1] == pwd2 && pass[2] == pwd3)
+    return;
+    
+  pass[0] = pwd1;
+  pass[1] = pwd2;
+  pass[2] = pwd3;
+  
+  for (uint8_t i = 0; i < 3; i++)
+    eepromWrite(EEPROM_PASS_ADDR + i*3, pass[i]);
+}
+
+void setStationNum(uint8_t num)
+{
+  if(num == stationNum || num == 0)
+    return;
+
+  stationNum = num;
+  eepromWrite(EEPROM_STATION_NUM_ADDR, stationNum);
+}
+
+void setSettings(uint8_t value)
+{
+  if(settings == value)
+    return;
+
+  settings = value;
+  eepromWrite(EEPROM_SETTINGS_ADDR, settings);
+}
+
+void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec)
+{
+  memset(&t, 0, sizeof(t));
+
+  t.mon = mon;
+  t.year = year;
+  t.mday = day;
+  t.hour = hour;
+  t.min = mi;
+  t.sec = sec;
+
+  DS3231_set(t);  
+}
+
+void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec)
+{
+  uint8_t flags[5] = {0,0,0,0,0};
+  memset(&t, 0, sizeof(t));
+  alarmMonth = t.mon = mon;
+  alarmYear = t.year = year;
+  t.mday = day;
+  t.hour = hour;
+  t.min = mi;
+  t.sec = sec;
+
+  DS3231_clear_a1f();
+  DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
 }
 
 void sleep(uint16_t ms)
@@ -1123,24 +1228,16 @@ void processTimeMasterCard(byte *data, byte dataSize)
     return;
   }
 
-  // Внимание: часы настраиваются на время UTC
-  memset(&t, 0, sizeof(t));
+  // Внимание: часы настраиваются на время UTC  
+  setTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
 
-  t.mon = data[8];
-  t.year = data[9]+2000;
-  t.mday = data[10];
-  t.hour = data[12];
-  t.min = data[13];
-  t.sec = data[14];
-
-  DS3231_set(t);
   memset(&t, 0, sizeof(t));
   DS3231_get(&t);
 
   if(t.year < 2017)
     BEEP_TIME_ERROR;
-  
-  BEEP_MASTER_CARD_TIME_OK;
+  else
+    BEEP_MASTER_CARD_TIME_OK;
 }
 
 void processStationMasterCard(byte *data, byte dataSize)
@@ -1157,9 +1254,7 @@ void processStationMasterCard(byte *data, byte dataSize)
   {
     if(stationNum != newNum)
     {
-      stationNum = newNum;
-      eepromWrite(EEPROM_STATION_NUM_ADDR, stationNum);
-
+      setStationNum(newNum);
       BEEP_MASTER_CARD_STATION_WRITTEN;
     }
     else
@@ -1183,23 +1278,12 @@ void processSleepMasterCard(byte *data, byte dataSize)
   
   if(settings & SETTINGS_CLEAR_ON_SLEEP)
   {
-    settings = DEFAULT_SETTINGS;
-    eepromWrite(EEPROM_SETTINGS_ADDR,settings);
+    setSettings(DEFAULT_SETTINGS);
   }
 
   // Настраиваем будильник в DS3231
-  uint8_t flags[5] = {0,0,0,0,0};
-  memset(&t, 0, sizeof(t));
-  alarmMonth = t.mon = data[8];
-  alarmYear = t.year = ((int16_t)data[9]) + 2000;
-  t.mday = data[10];
-  t.hour = data[12];
-  t.min = data[13];
-  t.sec = data[14];
-
-  DS3231_clear_a1f();
-  DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
-
+  setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
+  // Очищаем лог станции
   clearMarkLog();
 
   BEEP_MASTER_CARD_SLEEP_OK;
@@ -1252,15 +1336,9 @@ void processPassMasterCard(byte *data, byte dataSize)
     BEEP_MASTER_CARD_PASS_ERROR;
     return;
   }
-    
-  for(uint8_t i = 0; i < 3; i++)
-  {
-    pass[i] = data[i + 8];
-    eepromWrite(EEPROM_PASS_ADDR + i*3, pass[i]);
-  }
-  
-  settings = data[11];
-  eepromWrite(EEPROM_SETTINGS_ADDR, settings);
+
+  setPwd(data[8], data[9], data[10]);
+  setSettings(data[11]);
 
   BEEP_MASTER_CARD_PASS_OK;
 }
