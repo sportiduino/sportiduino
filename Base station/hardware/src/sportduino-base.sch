@@ -183,8 +183,8 @@ L Device:LED VD1
 U 1 1 5BE5D06F
 P 6900 5200
 F 0 "VD1" V 7000 5150 50  0000 R CNN
-F 1 "5mm" H 6847 5083 50  0001 R CNN
-F 2 "LED_THT:LED_D5.0mm" H 6900 5200 50  0001 C CNN
+F 1 "3mm" H 6847 5083 50  0001 R CNN
+F 2 "LED_THT:LED_D3.0mm" H 6900 5200 50  0001 C CNN
 F 3 "~" H 6900 5200 50  0001 C CNN
 	1    6900 5200
 	0    -1   -1   0   
@@ -408,8 +408,8 @@ $Comp
 L Connector_Generic:Conn_01x08 X2
 U 1 1 5BE910CC
 P 10950 2250
-F 0 "X2" H 10900 2650 50  0000 L CNN
-F 1 "RC522" H 10850 1750 50  0000 L CNN
+F 0 "X2" H 10950 2650 50  0000 C CNN
+F 1 "RC522" H 10950 1750 50  0000 C CNN
 F 2 "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical" H 10950 2250 50  0001 C CNN
 F 3 "~" H 10950 2250 50  0001 C CNN
 	1    10950 2250
@@ -499,34 +499,23 @@ NoConn ~ 6400 3000
 NoConn ~ 6400 3100
 NoConn ~ 6400 4500
 $Comp
-L power:+3V3 #PWR018
-U 1 1 5BF4CE53
-P 10500 4700
-F 0 "#PWR018" H 10500 4550 50  0001 C CNN
-F 1 "+3V3" H 10515 4873 50  0000 C CNN
-F 2 "" H 10500 4700 50  0001 C CNN
-F 3 "" H 10500 4700 50  0001 C CNN
-	1    10500 4700
-	1    0    0    -1  
-$EndComp
-$Comp
 L power:GNDD #PWR019
 U 1 1 5BF501CE
-P 10500 5450
-F 0 "#PWR019" H 10500 5200 50  0001 C CNN
-F 1 "GNDD" H 10504 5295 50  0001 C CNN
-F 2 "" H 10500 5450 50  0001 C CNN
-F 3 "" H 10500 5450 50  0001 C CNN
-	1    10500 5450
+P 10200 5450
+F 0 "#PWR019" H 10200 5200 50  0001 C CNN
+F 1 "GNDD" H 10204 5295 50  0001 C CNN
+F 2 "" H 10200 5450 50  0001 C CNN
+F 3 "" H 10200 5450 50  0001 C CNN
+	1    10200 5450
 	1    0    0    -1  
 $EndComp
 Text GLabel 6550 3800 2    50   Input ~ 0
 RX
 Text GLabel 6550 3900 2    50   Input ~ 0
 TX
-Text GLabel 10200 4950 0    50   Input ~ 0
-RX
 Text GLabel 10200 5050 0    50   Input ~ 0
+RX
+Text GLabel 10200 4950 0    50   Input ~ 0
 TX
 Wire Wire Line
 	6400 2600 7900 2600
@@ -545,25 +534,14 @@ Wire Wire Line
 	9900 2150 10750 2150
 Wire Wire Line
 	9900 1950 10750 1950
-$Comp
-L Connector_Generic:Conn_01x05 X4
-U 1 1 5BED8019
-P 10950 5050
-F 0 "X4" H 10900 5350 50  0000 L CNN
-F 1 "Bootloader" H 10750 4750 50  0000 L CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x05_P2.54mm_Vertical" H 10950 5050 50  0001 C CNN
-F 3 "~" H 10950 5050 50  0001 C CNN
-	1    10950 5050
-	1    0    0    -1  
-$EndComp
-Text GLabel 10200 5250 0    50   Input ~ 0
+Text GLabel 10200 4850 0    50   Input ~ 0
 RST
 $Comp
 L Connector_Generic:Conn_01x06 X3
 U 1 1 5BEF92CD
 P 10950 3900
-F 0 "X3" H 10900 4200 50  0000 L CNN
-F 1 "Pickit2" H 10850 3500 50  0000 L CNN
+F 0 "X3" H 10950 4200 50  0000 C CNN
+F 1 "Pickit2" H 10950 3500 50  0000 C CNN
 F 2 "Connector_PinHeader_2.54mm:PinHeader_1x06_P2.54mm_Vertical" H 10950 3900 50  0001 C CNN
 F 3 "~" H 10950 3900 50  0001 C CNN
 	1    10950 3900
@@ -709,30 +687,16 @@ Text Label 9950 4100 0    50   ~ 0
 PB5
 Text Label 9950 4200 0    50   ~ 0
 PB3
-Wire Wire Line
-	10750 4850 10500 4850
-Wire Wire Line
-	10500 4850 10500 4700
-Wire Wire Line
-	10750 4950 10200 4950
-Wire Wire Line
-	10750 5050 10200 5050
-Wire Wire Line
-	10750 5250 10200 5250
-Wire Wire Line
-	10750 5150 10500 5150
-Wire Wire Line
-	10500 5150 10500 5450
-Text Notes 10700 4850 2    50   ~ 0
-3V3
+Text Notes 10700 5150 2    50   ~ 0
+VCC
 Text Notes 10700 4950 2    50   ~ 0
 RX
 Text Notes 10700 5050 2    50   ~ 0
 TX
-Text Notes 10700 5150 2    50   ~ 0
+Text Notes 10700 5350 2    50   ~ 0
 GND
-Text Notes 10700 5250 2    50   ~ 0
-RST
+Text Notes 10700 4850 2    50   ~ 0
+DTR
 Text GLabel 6550 3300 2    50   Input ~ 0
 PC3
 Connection ~ 3800 1700
@@ -867,10 +831,35 @@ Wire Wire Line
 Connection ~ 7500 3500
 Wire Wire Line
 	7200 3800 8200 3800
+Wire Wire Line
+	6400 2300 7900 2300
+$Comp
+L Connector_Generic:Conn_01x06 X4
+U 1 1 5C36927B
+P 10950 5050
+F 0 "X4" H 10950 5350 50  0000 C CNN
+F 1 "Serial" H 10950 4650 50  0000 C CNN
+F 2 "Connector_PinSocket_2.54mm:PinSocket_1x06_P2.54mm_Vertical" H 10950 5050 50  0001 C CNN
+F 3 "~" H 10950 5050 50  0001 C CNN
+	1    10950 5050
+	1    0    0    -1  
+$EndComp
+Text Notes 10700 5250 2    50   ~ 0
+CTS
+NoConn ~ 10750 5150
+NoConn ~ 10750 5250
+Wire Wire Line
+	10750 5350 10200 5350
+Wire Wire Line
+	10200 5350 10200 5450
+Wire Wire Line
+	10200 5050 10750 5050
+Wire Wire Line
+	10200 4950 10750 4950
+Wire Wire Line
+	10200 4850 10750 4850
 Wire Bus Line
 	8000 1700 8000 2600
 Wire Bus Line
 	9800 1700 9800 4200
-Wire Wire Line
-	6400 2300 7900 2300
 $EndSCHEMATC
