@@ -341,7 +341,7 @@ uint32_t readVcc(uint32_t refConst);
  * 
  * @return true если напряжение на батарее в норме
  */
-bool voltage();
+bool voltage(bool beepEnabled);
 
 /**
  * Читает страницу карточки. Эта функция должна вызываться после инициализации RC522.
@@ -564,7 +564,7 @@ void setup()
   Serial.begin(9600);
   serialRxPos = 0;
   // Проверяем батарейки
-  voltage();
+  voltage(true);
   // Для разделения сигналов от батарейки и перезагрузки
   delay(1000);
   // Сигнализируем о переходе в основной цикл
@@ -720,7 +720,7 @@ void serialFuncReadInfo(byte *data, byte dataSize)
     return;
   }
   // Проверяем батарейки
-  bool batteryOk = voltage();
+  bool batteryOk = voltage(false);
   // Получаем текущую дату и время
   DS3231_get(&t);
   // Записываем признак начала сообщения
@@ -1042,7 +1042,7 @@ uint32_t readVcc(uint32_t refConst)
   return result;
 }
 
-bool voltage()
+bool voltage(bool beepEnabled)
 {
   const uint32_t refConst = 1125300L; //voltage constanta
   uint32_t value = 0;
@@ -1064,14 +1064,16 @@ bool voltage()
   Watchdog.reset();
 
   if(value < 3100)
-  {
-    BEEP_LOW_BATTERY;
     result = false;
-  }
   else
-  {
-    BEEP_BATTERY_OK;
     result = true;
+    
+  if(beepEnabled)
+  {
+    if(result)
+      BEEP_BATTERY_OK;
+    else
+      BEEP_LOW_BATTERY;
   }
 
   return result;
@@ -1384,7 +1386,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize)
   byte pageData[16];
   memset(pageData, 0, sizeof(pageData));
   // Проверяем батарейки
-  bool batteryOk = voltage();
+  bool batteryOk = voltage(false);
   // Получаем текущую дату и время
   DS3231_get(&t);
   // Записываем версию прошивки и усиление антенны
