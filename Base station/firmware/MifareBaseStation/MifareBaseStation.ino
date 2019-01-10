@@ -218,7 +218,10 @@ uint8_t mode;
 #define MODE_WAIT     1
 #define MODE_SLEEP    2
 
-#define DEFAULT_MODE MODE_SLEEP
+// Во время соревнований КП может перезагрузиться,
+// Поэтому лучше после перезагрузки будет режим ожидания,
+// Чем режим сна. Иначе спортсмен не сможет отметится
+#define DEFAULT_MODE MODE_WAIT
 
 // Дата/Время
 ts t;
