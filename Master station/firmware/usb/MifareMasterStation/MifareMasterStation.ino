@@ -2,15 +2,22 @@
 #include <MFRC522.h>
 #include <EEPROM.h>
 
-const byte vers = 104; //version of software
+const byte vers = 105; //version of software
 
 //antena gain. Max = 0x07 << 4, min = 0. Set it manualy
-uint8_t gain = 0x07 << 4;
+
+#define MAX_ANTENNA_GAIN      7<<4
+#define MIN_ANTENNA_GAIN      2<<4
+#define DEFAULT_ANTENNA_GAIN  MAX_ANTENNA_GAIN
+
+uint8_t gain = DEFAULT_ANTENNA_GAIN;
 
 const byte LED = 4;
 const byte BUZ = 3;
 const byte RST_PIN = 9;
 const byte SS_PIN = 10;
+
+#define RESP_CODE_VERSION  0x66
 
 //password for master key
 uint8_t pass[] = {0,0,0};
@@ -63,6 +70,10 @@ void setup() {
   pass[1] = eepromread(eepromPass+3);
   pass[2] = eepromread(eepromPass+6);
   stantionConfig = eepromread(eepromPass+9);
+  gain = eepromread(eepromPass+12);
+
+  if(gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN)
+    gain = DEFAULT_ANTENNA_GAIN;
 }
 
 void loop() {
@@ -317,6 +328,12 @@ void findFunc() {
     case 0x4E:
       writeMasterSleep();
       break;
+    case 0x4F:
+      applyPassword();
+      break;
+    case 0x50:
+      createGetInfoCard();
+      break;
     case 0x58:
       signalError(0);
       break;
@@ -432,8 +449,12 @@ void writeMasterPass() {
     return;
   }
 
+  gain = dataBuffer[9];
 
-  byte dataBlock2[] = {dataBuffer[5],dataBuffer[6],dataBuffer[7],0};
+  if(gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN)
+    gain = DEFAULT_ANTENNA_GAIN;
+
+  byte dataBlock2[] = {dataBuffer[5],dataBuffer[6],dataBuffer[7],gain};
   if(!ntagWrite(dataBlock2, pagePass)) {
     return;
   }
@@ -447,6 +468,7 @@ void writeMasterPass() {
   eepromwrite(eepromPass+3, dataBuffer[3]);
   eepromwrite(eepromPass+6, dataBuffer[4]);
   eepromwrite(eepromPass+9, dataBuffer[8]);  
+  eepromwrite(eepromPass+12, gain);
   
   byte dataBlock3[] = {pass[0],pass[1],pass[2],stantionConfig};
   if(!ntagWrite(dataBlock3, pageInfo1)) {
@@ -459,6 +481,19 @@ void writeMasterPass() {
   // Stop encryption on PCD
   mfrc522.PCD_StopCrypto1();
   SPI.end();
+}
+
+void applyPassword()
+{
+  pass[0] = dataBuffer[2];
+  pass[1] = dataBuffer[3];
+  pass[2] = dataBuffer[4];
+  
+  eepromwrite(eepromPass, dataBuffer[2]);
+  eepromwrite(eepromPass+3, dataBuffer[3]);
+  eepromwrite(eepromPass+6, dataBuffer[4]);
+  
+  signalOK();
 }
 
 /*
@@ -612,6 +647,42 @@ void writeMasterLog(){
   mfrc522.PCD_StopCrypto1();
   SPI.end();
 }
+
+/*
+ * 
+ */
+void createGetInfoCard(){
+  SPI.begin();      // Init SPI bus
+  mfrc522.PCD_Init(); 
+  mfrc522.PCD_SetAntennaGain(gain);    // Init MFRC522
+  // Look for new cards
+  if ( ! mfrc522.PICC_IsNewCardPresent()) {
+    return;
+  }
+  // Select one of the cards
+  if ( ! mfrc522.PICC_ReadCardSerial()) {
+    return;
+  }
+
+  byte dataBlock[4] = {0, 249, 255, vers};
+  if(!ntagWrite(dataBlock, pageInit)) {
+    return;
+  }
+
+  byte dataBlock2[] = {pass[0], pass[1], pass[2], 0};
+  if(!ntagWrite(dataBlock2, pagePass)) {
+    return;
+  }
+
+  signalOK();
+
+  // Halt PICC
+  mfrc522.PICC_HaltA();
+  // Stop encryption on PCD
+  mfrc522.PCD_StopCrypto1();
+  SPI.end();
+}
+
 
 /*
  * 
@@ -822,6 +893,16 @@ void writeMasterSleep() {
   if(!ntagWrite(dataBlock2, pagePass)) {
     return;
   }
+  // wakeup time
+  byte dataBlock3[] = {dataBuffer[3], dataBuffer[2], dataBuffer[4], 0};
+  if(!ntagWrite(dataBlock3, pageInfo1)){
+    return;
+  }
+
+  byte dataBlock4[] = {dataBuffer[5], dataBuffer[6], dataBuffer[7], 0};
+  if(!ntagWrite(dataBlock4, pageInfo2)) {
+    return;
+  }
 
   signalOK();
   // Halt PICC
@@ -855,12 +936,17 @@ void signalOK() {
 }
 
 void getVersion() {
-  function = 0x66;
+  
 
   clearBuffer();
 
-  addData(vers, function);
-  sendData(function, dataCount);
+  addData(vers, RESP_CODE_VERSION);
+  addData(pass[0], RESP_CODE_VERSION);
+  addData(pass[1], RESP_CODE_VERSION);
+  addData(pass[2], RESP_CODE_VERSION);
+  addData(stantionConfig, RESP_CODE_VERSION);
+  addData(gain, RESP_CODE_VERSION);
+  sendData(RESP_CODE_VERSION, dataCount);
   packetCount = 0;
 }
 
@@ -873,4 +959,3 @@ void clearBuffer() {
     serialBuffer[k] = 0;
   }
 }
-

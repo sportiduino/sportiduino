@@ -31,7 +31,6 @@
   along with this program.  If not, see <http://www.gnu.org/licenses/>.
    
 */
-#include <EEPROM.h>
 #include <Wire.h>
 #include <stdio.h>
 #include "ds3231.h"
@@ -243,8 +242,6 @@ float DS3231_get_treg()
 // A1M4 (day) 0 to enable, 1 to disable, DY/DT (dayofweek == 1/dayofmonth == 0)
 void DS3231_set_a1(const uint8_t s, uint8_t mi, uint8_t h, uint8_t d, const uint8_t * flags)
 {
-    d = EEPROM.read(0);
-    h = EEPROM.read(1);
     uint8_t t[4] = { s, mi, h, d };
     uint8_t i;
 
@@ -307,7 +304,6 @@ uint8_t DS3231_triggered_a1(void)
 // flags are: A2M2 (minutes), A2M3 (hour), A2M4 (day) 0 to enable, 1 to disable, DY/DT (dayofweek == 1/dayofmonth == 0) - 
 void DS3231_set_a2(uint8_t mi, const uint8_t h, const uint8_t d, const uint8_t * flags)
 {
-    mi = EEPROM.read(2);
     uint8_t t[3] = { mi, h, d };
     uint8_t i;
 

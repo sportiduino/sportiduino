@@ -1,14 +1,11 @@
-#include <deprecated.h>
-#include <MFRC522.h>
-#include <MFRC522Extended.h>
-#include <require_cpp11.h>
-
 #include <Wire.h>
 #include <SPI.h>
 #include <EEPROM.h>
 
+#include <MFRC522.h>
 #include <ds3231.h>
 #include <Adafruit_SleepyDog.h>
+#include <PinChangeInterrupt.h>
 
 // Версия прошивки
 #define FIRMWARE_VERSION 105
@@ -17,6 +14,7 @@
 // - AdafruitSpeepyDog by Adafruit (https://github.com/adafruit/Adafruit_SleepyDog)
 // - MFRC522 by GithubCommunity (https://github.com/miguelbalboa/rfid)
 // - DS3231-master из папки Sportiduino/Libraries/DS3231-master
+// - PinChangeInterrupt by NicoHood https://github.com/NicoHood/PinChangeInterrupt
 // Для этого откройте Скетч->Подключить Библиотеку->Управление Бибилиотеками.
 // В поиске введите соответствующие библиотеки и нажмите для каждой INSTALL
 
@@ -31,8 +29,15 @@
 // Уберите комментарий со строки ниже, если на плате установлен пьезоизлучатель без генератора (например, HC0905A)
 //#define PIEZO_FREQ 3200
 
-// Коэффициент усиления антенны модуля RC522. Max = (7<<4) (48 dB), Mid = (3<<4) (23 dB), Min = (0<<4) (18 dB)
-#define RC522_ANTENNA_GAIN (7<<4)
+// Внимание: DS3231 настраиваются по времени UTC!
+
+// Уберите комментарий ниже для отладки
+//#define DEBUG
+
+// Коэффициент усиления антенны модуля RC522 по умолчанию (можно изменить в настройках)
+#define MIN_ANTENNA_GAIN      2<<4
+#define MAX_ANTENNA_GAIN      7<<4
+#define DEFAULT_ANTENNA_GAIN  MAX_ANTENNA_GAIN
 
 // Максимально-допустимый адерс страницы на карточке = Кол-во блоков на карте - кол-во трейл-блоков + 2
 // Количество отметок = Максимальный адрес - 8
@@ -58,6 +63,7 @@
 // Bit2 - Проверять отметки стартовой и финишной станции на чипах участников (0 - нет, 1 - да)
 // Bit3 - Проверять время на чипах участников (0 - нет, 1 - да)
 // Bit4 - Сбрасывать настройки при переходе в сон (0 - нет, 1 -да)
+// Bit5 - Режим быстрой отметки
 // Bit7 - Настройки валидны (0 - да, 1 - нет)
 
 #define SETTINGS_INVALID                0x80
@@ -68,6 +74,7 @@
 #define SETTINGS_CHECK_START_FINISH     0x4
 #define SETTINGS_CHECK_CARD_TIME        0x8
 #define SETTINGS_CLEAR_ON_SLEEP         0x10
+#define SETTINGS_FAST_MARK              0x20
 
 // Настройки по умолчанию (побитовое или из макросов SETTINGS, например, SETTINGS_WAIT_PERIOD1 | SETTINGS_CHECK_START_FINISH)
 #define DEFAULT_SETTINGS  SETTINGS_WAIT_PERIOD1
@@ -144,6 +151,12 @@
 // Сигнал прочитан мастер-чип дампа
 #define BEEP_MASTER_CARD_DUMP_OK            beep(500,6)
 #define BEEP_MASTER_CARD_DUMP_ERROR
+// Сигнал прочитан мастер-чип чтения информации о станции
+#define BEEP_MASTER_CARD_GET_INFO_OK        beep(250,1)
+#define BEEP_MASTER_CARD_GET_INFO_ERROR     beep(250,2)
+// Сигнал успешной обработки команды, полученной по UART
+#define BEEP_SERIAL_OK                      beep(250,1)
+#define BEEP_SERIAL_ERROR                   beep(250,2)
 
 //--------------------------------------------------------------------
 // Пины
@@ -155,30 +168,33 @@
 #define RC522_IRQ     6
 #define DS3231_IRQ    A3
 #define DS3231_32K    5
+#define UART_RX       0
 
 #define UNKNOWN_PIN 0xFF
 
 //--------------------------------------------------------------------
 // Константы
 
-#define SET_TIME_MASTER_CARD        250
-#define SET_NUMBER_MASTER_CARD      251
-#define SLEEP_MASTER_CARD           252
-#define READ_DUMP_MASTER_CARD       253
-#define SET_PASS_MASTER_CARD        254
+#define MASTER_CARD_GET_INFO        249
+#define MASTER_CARD_SET_TIME        250
+#define MASTER_CARD_SET_NUMBER      251
+#define MASTER_CARD_SLEEP           252
+#define MASTER_CARD_READ_DUMP       253
+#define MASTER_CARD_SET_PASS        254
 
 // Адрес страницы на карторчке с информацией о ней
 #define CARD_PAGE_INFO              4
 // Адрес страницы на карточке со временем инициализации чипа
 #define CARD_PAGE_INIT_TIME         5
-// Адрес страницы на карточке с информацией о последней отметке (не используется!)
+// Адрес страницы на карточке с информацией о последней отметке
 #define CARD_PAGE_LAST_RECORD_INFO  6
 // Адрес начала отметок на чипе
 #define CARD_PAGE_START             8
 
-#define EEPROM_STATION_NUM_ADDR     800
-#define EEPROM_PASS_ADDR            850
-#define EEPROM_SETTINGS_ADDR        859
+#define EEPROM_STATION_NUM_ADDR     0x3EE
+#define EEPROM_PASS_ADDR            0x3F1
+#define EEPROM_SETTINGS_ADDR        0x3FA
+#define EEPROM_ANTENNA_GAIN_ADDR    0x3FD
 
 //--------------------------------------------------------------------
 // Переменные
@@ -195,14 +211,45 @@ MFRC522 mfrc522(RC522_SDA, RC522_RST);
 uint8_t stationNum;
 // Настройки станции
 uint8_t settings;
-// режим работы станции
+// Режим работы станции
 uint8_t mode;
 
 #define MODE_ACTIVE   0
 #define MODE_WAIT     1
 #define MODE_SLEEP    2
 
+// Во время соревнований КП может перезагрузиться,
+// Поэтому лучше после перезагрузки будет режим ожидания,
+// Чем режим сна. Иначе спортсмен не сможет отметится
 #define DEFAULT_MODE MODE_WAIT
+
+// Дата/Время
+ts t;
+// Год для выхода из режима сна (эта переменная нужна, потому что DS321 не поддерживает год и месяц в Alarms)
+int16_t alarmYear;
+// Месяц для выхода из режима сна (эта переменная нужна, потому что DS321 не поддерживает год и месяц в Alarms)
+uint8_t alarmMonth;
+// Этот флаг устанавливается, когда приходит прерывание от DS3231
+uint8_t rtcAlarmFlag;
+// Буфер данных полученных по UART
+#define SERIAL_DATA_LENGTH  32
+byte serialData[SERIAL_DATA_LENGTH];
+// Индекс байта последнего байта полученного по UART
+uint8_t serialRxPos;
+// Коэффициент усиления антенны
+uint8_t antennaGain;
+
+// Формат сообщения по UART: 0x01, 0x02, <func>, <func data>, CRC8 (XOR сообщения без признаков начала и конца), 0x03, 0x04
+// Признак начала сообщения по UART
+#define SERIAL_MSG_START1           0xFE
+#define SERIAL_MSG_START2           0xEF
+// Признак конца сообщения по UART
+#define SERIAL_MSG_END1             0xFD
+#define SERIAL_MSG_END2             0xDF
+// Функция чтения состояния станции по UART
+#define SERIAL_FUNC_READ_INFO       0xF0
+// Функция записи настроек по UART
+#define SERIAL_FUNC_WRITE_SETTINGS  0xF1
 
 //--------------------------------------------------------------------
 // Прототипы функций
@@ -234,6 +281,41 @@ uint8_t eepromRead(uint16_t adr);
 void sleep(uint16_t ms);
 
 /**
+ *  Устанавливает текущий режим работы
+ */
+void setMode(uint8_t md);
+
+/**
+ * Устанавливает новый пароль и сохраняет его в EEPROM
+ */
+void setPwd(uint8_t pwd0, uint8_t pwd1, uint8_t pwd2);
+
+/**
+ * Устанавливает новый номер станции и сохраняет его в EEPROM
+ */
+void setStationNum(uint8_t num);
+
+/**
+ * Устанавливает новые настройки станции и сохраняет их в EEPROM
+ */
+void setSettings(uint8_t value);
+
+/**
+ * Устанавливает текущее время
+ */
+void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
+
+/**
+ * Устанавливает время пробуждения
+ */
+void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
+
+/**
+ * Устанавливает новый коэффициент усиления для RC522 и сохраняет их в EEPROM
+ */
+void setAntennaGain(uint8_t gain);
+
+/**
  * Запись номера карточки участника в лог. Только факт отметки, время отметки не записывается
  */
 void writeCardNumToLog(uint16_t num);
@@ -259,8 +341,10 @@ uint32_t readVcc(uint32_t refConst);
 /**
  * Измерение напряжения. Включает диод на 5 секунд. Затем происходит измерение.
  * Если напряжение меньше 3.1 В, то станция выдает три длинные сигнала. Если больше, то один.
+ * 
+ * @return true если напряжение на батарее в норме
  */
-void voltage();
+bool voltage(bool beepEnabled);
 
 /**
  * Читает страницу карточки. Эта функция должна вызываться после инициализации RC522.
@@ -318,6 +402,11 @@ void processDumpMasterCard(byte *data, byte dataSize);
 void processPassMasterCard(byte *data, byte dataSize);
 
 /**
+ * Функция обработки мастер-чипа получения информации о работе станции
+ */
+void processGetInfoMasterCard(byte *data, byte dataSize);
+
+/**
  * Функция обработки карточки участника
  */
 void processParticipantCard(uint16_t cardNum);
@@ -355,6 +444,27 @@ void checkParticipantCard();
  * Проверяет время инициализации чипа
  */
 bool doesCardExpire();
+
+/**
+ * Обработчик прерывания от RTC
+ */
+void rtcAlarmIrq();
+
+/**
+ *  Эта функция вызывается в прерывание PCINT по входу UART-RX.
+ *  Для того чтобы разбудить CPU и начать принимать данные по UART
+ */
+void wakeupByUartRx();
+
+/**
+ * Обработчик функции чтения состояния станции по UART
+ */
+void serialFuncReadInfo(byte *data, byte dataSize);
+
+ /**
+  * Обработчик настройки станции по UART
+  */
+void serialFuncWriteSettings(byte *data, byte dataSize);
 
 //--------------------------------------------------------------------
 // Реализация
@@ -400,10 +510,12 @@ void setup()
   }
   
   // Настраиваем RTC
-  ts t;
   // Сбрасываем все прерывания и выключаем выход 32 кГц
   DS3231_set_addr(DS3231_STATUS_ADDR, 0);
-  DS3231_init(DS3231_INTCN);// | DS3231_A1IE);
+  DS3231_init(DS3231_INTCN | DS3231_A1IE);
+  alarmYear = 2017;
+  alarmMonth = 1;
+  memset(&t, 0, sizeof(t));
   // Читаем текущее время
   DS3231_get(&t);
   
@@ -413,6 +525,9 @@ void setup()
     BEEP_TIME_ERROR;
   }
 
+  // Настраиваем приём прерываний от RTC
+  attachPCINT(digitalPinToPCINT(DS3231_IRQ), rtcAlarmIrq, FALLING);
+
   // Читаем настройки из EEPROM
   stationNum = eepromRead(EEPROM_STATION_NUM_ADDR);
 
@@ -420,41 +535,39 @@ void setup()
     pass[i] = eepromRead(EEPROM_PASS_ADDR + i*3);
     
   settings = eepromRead(EEPROM_SETTINGS_ADDR);
+  antennaGain = eepromRead(EEPROM_ANTENNA_GAIN_ADDR);
 
   // После сборки станции номер не установлен, применяем по умолчанию
-  if(stationNum == 0 || stationNum == 255)
-    stationNum = DEFAULT_STATION_NUM;
+  if(stationNum == 0)
+    setStationNum(DEFAULT_STATION_NUM);
+
+  // После сборки усиление антенны может быть не правильным
+  if(antennaGain > MAX_ANTENNA_GAIN || antennaGain < MIN_ANTENNA_GAIN)
+    setAntennaGain(DEFAULT_ANTENNA_GAIN);
 
   // Применяем настройки по умолчанию после сборки станции
   if(settings & SETTINGS_INVALID)
   {
-    settings = DEFAULT_SETTINGS;
-    pass[0] = pass[1] = pass[2] = 0;
-
     // Очищаем лог отметок
     clearMarkLog();
-
     // Сохраняем настройки и пароль по умолчаню в EEPROM
-    eepromWrite(EEPROM_SETTINGS_ADDR, settings);
-    for (uint8_t i = 0; i < 3; i++)
-      eepromWrite(EEPROM_PASS_ADDR + i*3, pass[i]);
+    setSettings(DEFAULT_SETTINGS);
+    setPwd(0,0,0);
+    setStationNum(DEFAULT_STATION_NUM);
+    setAntennaGain(DEFAULT_ANTENNA_GAIN);
   }
 
   // Устанавливаем режим работы по умолчанию
-  mode = DEFAULT_MODE;
-
-  // Перенастраиваем режим в соответствии с настройками
-  if(settings & SETTINGS_ALWAYS_WAIT)
-    mode = MODE_WAIT;
-  else if(settings & SETTINGS_ALWAYS_ACTIVE)
-    mode = MODE_ACTIVE;
+  setMode(DEFAULT_MODE);
  
   // Инициализруем ключ для карточек MIFARE
   for (byte i = 0; i < 6; i++)
     key.keyByte[i] = 0xFF;
-  
+  // Включаем UART для быстрого чтения/записи настроек
+  Serial.begin(9600);
+  serialRxPos = 0;
   // Проверяем батарейки
-  voltage();
+  voltage(true);
   // Для разделения сигналов от батарейки и перезагрузки
   delay(1000);
   // Сигнализируем о переходе в основной цикл
@@ -468,13 +581,34 @@ void setup()
 void loop()
 {
   Watchdog.reset();
-  
+
+  // Обрабатываем прерывание от RTC
+  if(rtcAlarmFlag)
+  {
+    // Сбрасываем флаг прерывания RTC
+    rtcAlarmFlag = 0;
+    DS3231_clear_a1f();
+    // Узнаем текущую дату
+    DS3231_get(&t);
+    // DS3231 не поддерживает месяц и год в Alarms! Поэтому проверка реализована на MCU
+    if(t.year == alarmYear && t.mon == alarmMonth)
+    {
+      setMode(MODE_ACTIVE);
+    }
+  }
+
+  // Обрабатываем карточки
   rfid();
 
+  // Управление режимами работы
   switch(mode)
   {
     case MODE_ACTIVE:
       sleep(MODE_ACTIVE_CARD_CHECK_PERIOD);
+
+      #ifdef DEBUG
+        digitalWrite(LED,HIGH);
+      #endif
 
       if(settings & SETTINGS_ALWAYS_ACTIVE)
       {
@@ -482,12 +616,15 @@ void loop()
       }
       else if(workTimer >= WAIT_PERIOD1)
       {
-        workTimer = 0;
-        mode = MODE_WAIT;
+        setMode(MODE_WAIT);
       }
       break;
     case MODE_WAIT:
       sleep(MODE_WAIT_CARD_CHECK_PERIOD);
+
+      #ifdef DEBUG
+        digitalWrite(LED,HIGH);
+      #endif
 
       if(settings & SETTINGS_ALWAYS_WAIT)
       {
@@ -495,19 +632,182 @@ void loop()
       }
       else if(workTimer >= WAIT_PERIOD1 && (settings & SETTINGS_WAIT_PERIOD1))
       {
-        workTimer = 0;
-        mode = MODE_SLEEP;
+        setMode(MODE_SLEEP);
       }
       else if(workTimer >= WAIT_PERIOD2 && (settings & SETTINGS_WAIT_PERIOD2))
       {
-        workTimer = 0;
-        mode = MODE_SLEEP;
+        setMode(MODE_SLEEP);
       }
       break;
     case MODE_SLEEP:
       sleep(MODE_SLEEP_CARD_CHECK_PERIOD);
+
+      #ifdef DEBUG
+        digitalWrite(LED,HIGH);
+      #endif
+      
       break;
   }
+
+  if(Serial.available() > 0)
+    serialEvent();
+}
+
+void serialEvent()
+{
+  while(Serial.available())
+  {
+    serialData[serialRxPos] = Serial.read();
+    serialRxPos++;
+
+    if( serialRxPos > 1 &&
+        serialData[serialRxPos - 1] == SERIAL_MSG_START2 &&
+        serialData[serialRxPos - 2] == SERIAL_MSG_START1)
+    {
+      serialData[0] = SERIAL_MSG_START1;
+      serialData[1] = SERIAL_MSG_START2;
+      serialRxPos = 2;
+    }
+
+    if( serialRxPos > 1 && 
+        serialData[serialRxPos - 1] == SERIAL_MSG_END2 &&
+        serialData[serialRxPos - 2] == SERIAL_MSG_END1)
+    {
+      byte func = serialData[2];
+      uint8_t crc8 = 0;
+      // Проверяем контрольную сумму
+      for(uint8_t i = 2; i < serialRxPos - 3; i++)
+        crc8 ^= serialData[i];
+
+      if(crc8 == serialData[serialRxPos - 3])
+      {
+        switch(func)
+        {
+          case SERIAL_FUNC_READ_INFO:
+            serialFuncReadInfo(serialData, serialRxPos);
+            break;
+          case SERIAL_FUNC_WRITE_SETTINGS:
+            serialFuncWriteSettings(serialData, serialRxPos);
+            break;
+          default:
+            BEEP_SERIAL_ERROR;
+            break;
+        }
+      }
+      else
+        BEEP_SERIAL_ERROR;
+
+      serialRxPos = 0;      
+    }
+
+    if(serialRxPos >= SERIAL_DATA_LENGTH)
+    {
+      serialRxPos = 0;
+      BEEP_SERIAL_ERROR;
+    }
+  }
+}
+
+void serialFuncReadInfo(byte *data, byte dataSize)
+{
+  byte crc8 = 0;
+  byte pos = 0;
+  byte sendData[SERIAL_DATA_LENGTH];
+  // Проверяем пароль
+  if( dataSize < 5 ||
+      data[3] != pass[0] ||
+      data[4] != pass[1] ||
+      data[5] != pass[2])
+  {
+    BEEP_PASS_ERROR;
+    return;
+  }
+  // Проверяем батарейки
+  bool batteryOk = voltage(false);
+  // Получаем текущую дату и время
+  DS3231_get(&t);
+  // Записываем признак начала сообщения
+  sendData[pos++] = SERIAL_MSG_START1;
+  sendData[pos++] = SERIAL_MSG_START2;
+  // Записываем версию прошивки
+  sendData[pos++] = FIRMWARE_VERSION;
+  // Записываем информацию о станции
+  sendData[pos++] = stationNum;
+  sendData[pos++] = settings;
+  sendData[pos++] = batteryOk;
+  sendData[pos++] = mode;
+  // Записываем текущее время станции
+  sendData[pos++] = (t.unixtime & 0xFF000000)>>24;
+  sendData[pos++] = (t.unixtime & 0x00FF0000)>>16;
+  sendData[pos++] = (t.unixtime & 0x0000FF00)>>8;
+  sendData[pos++] = (t.unixtime & 0x000000FF);
+  // Записываем время пробуждения станции
+  t.sec = bcdtodec(DS3231_get_addr(0x07));
+  t.min = bcdtodec(DS3231_get_addr(0x08));
+  t.hour = bcdtodec(DS3231_get_addr(0x09));
+  t.mday = bcdtodec(DS3231_get_addr(0x0A));
+  t.mon = alarmMonth;
+  t.year = alarmYear;
+  t.unixtime = get_unixtime(t);
+  sendData[pos++] = (t.unixtime & 0xFF000000)>>24;
+  sendData[pos++] = (t.unixtime & 0x00FF0000)>>16;
+  sendData[pos++] = (t.unixtime & 0x0000FF00)>>8;
+  sendData[pos++] = (t.unixtime & 0x000000FF);
+  // Настройки антенны
+  sendData[pos++] = antennaGain;
+
+  // Считаем контрольную сумму
+  for(uint8_t i = 2; i < pos; i++)
+    crc8 = sendData[i];
+
+  sendData[pos++] = crc8;
+  sendData[pos++] = SERIAL_MSG_END1;
+  sendData[pos++] = SERIAL_MSG_END2;
+
+  Serial.write(sendData, pos);
+  
+  // Чтобы отличить звук заряженной батареи от звука об ошибке
+  Watchdog.reset();
+  delay(1000);
+
+  BEEP_SERIAL_OK;
+}
+
+void serialFuncWriteSettings(byte *data, byte dataSize)
+{
+  // Проверяем пароль
+  if( dataSize < 23 ||
+      data[3] != pass[0] ||
+      data[4] != pass[1] ||
+      data[5] != pass[2])
+  {
+    BEEP_PASS_ERROR;
+    return;
+  }
+
+  // Устанавливаем текущее время
+  setTime(data[6] + 2000, data[7], data[8], data[9], data[10], data[11]);
+  // Устанавливаем новый пароль
+  setPwd(data[12], data[13], data[14]);
+  // Устанавливаем номер станции
+  setStationNum(data[15]);
+  // Устанавливаем настройки
+  setSettings(data[16]);
+  // Устанавливаем время пробуждения
+  setWakeupTime(data[17] + 2000, data[18], data[19], data[20], data[21], data[22]);
+  // Настраиваем антенну
+  setAntennaGain(data[23]);
+
+  // Переводим станцию в режим сна
+  setMode(MODE_SLEEP);
+
+  BEEP_SERIAL_OK;
+}
+
+void wakeupByUartRx()
+{
+  // Процессор проснулся, UART заработал, прерывания больше не нужны
+  detachPCINT(digitalPinToPCINT(UART_RX));
 }
 
 uint8_t getPinMode(uint8_t pin)
@@ -536,8 +836,81 @@ uint8_t getPinMode(uint8_t pin)
     return INPUT;
 }
 
+void setPwd(uint8_t pwd1, uint8_t pwd2, uint8_t pwd3)
+{
+  if(pass[0] == pwd1 && pass[1] == pwd2 && pass[2] == pwd3)
+    return;
+    
+  pass[0] = pwd1;
+  pass[1] = pwd2;
+  pass[2] = pwd3;
+  
+  for (uint8_t i = 0; i < 3; i++)
+    eepromWrite(EEPROM_PASS_ADDR + i*3, pass[i]);
+}
+
+void setStationNum(uint8_t num)
+{
+  if(num == stationNum || num == 0)
+    return;
+
+  stationNum = num;
+  eepromWrite(EEPROM_STATION_NUM_ADDR, stationNum);
+}
+
+void setSettings(uint8_t value)
+{
+  if(settings == value)
+    return;
+
+  settings = value;
+  eepromWrite(EEPROM_SETTINGS_ADDR, settings);
+}
+
+void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec)
+{
+  memset(&t, 0, sizeof(t));
+
+  t.mon = mon;
+  t.year = year;
+  t.mday = day;
+  t.hour = hour;
+  t.min = mi;
+  t.sec = sec;
+
+  DS3231_set(t);  
+}
+
+void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec)
+{
+  uint8_t flags[5] = {0,0,0,0,0};
+  memset(&t, 0, sizeof(t));
+  alarmMonth = t.mon = mon;
+  alarmYear = t.year = year;
+  t.mday = day;
+  t.hour = hour;
+  t.min = mi;
+  t.sec = sec;
+
+  DS3231_clear_a1f();
+  DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
+}
+
+void setAntennaGain(uint8_t gain)
+{
+  if(antennaGain == gain || gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN)
+    return;
+
+  antennaGain = gain;
+  eepromWrite(EEPROM_ANTENNA_GAIN_ADDR, antennaGain);
+}
+
 void sleep(uint16_t ms)
 {
+  // Мы не можем уснуть, если есть необработанное прерывание от DS3231 или есть данные от UART
+  if(rtcAlarmFlag || Serial.available() > 0)
+    return;
+    
   uint16_t period;
   // Выключаем модуль RC522
   digitalWrite(RC522_RST,LOW);
@@ -545,6 +918,8 @@ void sleep(uint16_t ms)
   digitalWrite(LED,LOW);
   // Выключаем буззер
   digitalWrite(BUZ,LOW);
+  // Включаем прерывания PCINT для того, чтобы разбудить CPU, когда придут данные по UART
+  attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
   // Сбрасываем вотчдог и засыпаем
   Watchdog.reset();
   period = Watchdog.sleep(ms);
@@ -554,7 +929,19 @@ void sleep(uint16_t ms)
     sleep(ms - period);
 }
 
-void eepromWrite (uint16_t adr, uint8_t val)
+void setMode(uint8_t md)
+{
+  mode = md;
+  workTimer = 0;
+
+  // Перенастраиваем режим в соответствии с настройками
+  if(settings & SETTINGS_ALWAYS_WAIT)
+    mode = MODE_WAIT;
+  else if(settings & SETTINGS_ALWAYS_ACTIVE)
+    mode = MODE_ACTIVE;
+}
+
+void eepromWrite(uint16_t adr, uint8_t val)
 {
   for(uint16_t i = 0; i < 3; i++)
     EEPROM.write(adr + i, val);
@@ -658,10 +1045,11 @@ uint32_t readVcc(uint32_t refConst)
   return result;
 }
 
-void voltage()
+bool voltage(bool beepEnabled)
 {
   const uint32_t refConst = 1125300L; //voltage constanta
   uint32_t value = 0;
+  bool result = false;
 
   Watchdog.reset();
 
@@ -678,10 +1066,20 @@ void voltage()
   
   Watchdog.reset();
 
-  if (value < 3100)
-    BEEP_LOW_BATTERY;
+  if(value < 3100)
+    result = false;
   else
-    BEEP_BATTERY_OK;
+    result = true;
+    
+  if(beepEnabled)
+  {
+    if(result)
+      BEEP_BATTERY_OK;
+    else
+      BEEP_LOW_BATTERY;
+  }
+
+  return result;
 }
 
 bool cardPageRead(uint8_t pageAdr, byte *data, byte *size)
@@ -743,7 +1141,7 @@ void rfid()
   SPI.begin();
   mfrc522.PCD_Init();
   mfrc522.PCD_AntennaOff();
-  mfrc522.PCD_SetAntennaGain(RC522_ANTENNA_GAIN);
+  mfrc522.PCD_SetAntennaGain(antennaGain);
   mfrc522.PCD_AntennaOn();
   
   delay(5);
@@ -752,13 +1150,6 @@ void rfid()
   {
     if(mfrc522.PICC_ReadCardSerial())
     {
-      // Переходим в активный режим
-      if(settings & SETTINGS_ALWAYS_WAIT)
-        mode = MODE_WAIT;
-      else
-        mode = MODE_ACTIVE;
-      // Сбрасываем таймер времени работы в текущем режиме
-      workTimer = 0;
       //Читаем блок информации
       dataSize = sizeof(pageData);
       if(cardPageRead(CARD_PAGE_INFO, pageData, &dataSize))
@@ -767,6 +1158,10 @@ void rfid()
         if(pageData[2] == 0xFF)
         {
           // Мастер-чип
+
+          // Переходим в активный режим, если это не карточка чтения информации
+          if(pageData[1] != MASTER_CARD_GET_INFO)
+            setMode(MODE_ACTIVE);
           
           // Копируем информацию о мастер-чипе
           memcpy(masterCardData, pageData, 4);
@@ -799,21 +1194,23 @@ void rfid()
             {
               switch(masterCardData[1])
               {
-                case SET_TIME_MASTER_CARD:
+                case MASTER_CARD_SET_TIME:
                   processTimeMasterCard(masterCardData, sizeof(masterCardData));
                   break;
-                case SET_NUMBER_MASTER_CARD:
+                case MASTER_CARD_SET_NUMBER:
                   processStationMasterCard(masterCardData, sizeof(masterCardData));
                   break;
-                case SLEEP_MASTER_CARD:
+                case MASTER_CARD_SLEEP:
                   processSleepMasterCard(masterCardData, sizeof(masterCardData));
                   break;
-                case READ_DUMP_MASTER_CARD:
+                case MASTER_CARD_READ_DUMP:
                   processDumpMasterCard(masterCardData, sizeof(masterCardData));
                   break;
-                case SET_PASS_MASTER_CARD:
+                case MASTER_CARD_SET_PASS:
                   processPassMasterCard(masterCardData, sizeof(masterCardData));
                   break;
+                case MASTER_CARD_GET_INFO:
+                  processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
               }
 
               sleepBtwCard = true;
@@ -824,6 +1221,8 @@ void rfid()
         } // Конец обработки мастер-чипа
         else
         {
+          // Переходим в активный режим
+          setMode(MODE_ACTIVE);
           // Обработка чипа участника
           switch(stationNum)
           {
@@ -862,25 +1261,17 @@ void processTimeMasterCard(byte *data, byte dataSize)
     BEEP_MASTER_CARD_TIME_ERROR;
     return;
   }
-  
-  ts t;
-  memset(&t, 0, sizeof(t));
-    
-  t.mon = data[8];
-  t.year = data[9]+2000;
-  t.mday = data[10];
-  t.hour = data[12];
-  t.min = data[13];
-  t.sec = data[14];
 
-  DS3231_set(t);
+  // Внимание: часы настраиваются на время UTC  
+  setTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
+
   memset(&t, 0, sizeof(t));
   DS3231_get(&t);
 
   if(t.year < 2017)
     BEEP_TIME_ERROR;
-  
-  BEEP_MASTER_CARD_TIME_OK;
+  else
+    BEEP_MASTER_CARD_TIME_OK;
 }
 
 void processStationMasterCard(byte *data, byte dataSize)
@@ -897,9 +1288,7 @@ void processStationMasterCard(byte *data, byte dataSize)
   {
     if(stationNum != newNum)
     {
-      stationNum = newNum;
-      eepromWrite(EEPROM_STATION_NUM_ADDR, stationNum);
-
+      setStationNum(newNum);
       BEEP_MASTER_CARD_STATION_WRITTEN;
     }
     else
@@ -916,15 +1305,19 @@ void processSleepMasterCard(byte *data, byte dataSize)
     BEEP_MASTER_CARD_SLEEP_ERROR;
     return;
   }
-    
+
+  // вне зависимости от настроек, всегда засыпаем
+  // поэтому не используется setMode
   mode = MODE_SLEEP;
   
   if(settings & SETTINGS_CLEAR_ON_SLEEP)
   {
-    settings = DEFAULT_SETTINGS;
-    eepromWrite(EEPROM_SETTINGS_ADDR,settings);
+    setSettings(DEFAULT_SETTINGS);
   }
 
+  // Настраиваем будильник в DS3231
+  setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
+  // Очищаем лог станции
   clearMarkLog();
 
   BEEP_MASTER_CARD_SLEEP_OK;
@@ -977,29 +1370,96 @@ void processPassMasterCard(byte *data, byte dataSize)
     BEEP_MASTER_CARD_PASS_ERROR;
     return;
   }
-    
-  for(uint8_t i = 0; i < 3; i++)
-  {
-    pass[i] = data[i + 8];
-    eepromWrite(EEPROM_PASS_ADDR + i*3, pass[i]);
-  }
-  
-  settings = data[11];
-  eepromWrite(EEPROM_SETTINGS_ADDR, settings);
+
+  setAntennaGain(data[7]);
+  setPwd(data[8], data[9], data[10]);
+  setSettings(data[11]);
 
   BEEP_MASTER_CARD_PASS_OK;
+}
+
+void processGetInfoMasterCard(byte *data, byte dataSize)
+{
+  if(dataSize < 16)
+  {
+    BEEP_MASTER_CARD_GET_INFO_ERROR;
+    return;
+  }  
+
+  byte pageData[16];
+  memset(pageData, 0, sizeof(pageData));
+  // Проверяем батарейки
+  bool batteryOk = voltage(false);
+  // Получаем текущую дату и время
+  DS3231_get(&t);
+  // Записываем версию прошивки и усиление антенны
+  pageData[0] = FIRMWARE_VERSION;
+  pageData[3] = antennaGain;
+  bool result = cardPageWrite(CARD_PAGE_START, pageData, sizeof(pageData));
+  // Записываем информацию о станции
+  memset(pageData, 0, sizeof(pageData));
+  pageData[0] = stationNum;
+  pageData[1] = settings;
+  pageData[2] = batteryOk;
+  pageData[3] = mode;
+  result &= cardPageWrite(CARD_PAGE_START + 1, pageData, sizeof(pageData));
+  // Записываем текущее время станции
+  memset(pageData, 0, sizeof(pageData));
+  pageData[0] = (t.unixtime & 0xFF000000)>>24;
+  pageData[1] = (t.unixtime & 0x00FF0000)>>16;
+  pageData[2] = (t.unixtime & 0x0000FF00)>>8;
+  pageData[3] = (t.unixtime & 0x000000FF);
+  result &= cardPageWrite(CARD_PAGE_START + 2, pageData, sizeof(pageData));
+  // Записываем время пробуждения станции
+  memset(&t, 0, sizeof(t));
+  t.sec = bcdtodec(DS3231_get_addr(0x07));
+  t.min = bcdtodec(DS3231_get_addr(0x08));
+  t.hour = bcdtodec(DS3231_get_addr(0x09));
+  t.mday = bcdtodec(DS3231_get_addr(0x0A));
+  t.mon = alarmMonth;
+  t.year = alarmYear;
+  t.unixtime = get_unixtime(t);
+  pageData[0] = (t.unixtime & 0xFF000000)>>24;
+  pageData[1] = (t.unixtime & 0x00FF0000)>>16;
+  pageData[2] = (t.unixtime & 0x0000FF00)>>8;
+  pageData[3] = (t.unixtime & 0x000000FF);
+  result &= cardPageWrite(CARD_PAGE_START + 3, pageData, sizeof(pageData));
+  // Чтобы отличить звук заряженной батареи от звука об ошибке
+  Watchdog.reset();
+  delay(1000);
+
+  if(result)
+    BEEP_MASTER_CARD_GET_INFO_OK;
+  else
+    BEEP_MASTER_CARD_GET_INFO_ERROR;
 }
 
 void processParticipantCard(uint16_t cardNum)
 {
   uint8_t lastNum = 0;
   uint8_t newPage = 0;
+  byte pageData[18];
+  byte dataSize = sizeof(pageData);
   bool checkOk = false;
 
   if(cardNum)
   {
     //Ищем последнюю пустую страницу в чипе для записи
-    findNewPage(&newPage, &lastNum);
+    if(settings & SETTINGS_FAST_MARK)
+    {
+      if(cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData, &dataSize))
+      {
+        lastNum = pageData[0];
+        newPage = pageData[1] + 1;
+
+        if(newPage < CARD_PAGE_START || newPage > CARD_PAGE_MAX)
+          newPage = CARD_PAGE_START;
+      }
+    }
+    else
+    {
+      findNewPage(&newPage, &lastNum);
+    }
   
     if(newPage >= CARD_PAGE_START && newPage <= CARD_PAGE_MAX)
     {
@@ -1089,9 +1549,11 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum)
 
 bool writeMarkToParticipantCard(uint8_t newPage)
 {
-  ts t;
   byte pageData[16];
   byte dataSize = sizeof(pageData);
+  bool result = false;
+
+  memset(pageData, 0, sizeof(pageData));
   
   // Читаем текущее время
   DS3231_get(&t);
@@ -1101,7 +1563,16 @@ bool writeMarkToParticipantCard(uint8_t newPage)
   pageData[2] = (t.unixtime & 0x0000FF00)>>8;
   pageData[3] = (t.unixtime & 0x000000FF);
       
-  return cardPageWrite(newPage, pageData, dataSize);
+  result = cardPageWrite(newPage, pageData, dataSize);
+
+  if((settings & SETTINGS_FAST_MARK) && result)
+  {
+    pageData[0] = stationNum;
+    pageData[1] = newPage;
+    result &= cardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData, dataSize);
+  }
+
+  return result;
 }
 
 /**
@@ -1109,7 +1580,6 @@ bool writeMarkToParticipantCard(uint8_t newPage)
  */
 void clearParticipantCard()
 {
-  ts t;
   byte pageData[16];
   byte dataSize = sizeof(pageData);
   bool result = true;
@@ -1181,7 +1651,6 @@ void checkParticipantCard()
 
 bool doesCardExpire()
 {
-  ts t;
   byte pageData[18];
   byte dataSize = sizeof(pageData);
   uint32_t cardTime = 0;
@@ -1203,4 +1672,12 @@ bool doesCardExpire()
   }
 
   return result;
+}
+
+void rtcAlarmIrq()
+{
+  // Мы не можем обработать здесь прерывание
+  // Потому что это повесит процессор из-за операций с I2C
+  // Поэтому устанвливаем флаг и обрабатываем прерывание в основном цикле
+  rtcAlarmFlag = 1;
 }
