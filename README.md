@@ -1,6 +1,6 @@
 ﻿![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/logo.png)
 
-#### Version 1.4.2
+#### Version 1.5.0
 
 ![](https://raw.githubusercontent.com/alexandervolikov/sportIDuino/master/Images/Sportiduino.JPG)
 
@@ -32,9 +32,9 @@ You can also help by translatiing the documentation. At this moment it is execut
 
 ## Cards
 
-The system uses cards Ntag 213 / 215 / 216. In the form of labels these cards cost 0.1, 0.2 0.4 $ , respectively, in the form of a key fob twice as expensive. The memory of these cards is enough for 32, 120 and 216 marks, respectively.
+The system uses cards Mifare Classic S50. These come bundled with the RC522 module. The memory of these chips is enough for 42 marks.
 
-In addition, it is possible to use Mifare Classic S50 chips. These chips are also cheap, come bundled with the RC522 module. The memory of these chips is enough for 42 marks. They work a little slower than Ntag. Firmware for Mifare and Ntag are not compatible, so when using Mifare, at the mark and base stations need to upload other firmware, with Mifare in the title.
+<b>NTAG cards are not supported in new version 1.5.0!!!</b>
 
 [Read more here](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/Card.md)
 
