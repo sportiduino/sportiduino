@@ -1,3 +1,20 @@
+## [1.5.0] - 2019-07-01
+- DS3231-Pin3 (Interrupt) has been connected to MCU-Pin26 (PC3)
+- DS3231-Pin4 (Reset) has been connected to MCU-Pin32 (PD2)
+- DS3231-Pin2 (VCC) has been disconnected from MCU-Pin9 (PD5) and connected to +3V3 directly (as single-supply scheme from datasheet)
+- DS3231-Pin1 (32 kHz) has been connected to MCU-Pin9 (PD5)
+- RC522-IRQ has been connected to MCU-Pin10 (PD6)
+- BC847 (bipolar) has been changed on BSS138 (mosfet)
+- The value of I2C pull-up resistors has been reduced from 10 kOm to 3.3 kOm
+- New pcb board design
+- Firmware of BaseStation has been refactored
+- Added wake-up function
+- Added an ability to config BaseStation by UART
+- Added GetInfo master-chip
+- Added fast-mark setting
+- Added antenna-gain setting
+- Lost NTAG supporting
+
 ## [1.4.2] - 2018-10-23
 ### delete antena gain from setting-byte
 
