@@ -13,7 +13,6 @@
 - Added GetInfo master-chip
 - Added fast-mark setting
 - Added antenna-gain setting
-- Lost NTAG supporting
 
 ## [1.4.2] - 2018-10-23
 ### delete antena gain from setting-byte
