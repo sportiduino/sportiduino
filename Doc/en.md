@@ -2,12 +2,12 @@ This project is devoted to building a cheap electronic marking system for sports
 
 The English translation is rough, sometimes there may be unclear moments, write in the Issue in case of questions
 
-* [User Manual](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/UserManual.md)
-* [Card](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/Card.md)
-* [Base Station](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/BaseStation.md)
-* [Master Station](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/MasterStation.md)
-* [Wireless Master Station](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/WirelessMasterStation.md)
-* [Equipment](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/Equipment.md)
-* [Base Station assembly](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/BaseStationAssembly.md)
-* [Master Station assembly](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/MasterStationAssembly.md)
-* [Data Processing](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/DataProcessing.md)
+* [User Manual](/en/UserManual.md)
+* [Card](/en/Card.md)
+* [Base Station](/en/BaseStation.md)
+* [Master Station](/en/MasterStation.md)
+* [Wireless Master Station](/en/WirelessMasterStation.md)
+* [Equipment](/en/Equipment.md)
+* [Base Station assembly](/en/BaseStationAssembly.md)
+* [Master Station assembly](/en/MasterStationAssembly.md)
+* [Data Processing](/en/DataProcessing.md)
