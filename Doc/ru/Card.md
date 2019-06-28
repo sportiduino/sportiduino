@@ -1,3 +1,5 @@
+# Чипы
+
 Система отметки поддерживает следующие типы чипов:
 - [Mifare Classic Mini](http://www.engracetech.com/wp-content/uploads/2014/03/NXP-Mifare-MF1ICS20.pdf) = 9 отметок
 - [Mifare Classic 1K](https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf) = 42 отметки
