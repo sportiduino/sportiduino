@@ -22,8 +22,14 @@ The second number indicates the serial number of the firmware. If any new functi
 
 Each of master station and base station has own version!
 
-Current base station version is 2.6.0
-Current master station version is 1.2.0  
+**Current base station version is 2.6.0**
+
+**Current master station version is 1.2.0**
+
+## Authors
+
+- Alexander Volikov
+- Anton Sysoev
 
 ## Reporting Issues and Asking for Help
 
