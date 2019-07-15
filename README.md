@@ -1,7 +1,5 @@
 ﻿![](/Images/logo.png?raw=true)
 
-#### Version 1.5.0
-
 ![](/Images/Sportiduino.JPG?raw=true)
 
 [Перейти на русский язык](/README.ru.md)
@@ -15,6 +13,17 @@ This project is devoted to the development of cheap electronic marking system fo
 This project is open and free. Who is not afraid of difficulties, can try to do it by yourself following the instructions from the wiki. Сheapness of the components of the system can recoup the expended work ($ 10 for one base station, $ 0.2 per chip mark)
 
 I warn that this development is a hobby, the author is not a professional in the field of electronics and programming. Therefore, no guarantees are given, different kinds of problems are possible during reproduction. Support is also not promised. So, act at your own risk. 
+
+## Version
+
+The version consists of three numbers. The first number indicates the serial number of the hardware. If any changes are made to the circuit or to the PCB, this number is incremented by 1.
+
+The second number indicates the serial number of the firmware. If any new function is added to the firmware, this number is increased by 1. If the firmware just fixes bugs, then this number is not changed, instead, the third number in the version is increased by 1. When a new version of the firmware is released with new functions, the third the number is reset to 0.
+
+Each of master station and base station has own version!
+
+Current base station version is 2.6.0
+Current master station version is 1.2.0  
 
 ## Reporting Issues and Asking for Help
 
@@ -74,5 +83,5 @@ Reading chips is implemented in the program [SportOrg](https://github.com/sporto
 
 ***********
 Available from:  https://github.com/alexandervolikov/sportiduino
- 
+
 License:         GNU GPLv3
