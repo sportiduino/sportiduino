@@ -20,11 +20,9 @@ The version consists of three numbers. The first number indicates the serial num
 
 The second number indicates the serial number of the firmware. If any new function is added to the firmware, this number is increased by 1. If the firmware just fixes bugs, then this number is not changed, instead, the third number in the version is increased by 1. When a new version of the firmware is released with new functions, the third the number is reset to 0.
 
-Each of master station and base station has own version!
+**Current version is 2.6.0**
 
-**Current base station version is 2.6.0**
-
-**Current master station version is 1.2.0**
+[View changelog](/changelog.md)
 
 ## Authors
 
