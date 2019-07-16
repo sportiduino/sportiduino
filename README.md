@@ -22,7 +22,7 @@ The second number indicates the serial number of the firmware. If any new functi
 
 **Current version is 2.6.0**
 
-[View changelog](/changelog.md)
+[View changelog](/CHANGELOG.md)
 
 ## Authors
 
