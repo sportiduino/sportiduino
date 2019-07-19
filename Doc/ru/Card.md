@@ -1,7 +1,7 @@
 # Чипы
 
 Система отметки поддерживает следующие типы чипов:
-- [Mifare Classic Mini](http://www.engracetech.com/wp-content/uploads/2014/03/NXP-Mifare-MF1ICS20.pdf) = 9 отметок
+- [Mifare Ultralight C](http://www.nxp.com/documents/data_sheet/MF0ICU2.pdf) = 36 отметок
 - [Mifare Classic 1K](https://www.nxp.com/docs/en/data-sheet/MF1S50YYX_V1.pdf) = 42 отметки
 - [Mifare Classic 4K](https://www.nxp.com/docs/en/data-sheet/MF1S70YYX_V1.pdf) = 90 отметок
 - [Ntag213/215/216](https://www.nxp.com/docs/en/data-sheet/NTAG213_215_216.pdf) = 32/120/216 отметок
@@ -26,3 +26,7 @@
 У чипов для программирования станций структура отличается. Станция узнаёт их по числу 255, записанному в третий байт 4-ой страницы. Существует 6 разных мастер чипов: времени, номера, сна, настроек, дампа и информации. Ниже представлена их структура:
 
 ![](/Images/Master-Ntag.JPG?raw=true)
+
+Содержимое чипа с логом станции представлена на картинке ниже
+
+![](/Images/Ntag-dumpchip.jpg?raw=true)
