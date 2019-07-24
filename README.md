@@ -24,6 +24,8 @@ The second number indicates the serial number of the firmware. If any new functi
 
 [View changelog](/CHANGELOG.md)
 
+Build the firmware with #define HW_VERS 1 to install the firmware v6 on hardware v1 
+
 ## Authors
 
 - Alexander Volikov
@@ -49,7 +51,7 @@ The system uses cards Ntag 213 / 215 / 216. In the form of labels these cards co
 
 In addition, it is possible to use Mifare Classic 1K chips. These chips are also cheap and come bundled with the RC522 module. The memory of these chips is enough for 42 marks. They work a little slower than Ntag.
 
-Stations automatically detect the type of used chips.
+The system automatically detects the type of used chips.
 
 [Read more here](/Doc/en/Card.md)
 

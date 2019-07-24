@@ -96,17 +96,17 @@ sportiduino.name=Sportiduino
 
 sportiduino.upload.tool=avrdude
 sportiduino.upload.protocol=arduino
-sportiduino.upload.maximum_size=30720
+sportiduino.upload.maximum_size=32256
 sportiduino.upload.maximum_data_size=2048
-sportiduino.upload.speed=57600
+sportiduino.upload.speed=115200
 
 sportiduino.bootloader.tool=avrdude
 sportiduino.bootloader.low_fuses=0xE2
-sportiduino.bootloader.high_fuses=0xDA
+sportiduino.bootloader.high_fuses=0xDE
 sportiduino.bootloader.extended_fuses=0xFF
 sportiduino.bootloader.unlock_bits=0x3F
 sportiduino.bootloader.lock_bits=0x0F
-sportiduino.bootloader.file=atmega/ATmegaBOOT_168_atmega328_pro_8MHz.hex
+sportiduino.bootloader.file=optiboot/optiboot_atmega328_pro_8MHz.hex
 
 sportiduino.build.mcu=atmega328p
 sportiduino.build.f_cpu=8000000L
@@ -114,8 +114,9 @@ sportiduino.build.board=AVR_SPORTIDUINO
 sportiduino.build.core=arduino
 sportiduino.build.variant=standard
 
-##############################################################
+############################################################## 
 ```
+После этого копируем файл optiboot_atmega328_pro_8Mhz.hex из папки <Project>\Base%20station\firmware\Optiboot в папку <Program Files>\Arduino\hardware\arduino\avr\bootloaders\optiboot
 
 Перезапускаем Arduino IDE. В меню Инструменты->Плата должна появиться наша плата Sportiduino. 
 
@@ -145,7 +146,7 @@ sportiduino.build.variant=standard
 
 ![](/Images/BaseStationRfidSolded.jpg?raw=true) 
 
-Затем тестистируем работу станции. Предварительно стоит записать мастер-чипы номера станции, обновления времени и пару обычных чипов. После вставления батареек станция три раза пикнет, что говорит о том, что часы выставлены не верно. Затем через 5 секунд будет длинный сигнал, сигнализирующий, что программа вошла в цикл работы. По умолчанию станция работает в режиме ожидания и проверяет наличие чипа в своей зоне через каждую секунду. Приложите мастер-чип номера станции. Станция запишет новый номер и теперь уже способна реагировать на обычные чипы. Далее необходимо настроить часы. В рабочем цикле подносим мастер-чип времени и после перезагрузки подносим второй обычный чип. Считываем его на станции сопряжения и убеждаемся в корректной работе.
+Затем тестистируем работу станции. Предварительно стоит записать мастер-чипы номера станции, обновления времени и пару обычных чипов. После вставления батареек станция три раза пикнет, что говорит о том, что часы выставлены не верно. Затем через несколько секунд будет длинный сигнал, сигнализирующий, что программа вошла в цикл работы. По умолчанию станция работает в режиме ожидания и проверяет наличие чипа в своей зоне через каждую секунду. Приложите мастер-чип номера станции. Станция запишет новый номер и теперь уже способна реагировать на обычные чипы. Далее необходимо настроить часы. В рабочем цикле подносим мастер-чип времени и после перезагрузки подносим второй обычный чип. Считываем его на станции сопряжения и убеждаемся в корректной работе.
 
 ![](/Images/BaseStationTestAssembly.jpg?raw=true)
 
