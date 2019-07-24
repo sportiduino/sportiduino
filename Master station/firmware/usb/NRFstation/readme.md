@@ -1,1 +1,0 @@
-Разработка Виталия Буренко. Вопросы по данной схеме и её работе адресовать ему: https://github.com/halny123Наглядное видео работы:https://www.youtube.com/watch?v=FtrvbB7XFUgСхема и плата: https://easyeda.com/burenko/sportiduino-v-1-3-3-myБиблиотека для NRFhttps://github.com/TMRh20Питание NRF включается герконом
