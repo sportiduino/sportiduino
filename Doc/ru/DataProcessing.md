@@ -1,6 +1,6 @@
 ### SportiduinoPQ
 
-Настройка чипов и станций производится в программе (SportiduinoPQ)[https://github.com/alexandervolikov/SportiduinoPQ]
+Настройка чипов и станций производится в программе [SportiduinoPQ](https://github.com/alexandervolikov/SportiduinoPQ)
 
 Программа основана на [модуле на python](https://github.com/alexandervolikov/sportiduinoPython) а также на пакете PyQt для создания оконных приложений
 

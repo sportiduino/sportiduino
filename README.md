@@ -20,11 +20,19 @@ The version consists of three numbers. The first number indicates the serial num
 
 The second number indicates the serial number of the firmware. If any new function is added to the firmware, this number is increased by 1. If the firmware just fixes bugs, then this number is not changed, instead, the third number in the version is increased by 1. When a new version of the firmware is released with new functions, the third the number is reset to 0.
 
-**Current version is 2.6.0**
+The base station and the master station has its own version. The release version is the largest of these two numbers.
+
+**The current release version is 2.6.0**
+
+**The current base station version is 2.6.0**
+
+**The current master station version is 1.6.0**
+
+Sorry. Assembly instructions for new version are not translated to english. Translate russian instructions yourself.
 
 [View changelog](/CHANGELOG.md)
 
-Build the firmware with #define HW_VERS 1 to install the firmware v6 on hardware v1 
+Build the firmware of the base station with #define HW_VERS 1 to install the firmware v6 on the hardware v1 
 
 ## Authors
 

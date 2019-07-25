@@ -29,4 +29,4 @@
 
 Содержимое чипа с логом станции представлена на картинке ниже
 
-![](/Images/Ntag-dumpchip.jpg?raw=true)
+![](/Images/Ntag-dumpchip.JPG?raw=true)
