@@ -32,12 +32,7 @@ Sorry. Assembly instructions for new version are not translated to english. Tran
 
 [View changelog](/CHANGELOG.md)
 
-Build the firmware of the base station with #define HW_VERS 1 to install the firmware v6 on the hardware v1 
-
-## Authors
-
-- Alexander Volikov
-- Anton Sysoev
+Build the firmware of the base station with #define HW_VERS 1 to install the firmware v6 on the hardware v1
 
 ## Reporting Issues and Asking for Help
 
