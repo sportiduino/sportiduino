@@ -1,11 +1,13 @@
+# Sportiduino. Документация
+
 Этот проект посвящен построению дешевой системы электронной отметки для спортивного и туристического ориентирования с помощью Arduino.
 
-* [Руководство пользователей](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/UserManual.md)
-* [Чипы отметки](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/Card.md)
-* [Станция отметки](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/BaseStation.md)
-* [Станция сопряжения](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/MasterStation.md)
-* [Беспроводная станция сопряжения](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/WirelessMasterStantion.md)
-* [Оборудование и материалы для сборки](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/Equipment.md)
-* [Сборка станции отметки](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/BaseStationAssembly.md)
-* [Сборка станции сопряжения](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/MasterStationAssembly.md)
-* [Обработка данных](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/ru/DataProcessing.md)
+* [Руководство пользователей](/Doc/ru/UserManual.md)
+* [Чипы отметки](/Doc/ru/Card.md)
+* [Станция отметки](/Doc/ru/BaseStation.md)
+* [Станция сопряжения](/Doc/ru/MasterStation.md)
+* [Беспроводная станция сопряжения](/Doc/ru/WirelessMasterStantion.md)
+* [Оборудование и материалы для сборки](/Doc/ru/Equipment.md)
+* [Сборка станции отметки](/Doc/ru/BaseStationAssembly.md)
+* [Сборка станции сопряжения](/Doc/ru/MasterStationAssembly.md)
+* [Обработка данных](/Doc/ru/DataProcessing.md)

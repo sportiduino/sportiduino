@@ -1,3 +1,22 @@
+## [2.6.0] - 2019-07-26
+- Base station - DS3231-Pin3 (Interrupt) has been connected to MCU-Pin26 (PC3)
+- Base station - DS3231-Pin4 (Reset) has been connected to MCU-Pin32 (PD2)
+- Base station - DS3231-Pin2 (VCC) has been disconnected from MCU-Pin9 (PD5) and connected to +3V3 directly (as single-supply scheme from datasheet)
+- Base station - DS3231-Pin1 (32 kHz) has been connected to MCU-Pin9 (PD5)
+- Base station - RC522-IRQ has been connected to MCU-Pin10 (PD6)
+- Base station - BC847 (bipolar) has been changed to BSS138 (mosfet)
+- Base station - The value of I2C pull-up resistors has been reduced from 10 kOm to 3.3 kOm
+- Base station - New pcb board design
+- Firmware of a base station has been fully refactored
+- Firmware of a master station has been fully refactored
+- Added wake-up function
+- Added an ability to config a base station by UART
+- Added GetInfo master-chip
+- Added fast-mark setting
+- Added antenna-gain setting
+- Added an ability to determine a participant card type. And now the system can work with various card types simalteniously
+- Designed a box for a master station to print on 3d-printer
+
 ## [1.4.2] - 2018-10-23
 ### delete antena gain from setting-byte
 
