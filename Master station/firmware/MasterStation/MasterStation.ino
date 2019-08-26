@@ -2,7 +2,7 @@
 
 #define HW_VERS           1
 #define FW_MAJOR_VERS     6
-#define FW_MINOR_VERS     0
+#define FW_MINOR_VERS     1
 
 #define FW_VERS (((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS)
 
@@ -202,7 +202,7 @@ void serialSend(uint8_t func, uint8_t data)
 
 void serialFlush(uint8_t func)
 {
-  uint8_t dataSize = serialDataPos - 3; // minus start,func,size bytes
+  uint8_t dataSize = serialDataPos - 3; // minus start,func,datalen
   
   if(dataSize > SERIAL_DATA_MAX_SIZE)
   {
@@ -683,6 +683,14 @@ void funcReadCard()
                   serialSend(func, pageData[2]);
                   serialSend(func, pageData[3]);
                 }
+                else
+                {
+                  // fix issue #56
+                  // no new marks will be
+                  // stop to read card and send data as soon as possible
+                  // else we will get serial timeout error on the host side
+                  break;
+                }
               }
             }
           }
@@ -693,15 +701,20 @@ void funcReadCard()
 
   rfidEnd();
 
-  if(error)
-  {
-    signalError(error);
-  }
-  else
-  {
+  // fix issue #56
+  // Commented to prevent discontiniuos beep in the poll mode
+  //if(error)
+  //{
+  //  signalError(error);
+  //}
+  //else
+  //{
+  //  serialFlush(func);
+  //  BEEP_OK;
+  //}
+
+  if(!error)
     serialFlush(func);
-    BEEP_OK;
-  }
 }
 
 void funcReadRawCard()

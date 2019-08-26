@@ -1,3 +1,8 @@
+## [2.6.1] - 2019-08-26
+- Fixed working with SportOrg
+- Changed algorithm to work with Serial in BaseStation
+- Added wake-up function for BaseStation v1
+
 ## [2.6.0] - 2019-07-26
 - Base station - DS3231-Pin3 (Interrupt) has been connected to MCU-Pin26 (PC3)
 - Base station - DS3231-Pin4 (Reset) has been connected to MCU-Pin32 (PD2)

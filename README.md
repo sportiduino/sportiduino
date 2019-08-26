@@ -22,11 +22,11 @@ The second number indicates the serial number of the firmware. If any new functi
 
 The base station and the master station has its own version. The release version is the largest of these two numbers.
 
-**The current release version is 2.6.0**
+**The current release version is 2.6.1**
 
-**The current base station version is 2.6.0**
+**The current base station version is 2.6.1**
 
-**The current master station version is 1.6.0**
+**The current master station version is 1.6.1**
 
 Sorry. Assembly instructions for new version are not translated to english. Translate russian instructions yourself.
 
