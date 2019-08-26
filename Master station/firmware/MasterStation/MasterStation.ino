@@ -2,7 +2,7 @@
 
 #define HW_VERS           1
 #define FW_MAJOR_VERS     6
-#define FW_MINOR_VERS     0
+#define FW_MINOR_VERS     1
 
 #define FW_VERS (((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS)
 
