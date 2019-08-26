@@ -6,7 +6,7 @@
 
 #define HW_VERS         2
 #define FW_MAJOR_VERS   6
-#define FW_MINOR_VERS   0
+#define FW_MINOR_VERS   1
 
 #define VERS ((HW_VERS - 1) << 6) | ((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS
 
@@ -83,6 +83,8 @@ sportiduino.build.variant=standard
 
 // the third parameter should be the frequency of your buzzer if you solded the buzzer without a generator else 0
 #define beep(ms,n) beep_w(LED,BUZ,0,ms,n)
+
+#define SERIAL_BAUDRATE   9600
 
 //-------------------------------------------------------------------
 
@@ -180,6 +182,8 @@ uint8_t rtcAlarmFlag;
 byte serialData[SERIAL_DATA_LENGTH];
 // Index of last received byte by UART
 uint8_t serialRxPos;
+// It's true if there are data from UART in sleep mode
+uint8_t serialWakeupFlag = 0;
 
 // UART incoming message: 0xEE, 0xEF, <func>, <func data>, CRC8 (XOR of <func> and <func data>), 0xFD, 0xDF
 // UART outcoming message: 0xEE, 0xEF, <resp>, <resp_data>, CRC8 (XOR of <resp> and <resp_data>), 0xFD, 0xDF
@@ -283,6 +287,10 @@ void setup()
 
   // Config DS3231 interrupts
   attachPCINT(digitalPinToPCINT(DS3231_IRQ), rtcAlarmIrq, FALLING);
+  // Attach PCINT to wake-up CPU when data will arrive by UART in sleep mode
+  attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
+  // This interrupt is not need at this time
+  disablePCINT(digitalPinToPCINT(UART_RX));
 
   // Read settings from EEPROM
   stationNum = majEepromRead(EEPROM_STATION_NUM_ADDR);
@@ -299,7 +307,7 @@ void setup()
   setMode(DEFAULT_MODE);
  
   // Config UART
-  Serial.begin(9600);
+  Serial.begin(SERIAL_BAUDRATE);
   serialRxPos = 0;
   
   //checkBattery(true);
@@ -571,8 +579,7 @@ byte serialCrc(byte *data, uint8_t from, uint8_t to)
 
 void wakeupByUartRx()
 {
-  // CPU is on, UART works, so no need interrupts anymore
-  detachPCINT(digitalPinToPCINT(UART_RX));
+  serialWakeupFlag = 1;
 }
 
 uint8_t getPinMode(uint8_t pin)
@@ -642,7 +649,7 @@ void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t
 void sleep(uint16_t ms)
 {
   // We can't sleep if there is data received by UART or DS3231 interrupt
-  if(rtcAlarmFlag || Serial.available() > 0)
+  if(rtcAlarmFlag || Serial.available() > 0 || serialWakeupFlag)
     return;
     
   uint16_t period;
@@ -650,8 +657,9 @@ void sleep(uint16_t ms)
   digitalWrite(RC522_RST,LOW);
   digitalWrite(LED,LOW);
   digitalWrite(BUZ,LOW);
+  Serial.end();
   // Turn on PCINT to wake-up CPU when data will arrive by UART
-  attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
+  enablePCINT(digitalPinToPCINT(UART_RX));
   // Reset watchdog
   Watchdog.reset();
   period = Watchdog.sleep(ms);
@@ -659,6 +667,11 @@ void sleep(uint16_t ms)
   // Use recursion if sleep time below need time
   if(ms > period)
     sleep(ms - period);
+  // no need this interrupt anymore
+  disablePCINT(digitalPinToPCINT(UART_RX));
+  serialWakeupFlag = 0;
+  serialRxPos = 0;
+  Serial.begin(SERIAL_BAUDRATE);
 }
 
 void setMode(uint8_t md)
