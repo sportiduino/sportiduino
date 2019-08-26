@@ -49,7 +49,7 @@ sportiduino.build.variant=standard
 //-------------------------------------------------------------------
 // HARDWARE
 
-#ifdef HW_VERS == 1
+#if HW_VERS == 1
   
   #define BUZ           3
   #define LED           4
@@ -175,6 +175,8 @@ ts t;
 int16_t alarmYear;
 // We need this variable because DS321 doesn't have Month for Alarms
 uint8_t alarmMonth;
+// To support wakeup on hw v1
+uint32_t alarmTimestamp = 0;
 // This flag is true when it's DS3231 interrupt
 uint8_t rtcAlarmFlag;
 // UART data buffer
@@ -338,6 +340,14 @@ void loop()
       setMode(MODE_ACTIVE);
     }
   }
+
+  // automatic wake-up at competition start implementation for hw v1
+
+#if HW_VERS == 1
+  DS3231_get(&t);
+  if(t.unixtime >= alarmTimestamp && (alarmTimestamp - t.unixtime) < 60)
+    setMode(MODE_ACTIVE);
+#endif
 
   // process cards
   processRfid();
@@ -641,6 +651,7 @@ void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t
   t.hour = hour;
   t.min = mi;
   t.sec = sec;
+  alarmTimestamp = get_unixtime(t);
 
   DS3231_clear_a1f();
   DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
