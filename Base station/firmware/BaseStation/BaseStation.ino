@@ -6,7 +6,7 @@
 
 #define HW_VERS         2
 #define FW_MAJOR_VERS   6
-#define FW_MINOR_VERS   1
+#define FW_MINOR_VERS   2
 
 #define VERS ((HW_VERS - 1) << 6) | ((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS
 
@@ -219,7 +219,6 @@ void setMode(uint8_t md);
 void setStationNum(uint8_t num);
 void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
-uint32_t readVcc(uint32_t refConst);
 bool checkBattery(bool beepEnabled);
 void processRfid();
 void processTimeMasterCard(byte *data, byte dataSize);
@@ -604,7 +603,7 @@ uint8_t getPinMode(uint8_t pin)
   if (0 == bit) return UNKNOWN_PIN;
 
   // Is there only a single bit set?
-  if (bit & bit - 1) return UNKNOWN_PIN;
+  if (bit & (bit - 1)) return UNKNOWN_PIN;
 
   volatile uint8_t *reg, *out;
   reg = portModeRegister(port);
@@ -734,44 +733,41 @@ uint16_t getMarkLogEnd()
   return endAdr;
 }
 
-uint32_t readVcc(uint32_t refConst)
-{
-  // Turn on ADC
-  ADCSRA |=  bit(ADEN); 
-  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-  // Wait refernce voltage stabilization
-  delay(5);
-  // Start to measure
-  ADCSRA |= _BV(ADSC);
-  while(bit_is_set(ADCSRA, ADSC));
-
-  uint8_t low  = ADCL;
-  uint8_t high = ADCH;
-
-  uint32_t result = (high << 8) | low;
-
-  result = refConst / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-  // Turn off ADC
-  ADCSRA ^= bit(ADEN);
-  
-  return result;
-}
-
 bool checkBattery(bool beepEnabled)
 {
   const uint32_t refConst = 1125300L; //voltage constanta
   uint32_t value = 0;
+  uint32_t adcl, adch;
   bool result = false;
 
-  Watchdog.reset();
+  // Turn on ADC
+  ADCSRA |=  bit(ADEN); 
+  ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
 
+  Watchdog.reset();
+  // Turn on led to increase current
   digitalWrite(LED, HIGH);
   delay(5000);
+  // Measure battery voltage
+  for(uint8_t i = 0; i < 10; i++)
+  {
+    // Start to measure
+    ADCSRA |= _BV(ADSC);
+    while(bit_is_set(ADCSRA, ADSC));
+    // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+    adcl = ADCL;
+    adch = ADCH;
 
-  for (uint8_t i = 0; i < 10; i++)
-    value += readVcc(refConst);
+    adcl &= 0xFF;
+    adch &= 0xFF;
 
-  value /= 10;
+    value += ((adch << 8) | adcl); 
+  }
+
+  value = (refConst*10) / value;
+
+  // Turn off ADC
+  ADCSRA = 0;
 
   digitalWrite(LED, LOW);
   delay(250);
@@ -1161,9 +1157,9 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum)
 {
   uint8_t startPage = CARD_PAGE_START;
   uint8_t endPage = rfidGetCardMaxPage();
-  uint8_t page;
+  uint8_t page = startPage;
   byte pageData[4] = {0,0,0,0};
-  byte num;
+  byte num = 0;
 
   *newPage = 0;
   *lastNum = 0;
