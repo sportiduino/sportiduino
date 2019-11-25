@@ -1,8 +1,11 @@
 #include <EEPROM.h>
+#include <Wire.h>
 #include <ds3231.h>
 #include <Adafruit_SleepyDog.h>
 #include <PinChangeInterrupt.h>
 #include <sportiduino.h>
+
+//#define DEBUG
 
 #define HW_VERS         2
 #define FW_MAJOR_VERS   6
@@ -53,29 +56,42 @@ sportiduino.build.variant=standard
   
   #define BUZ           3
   #define LED           4
+  
   #define RC522_RST     9
   #define RC522_SS      10
   #define RC522_IRQ     6
-  // PC3 (26) Sold a wire between Atmega328-Pin26 and DS3231-Pin3 to enable the wake-up function
+  
+  #define DS3231_VCC    5
   #define DS3231_IRQ    A3
   // PC1 (24) This pin is not used. It is reserved for future
   #define DS3231_32K    A1
+  #define DS3231_RST    A0
+  
   #define UART_RX       0
-  #define DS3231_VCC    5
+  #define UART_TX       1
+  #define SDA           A4
+  #define SCL           A5
   
 #else
 
   #define BUZ           3
   #define LED           4
+  
   #define RC522_RST     9
   #define RC522_SS      10
   #define RC522_IRQ     6
+  
+  // It is not used anymore. Just the free pin acts as output
+  #define DS3231_VCC    8
   #define DS3231_IRQ    A3
   // PD5 (9) This pin is not used. It is reserved for future
   #define DS3231_32K    5
+  #define DS3231_RST    2
+  
   #define UART_RX       0
-  // It is not used anymore. Just the free pin acts as output
-  #define DS3231_VCC    8
+  #define UART_TX       1
+  #define SDA           A4
+  #define SCL           A5
   
 #endif
 
@@ -262,18 +278,20 @@ void setup()
   pinMode(DS3231_32K,INPUT_PULLUP);
   pinMode(DS3231_VCC, OUTPUT);
 
+#if HW_VERS > 1
+  pinMode(DS3231_RST, INPUT); // if set as pull_up it takes additional supply current
+#else
+  // not connected in v1
+  pinMode(DS3231_RST, INPUT_PULLUP);
+#endif
+
   digitalWrite(LED,LOW);
   digitalWrite(BUZ,LOW);
   digitalWrite(RC522_RST,LOW);
   digitalWrite(DS3231_VCC,HIGH);
-
-  // config unused pins as pulled-up
-  for(byte pin = 0; pin < A5; pin++)
-  {
-    if(getPinMode(pin) == INPUT)
-      pinMode(pin, INPUT_PULLUP);
-  }
-  
+  delay(5);
+  // initialize I2C
+  Wire.begin();
   // Config DS3231
   // Reset all interrupts and disable 32 kHz output
   DS3231_set_addr(DS3231_STATUS_ADDR, 0);
@@ -288,10 +306,6 @@ void setup()
 
   // Config DS3231 interrupts
   attachPCINT(digitalPinToPCINT(DS3231_IRQ), rtcAlarmIrq, FALLING);
-  // Attach PCINT to wake-up CPU when data will arrive by UART in sleep mode
-  attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
-  // This interrupt is not need at this time
-  disablePCINT(digitalPinToPCINT(UART_RX));
 
   // Read settings from EEPROM
   stationNum = majEepromRead(EEPROM_STATION_NUM_ADDR);
@@ -310,9 +324,7 @@ void setup()
   // Config UART
   Serial.begin(SERIAL_BAUDRATE);
   serialRxPos = 0;
-  
-  //checkBattery(true);
-  
+
   delay(1000);
   
   BEEP_SYSTEM_STARTUP;
@@ -658,18 +670,43 @@ void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t
 
 void sleep(uint16_t ms)
 {
-  // We can't sleep if there is data received by UART or DS3231 interrupt
+  uint16_t period;
+  
+  // We can't sleep if there are data received by UART or DS3231 interrupt
   if(rtcAlarmFlag || Serial.available() > 0 || serialWakeupFlag)
     return;
     
-  uint16_t period;
-  
+  // Resolve issue #61
   digitalWrite(RC522_RST,LOW);
   digitalWrite(LED,LOW);
   digitalWrite(BUZ,LOW);
+  digitalWrite(DS3231_VCC,LOW);
+
+  Wire.end();
   Serial.end();
-  // Turn on PCINT to wake-up CPU when data will arrive by UART
-  enablePCINT(digitalPinToPCINT(UART_RX));
+
+  pinMode(SDA, INPUT);  // it is pulled up by hardware
+  pinMode(SCL, INPUT);  // it is pulled up by hardware
+  
+  for(byte pin = 0; pin < A5; pin++)
+  {
+    if( pin == SDA ||
+        pin == SCL ||
+        pin == RC522_RST ||
+        pin == LED ||
+        pin == BUZ ||
+        pin == DS3231_VCC ||
+        pin == DS3231_RST )
+    {
+      continue;
+    }
+
+    pinMode(pin, INPUT_PULLUP);
+  }
+  // Turn off ADC
+  ADCSRA = 0;
+  // Attach PCINT to wake-up CPU when data will arrive by UART in sleep mode
+  attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
   // Reset watchdog
   Watchdog.reset();
   period = Watchdog.sleep(ms);
@@ -678,10 +715,13 @@ void sleep(uint16_t ms)
   if(ms > period)
     sleep(ms - period);
   // no need this interrupt anymore
-  disablePCINT(digitalPinToPCINT(UART_RX));
+  detachPCINT(digitalPinToPCINT(UART_RX));
+  // Resolve issue #61
+  digitalWrite(DS3231_VCC, HIGH);
   serialWakeupFlag = 0;
   serialRxPos = 0;
   Serial.begin(SERIAL_BAUDRATE);
+  Wire.begin();
 }
 
 void setMode(uint8_t md)
