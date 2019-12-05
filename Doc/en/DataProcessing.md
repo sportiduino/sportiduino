@@ -8,5 +8,5 @@ There is also a [similar program on Processing](https://github.com/alexandervoli
 
 ### SportOrg
 
-Reading chips is implemented in the program [SportOrg](https://github.com/sportorg/pysport)
+Reading cards is implemented in the program [SportOrg](https://github.com/sportorg/pysport)
 

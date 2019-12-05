@@ -7,7 +7,7 @@ With the help of the master station you can perform a number of referee tasks:
 3. After the start: reading the cards, creating a split table
 4. After the finish: reading the log from the base station.
 
-![](/harware/MasterStation/Scheme.PNG)
+![](/hardware/MasterStation/usb/Scheme.PNG)
 
 There are gerber files in the folder, you can order a pcb and solder, so it will be more reliable, but you can do everything with wires and double-sided scotch, the benefit of components is quite small.
 

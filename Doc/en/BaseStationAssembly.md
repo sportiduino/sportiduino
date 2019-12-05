@@ -1,4 +1,4 @@
-### Компоненты станции отметки
+### Base station components
 
 ![](/Images/s01.jpg)
 
@@ -152,7 +152,7 @@ Mix epoxy glue and smudge the place for diode insertion
 
 Insert the board, the diode to coat with thicker glue to fit well. On the other hand, wipe the diode with a napkin. And wait until the glue stiffens
 
-/Images/s24.jpg
+![](/Images/s24.jpg)
 
 ![](/Images/s25.jpg)
 
