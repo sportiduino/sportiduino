@@ -1,7 +1,7 @@
 #ifndef SPORTIDUINO_H
 #define SPORTIDUINO_H
 
-#include <arduino.h>
+#include <Arduino.h>
 
 #define MIN_ANTENNA_GAIN      2<<4
 #define MAX_ANTENNA_GAIN      7<<4
