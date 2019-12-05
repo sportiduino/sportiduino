@@ -6,7 +6,7 @@
 
 1.	RFID-модуль RC522.
 
-2.	Печатная плата. Можно заказать через EasyEDA. Gerber файлы находятся в папке [Проект]\Base station\hardware\prod (на фото устаревшая версия печатной платы, не обращайте внимания)
+2.	Печатная плата. Можно заказать через EasyEDA. Gerber файлы находятся в папке [Проект]\hardware\BaseStation\prod (на фото устаревшая версия печатной платы, не обращайте внимания)
 
 3.	Микросхемы
 
@@ -116,11 +116,11 @@ sportiduino.build.variant=standard
 
 ############################################################## 
 ```
-После этого копируем файл optiboot_atmega328_pro_8Mhz.hex из папки [Проект]\Base station\firmware\Optiboot в папку [Program Files]\Arduino\hardware\arduino\avr\bootloaders\optiboot
+После этого копируем файл optiboot_atmega328_pro_8Mhz.hex из папки [Проект]\firmware\Optiboot в папку [Program Files]\Arduino\hardware\arduino\avr\bootloaders\optiboot
 
 Перезапускаем Arduino IDE. В меню Инструменты->Плата должна появиться наша плата Sportiduino. 
 
-Открываем скетч BaseStation.ino из папки [Проект]\Base station\firmware в Arduino IDE. В меню Инструменты->Плата устанавливаем Sportiduino. Далее в меню Инструменты->Программатор выбираем Arduino As ISP. 
+Открываем скетч BaseStation.ino из папки [Проект]\firmware\BaseStation в Arduino IDE. В меню Инструменты->Плата устанавливаем Sportiduino. Далее в меню Инструменты->Программатор выбираем Arduino As ISP. 
 
 ![](/Images/BaseStationProgConf.jpg?raw=true)
 
@@ -208,7 +208,7 @@ sportiduino.build.variant=standard
 
 ![](/Images/s36.jpg?raw=true)
 
-Печатаем на принтере наклейки из папки [Проект]\Base station\2d. Наклейки выполнены в программе Inkscape. Можно заказать печать наклеек на светоотражающей или светонакопительной плёнке. Приклеиваем наклейку и сверху ламинируем её скотчем (если наклейка из простой бумаги). Станция готова!
+Печатаем на принтере наклейки из папки [Проект]\hardware\BaseStation\2d. Наклейки выполнены в программе Inkscape. Можно заказать печать наклеек на светоотражающей или светонакопительной плёнке. Приклеиваем наклейку и сверху ламинируем её скотчем (если наклейка из простой бумаги). Станция готова!
 
 ![](/Images/BaseStation1.jpg)
 
