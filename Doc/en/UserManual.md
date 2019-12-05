@@ -130,7 +130,7 @@ To make sure that the settings are recorded correctly, click on the Read button.
 
 ![](/Images/SportiduinoPQ-ConfigByUart2.jpg?raw=true)
 
-<b>Warning: </ b> Set the current password correctly in the SportduinoPQ program. After the station is assembled, the default password is 0.0.0. If you do not correctly set the password, the base station will not accept settings from the master chip or from the USB-to-TTL converter!
+**Warning:** Set the current password correctly in the SportduinoPQ program. After the station is assembled, the default password is 0.0.0. If you do not correctly set the password, the base station will not accept settings from the master chip or from the USB-to-TTL converter!
 
 ![](/Images/SportiduinoPQ-Pwd.jpg?raw=true)
 
