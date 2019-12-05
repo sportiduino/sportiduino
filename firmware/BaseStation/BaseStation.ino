@@ -1,7 +1,8 @@
 // To compile this project with Arduino IDE change sketchbook to <Project>/firmware
 
-/* Add the board decsription in your <Program Files>\Arduino\hardware\boards.txt
- * And copy optiboot_atmega328_pro_8Mhz.hex to <Program Files>\Arduino\hardware\arduino\avr\bootloaders\optiboot
+/* Add the board description in your <Arduino-install-dir>/hardware/arduino/avr/boards.txt
+ * And copy optiboot_atmega328_pro_8Mhz.hex to <Arduino-install-dir>/hardware/arduino/avr/bootloaders/optiboot
+ * Board description:
 ##############################################################
 
 sportiduino.name=Sportiduino
