@@ -80,9 +80,9 @@ It is advisable to print these instructions in large print and hang them to fami
 * Without a mark at the starting station, the chips may not work, in this case you need to return to the start
 * If you came to a CP at the same time as another participant, then you need to check in by turns. You can not simultaneously attach to the station mark two or more chips, in this case, the mark will be recorded only on one of the chips
 
-## Instructions for distance installers
+## Instructions for course installers
 
-To work with stations, you must use the SportiduinoPQ program - this is preparing the participants' chips, setting up the stations. Reading chips and counting results is implemented in the SportOrg program.
+To work with stations, you should use the SportiduinoPQ program - this is preparing the participants' chips, setting up the stations. Reading chips and counting results is implemented in the SportOrg program.
 
 SportiduinoPQ can be downloaded in the [latest release](https://github.com/alexandervolikov/SportiduinoPQ/releases). In the release there is an exe file that does not require installation. When the program is running, the entire log is saved to the log subfolder.
 

@@ -1,6 +1,6 @@
 mark station components
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/w01.jpg)
+![](/Images/w01.jpg)
 
 1. RFID module RC522. Pretty common.
 
@@ -16,24 +16,24 @@ mark station components
 
 First you need to solder arduino nano, although you can order with already soldered legs. Spread the legs and holes with flux, solder. ISP (2 * 3 connector) can not be soldered, but with it you can upload stations and do without an additional programmer in the form of Arduino Uno.
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/w02.jpg )
+![](/Images/w02.jpg )
 
 Further solder in the main board. Also in the main board we solder the 1 * 8 connector, the angle-bent LED, the buzzer and the resistors 0805 by 47 ohm (to the buzzer) and 150 ohms to the LED
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/w03.jpg)
+![](/Images/w03.jpg)
  
 
 Then solder the RFID module. We connect it via a USB wire to the computer.
  
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/w04.jpg)
+![](/Images/w04.jpg)
 
 
 Open the Arduino program on the computer, in the settings we specify the board type (Arduino Nano), select the required COM port and upload the RFID_ReadSet firmware onto the board.
 
 We try on the case. The board I got a little unsuccessful, the cable barely damp, it would be nice to slightly shift the arduino nano and put it at an angle. But you can squeeze it. A small groove in the body is cut out for the wire. The LED is greased with epoxy.
  
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/w05.jpg)
+![](/Images/w05.jpg)
 
 After that the body is twisted and ready for use.
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/w06.jpg)
+![](/Images/w06.jpg)
