@@ -1,24 +1,8 @@
-#include <EEPROM.h>
-#include <ds3231.h>
-#include <Adafruit_SleepyDog.h>
-#include <PinChangeInterrupt.h>
-#include <sportiduino.h>
+// To compile this project with Arduino IDE change sketchbook to <Project>/firmware
 
-#define HW_VERS         2
-#define FW_MAJOR_VERS   6
-#define FW_MINOR_VERS   1
-
-#define VERS ((HW_VERS - 1) << 6) | ((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS
-
-// To compile this project install these libraries:
-// - AdafruitSpeepyDog by Adafruit (https://github.com/adafruit/Adafruit_SleepyDog)
-// - MFRC522 by GithubCommunity (https://github.com/miguelbalboa/rfid)
-// - DS3231-master from <Project>/Libraries/DS3231-master
-// - PinChangeInterrupt by NicoHood https://github.com/NicoHood/PinChangeInterrupt
-// - Sportiduino from <Project>/Libraries/sportiduino
-
-/* Add the board decsription in your <Program Files>\Arduino\hardware\boards.txt
- * And copy optiboot_atmega328_pro_8Mhz.hex to <Program Files>\Arduino\hardware\arduino\avr\bootloaders\optiboot
+/* Add the board description in your <Arduino-install-dir>/hardware/arduino/avr/boards.txt
+ * And copy optiboot_atmega328_pro_8Mhz.hex to <Arduino-install-dir>/hardware/arduino/avr/bootloaders/optiboot
+ * Board description:
 ##############################################################
 
 sportiduino.name=Sportiduino
@@ -45,6 +29,18 @@ sportiduino.build.variant=standard
 
 ############################################################## 
  */
+
+#include <EEPROM.h>
+#include <ds3231.h>
+#include <Adafruit_SleepyDog.h>
+#include <PinChangeInterrupt.h>
+#include <sportiduino.h>
+
+#define HW_VERS         2
+#define FW_MAJOR_VERS   6
+#define FW_MINOR_VERS   1
+
+#define VERS ((HW_VERS - 1) << 6) | ((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS
 
 //-------------------------------------------------------------------
 // HARDWARE

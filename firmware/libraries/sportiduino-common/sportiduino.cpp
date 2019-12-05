@@ -1,9 +1,9 @@
-#include <sportiduino.h>
 #include <EEPROM.h>
 #include <Adafruit_SleepyDog.h>
 #include <MFRC522.h>
 #include <SPI.h>
 #include <string.h>
+#include "sportiduino.h"
 
 MFRC522 mfrc522;
 MFRC522::MIFARE_Key key;

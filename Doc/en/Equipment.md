@@ -1,4 +1,4 @@
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/equip.jpg)
+![](/Images/equip.jpg)
 
 1. The multimeter. Not necessarily, but can be very useful.
 
@@ -31,17 +31,17 @@
 
 To upload boatloder, you will additionally need another Arduino, it is convenient to take arduino UNO.
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/UNO.JPG)
+![](/Images/UNO.JPG)
 
 To upload the firmware you need USB-UART (USB-TTL, USB-SERIAL, etc.). I'm using the scheme CH340. It is important that the DTR pin (RST) is working, read the reviews before purchasing.
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/TTL-UART.JPG)
+![](/Images/TTL-UART.JPG)
 
 To connect the boards to each other you need wires, for example Dupont
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/Wire.JPG)
+![](/Images/Wire.JPG)
 
 Not necessary, but you may also need a breadboard for any purpose
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/Breadboard.JPG)
+![](/Images/Breadboard.JPG)
 
