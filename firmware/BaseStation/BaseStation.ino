@@ -244,8 +244,7 @@ byte serialCrc(byte *data, uint8_t from, uint8_t to);
 
 // Note: DS3231 works by UTC time!
 
-void setup()
-{
+void setup() {
   MCUSR &= ~(1 << WDRF);
   Watchdog.disable();
   Watchdog.reset();
@@ -265,10 +264,8 @@ void setup()
   digitalWrite(DS3231_VCC,HIGH);
 
   // config unused pins as pulled-up
-  for(byte pin = 0; pin < A5; pin++)
-  {
-    if(getPinMode(pin) == INPUT)
-    {
+  for(byte pin = 0; pin < A5; pin++) {
+    if(getPinMode(pin) == INPUT) {
       pinMode(pin, INPUT_PULLUP);
     }
   }
@@ -282,8 +279,7 @@ void setup()
   memset(&t, 0, sizeof(t));
   // Check current time
   DS3231_get(&t);
-  if(t.year < 2017)
-  {
+  if(t.year < 2017) {
     BEEP_TIME_ERROR;
   }
 
@@ -297,13 +293,11 @@ void setup()
   // Read settings from EEPROM
   stationNum = majEepromRead(EEPROM_STATION_NUM_ADDR);
 
-  if(stationNum == 0)
-  {
+  if(stationNum == 0) {
     setStationNum(DEFAULT_STATION_NUM);
   }
 
-  if(!readPwdSettings())
-  {
+  if(!readPwdSettings()) {
     clearMarkLog();
     setStationNum(DEFAULT_STATION_NUM);
   }
@@ -324,21 +318,18 @@ void setup()
   Watchdog.enable(8000);
 }
 
-void loop()
-{
+void loop() {
   Watchdog.reset();
 
   // process DS3231 alarm
-  if(rtcAlarmFlag)
-  {
+  if(rtcAlarmFlag) {
     rtcAlarmFlag = 0;
     DS3231_clear_a1f();
 
     DS3231_get(&t);
     // DS3231 doesn't support year & month in alarm
     // so it's implemented on MCU side
-    if(t.year == alarmYear && t.mon == alarmMonth)
-    {
+    if(t.year == alarmYear && t.mon == alarmMonth) {
       setMode(MODE_ACTIVE);
     }
   }
@@ -347,8 +338,7 @@ void loop()
 
 #if HW_VERS == 1
   DS3231_get(&t);
-  if(t.unixtime >= alarmTimestamp && (alarmTimestamp - t.unixtime) < 60)
-  {
+  if(t.unixtime >= alarmTimestamp && (alarmTimestamp - t.unixtime) < 60) {
     setMode(MODE_ACTIVE);
   }
 #endif
@@ -357,8 +347,7 @@ void loop()
   processRfid();
 
   // process mode
-  switch(mode)
-  {
+  switch(mode) {
     case MODE_ACTIVE:
       sleep(MODE_ACTIVE_CARD_CHECK_PERIOD);
 
@@ -366,12 +355,9 @@ void loop()
       digitalWrite(LED,HIGH);
 #endif
 
-      if(getSettings() & SETTINGS_ALWAYS_ACTIVE)
-      {
+      if(getSettings() & SETTINGS_ALWAYS_ACTIVE) {
          workTimer = 0;
-      }
-      else if(workTimer >= WAIT_PERIOD1)
-      {
+      } else if(workTimer >= WAIT_PERIOD1) {
         setMode(MODE_WAIT);
       }
       break;
@@ -382,16 +368,11 @@ void loop()
       digitalWrite(LED,HIGH);
 #endif
 
-      if(getSettings() & SETTINGS_ALWAYS_WAIT)
-      {
+      if(getSettings() & SETTINGS_ALWAYS_WAIT) {
         workTimer = 0;
-      }
-      else if(workTimer >= WAIT_PERIOD1 && (getSettings() & SETTINGS_WAIT_PERIOD1))
-      {
+      } else if(workTimer >= WAIT_PERIOD1 && (getSettings() & SETTINGS_WAIT_PERIOD1)) {
         setMode(MODE_SLEEP);
-      }
-      else if(workTimer >= WAIT_PERIOD2 && (getSettings() & SETTINGS_WAIT_PERIOD2))
-      {
+      } else if(workTimer >= WAIT_PERIOD2 && (getSettings() & SETTINGS_WAIT_PERIOD2)) {
         setMode(MODE_SLEEP);
       }
       break;
@@ -406,23 +387,19 @@ void loop()
   }
 
   // process serial
-  if(Serial.available() > 0)
-  {
+  if(Serial.available() > 0) {
     serialEvent();
   }
 }
 
-void serialEvent()
-{
-  while(Serial.available())
-  {
+void serialEvent() {
+  while(Serial.available()) {
     serialData[serialRxPos] = Serial.read();
     serialRxPos++;
 
     if( serialRxPos > 1 &&
         serialData[serialRxPos - 1] == SERIAL_MSG_START2 &&
-        serialData[serialRxPos - 2] == SERIAL_MSG_START1)
-    {
+        serialData[serialRxPos - 2] == SERIAL_MSG_START1) {
       serialData[0] = SERIAL_MSG_START1;
       serialData[1] = SERIAL_MSG_START2;
       serialRxPos = 2;
@@ -430,15 +407,12 @@ void serialEvent()
 
     if( serialRxPos > 1 && 
         serialData[serialRxPos - 1] == SERIAL_MSG_END2 &&
-        serialData[serialRxPos - 2] == SERIAL_MSG_END1)
-    {
+        serialData[serialRxPos - 2] == SERIAL_MSG_END1) {
       byte func = serialData[2];
       byte crc8 = serialCrc(serialData, 2, serialRxPos - 3);
 
-      if(crc8 == serialData[serialRxPos - 3])
-      {
-        switch(func)
-        {
+      if(crc8 == serialData[serialRxPos - 3]) {
+        switch(func) {
           case SERIAL_FUNC_READ_INFO:
             serialFuncReadInfo(serialData, serialRxPos);
             break;
@@ -449,35 +423,29 @@ void serialEvent()
             serialRespStatus(SERIAL_ERROR_FUNC);
             break;
         }
-      }
-      else
-      {
+      } else {
         serialRespStatus(SERIAL_ERROR_CRC);
       }
 
       serialRxPos = 0;      
     }
 
-    if(serialRxPos >= SERIAL_DATA_LENGTH)
-    {
+    if(serialRxPos >= SERIAL_DATA_LENGTH) {
       serialRxPos = 0;
       serialRespStatus(SERIAL_ERROR_SIZE);
     }
   }
 }
 
-void serialFuncReadInfo(byte *data, byte dataSize)
-{
-  if(dataSize < 5)
-  {
+void serialFuncReadInfo(byte *data, byte dataSize) {
+  if(dataSize < 5) {
     serialRespStatus(SERIAL_ERROR_SIZE);
     return;
   }
 
   if( data[3] != getPwd(0) ||
       data[4] != getPwd(1) ||
-      data[5] != getPwd(2) )
-  {
+      data[5] != getPwd(2) ) {
     serialRespStatus(SERIAL_ERROR_PWD);
     return;
   }
@@ -531,18 +499,15 @@ void serialFuncReadInfo(byte *data, byte dataSize)
   BEEP_SERIAL_OK;
 }
 
-void serialFuncWriteSettings(byte *data, byte dataSize)
-{
-  if(dataSize < 23)
-  {
+void serialFuncWriteSettings(byte *data, byte dataSize) {
+  if(dataSize < 23) {
     serialRespStatus(SERIAL_ERROR_SIZE);
     return;
   }
   
   if( data[3] != getPwd(0) ||
       data[4] != getPwd(1) ||
-      data[5] != getPwd(2) )
-  {
+      data[5] != getPwd(2) ) {
     serialRespStatus(SERIAL_ERROR_PWD);
     return;
   }
@@ -559,8 +524,7 @@ void serialFuncWriteSettings(byte *data, byte dataSize)
   serialRespStatus(SERIAL_OK);
 }
 
-void serialRespStatus(uint8_t code)
-{
+void serialRespStatus(uint8_t code) {
   uint8_t pos = 0;
   byte *sendData = &serialData[0];
   
@@ -579,69 +543,55 @@ void serialRespStatus(uint8_t code)
 
   Serial.write(sendData, pos);
 
-  if(code)
-  {
+  if(code) {
     BEEP_SERIAL_ERROR;
-  }
-  else
-  {
+  } else {
     BEEP_SERIAL_OK;
   }
 }
 
-byte serialCrc(byte *data, uint8_t from, uint8_t to)
-{
+byte serialCrc(byte *data, uint8_t from, uint8_t to) {
   byte crc8 = 0;
   
-  for(uint8_t i = from; i < to; i++)
-  {
+  for(uint8_t i = from; i < to; i++) {
     crc8 ^= data[i];
   }
     
   return crc8;
 }
 
-void wakeupByUartRx()
-{
+void wakeupByUartRx() {
   serialWakeupFlag = 1;
 }
 
-uint8_t getPinMode(uint8_t pin)
-{
+uint8_t getPinMode(uint8_t pin) {
   uint8_t bit = digitalPinToBitMask(pin);
   uint8_t port = digitalPinToPort(pin);
 
   // I don't see an option for mega to return this, but whatever...
-  if (NOT_A_PIN == port) return UNKNOWN_PIN;
+  if(NOT_A_PIN == port) return UNKNOWN_PIN;
 
   // Is there a bit we can check?
-  if (0 == bit) return UNKNOWN_PIN;
+  if(0 == bit) return UNKNOWN_PIN;
 
   // Is there only a single bit set?
-  if (bit & bit - 1) return UNKNOWN_PIN;
+  if(bit & bit - 1) return UNKNOWN_PIN;
 
   volatile uint8_t *reg, *out;
   reg = portModeRegister(port);
   out = portOutputRegister(port);
 
-  if (*reg & bit)
-  {
+  if(*reg & bit) {
     return OUTPUT;
-  }
-  else if (*out & bit)
-  {
+  } else if(*out & bit) {
     return INPUT_PULLUP;
-  }
-  else
-  {
+  } else {
     return INPUT;
   }
 }
 
-void setStationNum(uint8_t num)
-{
-  if(num == stationNum || num == 0)
-  {
+void setStationNum(uint8_t num) {
+  if(num == stationNum || num == 0) {
     return;
   }
 
@@ -649,8 +599,7 @@ void setStationNum(uint8_t num)
   majEepromWrite(EEPROM_STATION_NUM_ADDR, stationNum);
 }
 
-void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec)
-{
+void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
   memset(&t, 0, sizeof(t));
 
   t.mon = mon;
@@ -663,8 +612,7 @@ void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, u
   DS3231_set(t);  
 }
 
-void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec)
-{
+void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
   uint8_t flags[5] = {0,0,0,0,0};
   memset(&t, 0, sizeof(t));
   alarmMonth = t.mon = mon;
@@ -679,11 +627,9 @@ void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t
   DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
 }
 
-void sleep(uint16_t ms)
-{
+void sleep(uint16_t ms) {
   // We can't sleep if there is data received by UART or DS3231 interrupt
-  if(rtcAlarmFlag || Serial.available() > 0 || serialWakeupFlag)
-  {
+  if(rtcAlarmFlag || Serial.available() > 0 || serialWakeupFlag) {
     return;
   }
     
@@ -700,8 +646,7 @@ void sleep(uint16_t ms)
   period = Watchdog.sleep(ms);
   workTimer += period;
   // Use recursion if sleep time below need time
-  if(ms > period)
-  {
+  if(ms > period) {
     sleep(ms - period);
   }
   // no need this interrupt anymore
@@ -711,26 +656,20 @@ void sleep(uint16_t ms)
   Serial.begin(SERIAL_BAUDRATE);
 }
 
-void setMode(uint8_t md)
-{
+void setMode(uint8_t md) {
   mode = md;
   workTimer = 0;
 
   // Check mode with settings
-  if(getSettings() & SETTINGS_ALWAYS_WAIT)
-  {
+  if(getSettings() & SETTINGS_ALWAYS_WAIT) {
     mode = MODE_WAIT;
-  }
-  else if(getSettings() & SETTINGS_ALWAYS_ACTIVE)
-  {
+  } else if(getSettings() & SETTINGS_ALWAYS_ACTIVE) {
     mode = MODE_ACTIVE;
   }
 }
 
-void writeCardNumToLog(uint16_t num)
-{
-  if(num > MAX_CARD_NUM_TO_LOG)
-  {
+void writeCardNumToLog(uint16_t num) {
+  if(num > MAX_CARD_NUM_TO_LOG) {
     // BEEP_EEPROM_ERROR;
     return;
   }
@@ -742,32 +681,27 @@ void writeCardNumToLog(uint16_t num)
   EEPROM.write(byteAdr, eepromByte);
 }
 
-void clearMarkLog()
-{
+void clearMarkLog() {
   uint16_t endAdr = getMarkLogEnd();
   
-  for (uint16_t a = 0; a <= endAdr; a++)
-  {
+  for (uint16_t a = 0; a <= endAdr; a++) {
     Watchdog.reset();
     EEPROM.write(a,0);
     delay(2);
   }
 }
 
-uint16_t getMarkLogEnd()
-{
+uint16_t getMarkLogEnd() {
   uint16_t endAdr = MAX_CARD_NUM_TO_LOG/ 8;
   
-  if(endAdr > 1000)
-  {
+  if(endAdr > 1000) {
     endAdr = 1000;
   }
 
   return endAdr;
 }
 
-uint32_t readVcc(uint32_t refConst)
-{
+uint32_t readVcc(uint32_t refConst) {
   // Turn on ADC
   ADCSRA |=  bit(ADEN); 
   ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
@@ -775,8 +709,7 @@ uint32_t readVcc(uint32_t refConst)
   delay(5);
   // Start to measure
   ADCSRA |= _BV(ADSC);
-  while(bit_is_set(ADCSRA, ADSC))
-  {};
+  while(bit_is_set(ADCSRA, ADSC)) {};
 
   uint8_t low  = ADCL;
   uint8_t high = ADCH;
@@ -790,8 +723,7 @@ uint32_t readVcc(uint32_t refConst)
   return result;
 }
 
-bool checkBattery(bool beepEnabled)
-{
+bool checkBattery(bool beepEnabled) {
   const uint32_t refConst = 1125300L; //voltage constanta
   uint32_t value = 0;
   bool result = false;
@@ -801,8 +733,7 @@ bool checkBattery(bool beepEnabled)
   digitalWrite(LED, HIGH);
   delay(5000);
 
-  for (uint8_t i = 0; i < 10; i++)
-  {
+  for (uint8_t i = 0; i < 10; i++) {
     value += readVcc(refConst);
   }
 
@@ -813,23 +744,16 @@ bool checkBattery(bool beepEnabled)
   
   Watchdog.reset();
 
-  if(value < 3100)
-  {
+  if(value < 3100) {
     result = false;
-  }
-  else
-  {
+  } else {
     result = true;
   }
     
-  if(beepEnabled)
-  {
-    if(result)
-    {
+  if(beepEnabled) {
+    if(result) {
       BEEP_BATTERY_OK;
-    }
-    else
-    {
+    } else {
       BEEP_LOW_BATTERY;
     }
   }
@@ -837,29 +761,24 @@ bool checkBattery(bool beepEnabled)
   return result;
 }
 
-void processRfid()
-{
+void processRfid() {
   bool result;
   byte pageData[4];
   byte masterCardData[16];
 
   rfidBegin(RC522_SS, RC522_RST);
   
-  if(rfidIsNewCardDetected())
-  {
+  if(rfidIsNewCardDetected()) {
     memset(pageData, 0, sizeof(pageData));
     memset(masterCardData, 0, sizeof(masterCardData));
     
-    if(rfidCardPageRead(CARD_PAGE_INIT, pageData))
-    {
+    if(rfidCardPageRead(CARD_PAGE_INIT, pageData)) {
       // Check the card role
-      if(pageData[2] == 0xFF)
-      {
+      if(pageData[2] == 0xFF) {
         // This is a master card
 
         // Don't change mode if it's the get info card
-        if(pageData[1] != MASTER_CARD_GET_INFO)
-        {
+        if(pageData[1] != MASTER_CARD_GET_INFO) {
           setMode(MODE_ACTIVE);
         }
           
@@ -869,33 +788,27 @@ void processRfid()
         result = true;
           
         result &= rfidCardPageRead(CARD_PAGE_INIT_TIME, pageData);
-        if(result)
-        {
+        if(result) {
           memcpy(masterCardData + 4, pageData, 4);
         }
 
         result &= rfidCardPageRead(CARD_PAGE_INFO1, pageData);
-        if(result)
-        {
+        if(result) {
           memcpy(masterCardData + 8, pageData, 4);
         }
 
         result &= rfidCardPageRead(CARD_PAGE_INFO2, pageData);
-        if(result)
-        {
+        if(result) {
           memcpy(masterCardData + 12, pageData, 4);
         }
 
-        if(result)
-        {
+        if(result) {
           // Process master card
           // Check password
           if( (getPwd(0) == masterCardData[4]) &&
               (getPwd(1) == masterCardData[5]) &&
-              (getPwd(2) == masterCardData[6]) )
-          {
-            switch(masterCardData[1])
-            {
+              (getPwd(2) == masterCardData[6]) ) {
+            switch(masterCardData[1]) {
               case MASTER_CARD_SET_TIME:
                 processTimeMasterCard(masterCardData, sizeof(masterCardData));
                 break;
@@ -914,19 +827,14 @@ void processRfid()
               case MASTER_CARD_GET_INFO:
                 processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
             }
-          }
-          else
-          {
+          } else {
             BEEP_PASS_ERROR;
           }
         }
-      } // End of master card process
-      else
-      {
+      } else {
         setMode(MODE_ACTIVE);
         // Process a participant card
-        switch(stationNum)
-        {
+        switch(stationNum) {
           case CLEAR_STATION_NUM:
             clearParticipantCard();
             break;
@@ -947,10 +855,8 @@ void processRfid()
   rfidEnd();
 }
 
-void processTimeMasterCard(byte *data, byte dataSize)
-{
-  if(dataSize < 16)
-  {
+void processTimeMasterCard(byte *data, byte dataSize) {
+  if(dataSize < 16) {
     BEEP_MASTER_CARD_TIME_ERROR;
     return;
   }
@@ -961,48 +867,35 @@ void processTimeMasterCard(byte *data, byte dataSize)
   memset(&t, 0, sizeof(t));
   DS3231_get(&t);
 
-  if(t.year < 2017)
-  {
+  if(t.year < 2017) {
     BEEP_TIME_ERROR;
-  }
-  else
-  {
+  } else {
     BEEP_MASTER_CARD_TIME_OK;
   }
 }
 
-void processStationMasterCard(byte *data, byte dataSize)
-{
-  if(dataSize < 16)
-  {
+void processStationMasterCard(byte *data, byte dataSize) {
+  if(dataSize < 16) {
     BEEP_MASTER_CARD_STATION_ERROR;
     return;
   }
 
   uint8_t newNum = data[8];
 
-  if(newNum > 0)
-  {
-    if(stationNum != newNum)
-    {
+  if(newNum > 0) {
+    if(stationNum != newNum) {
       setStationNum(newNum);
       BEEP_MASTER_CARD_STATION_WRITTEN;
-    }
-    else
-    {
+    } else {
       BEEP_MASTER_CARD_STATION_OK;
     }
-  }
-  else
-  {
+  } else {
     BEEP_MASTER_CARD_STATION_ERROR;
   }
 }
 
-void processSleepMasterCard(byte *data, byte dataSize)
-{
-  if(dataSize < 16)
-  {
+void processSleepMasterCard(byte *data, byte dataSize) {
+  if(dataSize < 16) {
     BEEP_MASTER_CARD_SLEEP_ERROR;
     return;
   }
@@ -1011,8 +904,7 @@ void processSleepMasterCard(byte *data, byte dataSize)
   // in this case we can't sleep if always work is set
   mode = MODE_SLEEP;
   
-  if(getSettings() & SETTINGS_CLEAR_ON_SLEEP)
-  {
+  if(getSettings() & SETTINGS_CLEAR_ON_SLEEP) {
     setSettings(DEFAULT_SETTINGS);
   }
 
@@ -1024,10 +916,8 @@ void processSleepMasterCard(byte *data, byte dataSize)
   BEEP_MASTER_CARD_SLEEP_OK;
 }
 
-void processDumpMasterCard(byte *data, byte dataSize)
-{
-  if(dataSize < 16)
-  {
+void processDumpMasterCard(byte *data, byte dataSize) {
+  if(dataSize < 16) {
     BEEP_MASTER_CARD_DUMP_ERROR;
     return;
   }
@@ -1042,20 +932,17 @@ void processDumpMasterCard(byte *data, byte dataSize)
   pageData[0] = stationNum;
   result &= rfidCardPageWrite(CARD_PAGE_INIT, pageData);
 
-  for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++)
-  {
+  for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++) {
     Watchdog.reset();
     delay(50);
     
     digitalWrite(LED,HIGH);
     
-    for(uint8_t m = 0; m < 4; m++)
-    {
+    for(uint8_t m = 0; m < 4; m++) {
       pageData[m] = EEPROM.read(eepromAdr);
       eepromAdr++;
 
-      if(eepromAdr > eepromEnd)
-      {
+      if(eepromAdr > eepromEnd) {
         break;
       }
     }
@@ -1064,28 +951,22 @@ void processDumpMasterCard(byte *data, byte dataSize)
     
     digitalWrite(LED, LOW);
 
-    if(eepromAdr > eepromEnd)
-    {
+    if(eepromAdr > eepromEnd) {
       break;
     }
   }
 
-  if(result)
-  {
+  if(result) {
     BEEP_MASTER_CARD_DUMP_OK;
-  }
-  else
-  {
+  } else {
     BEEP_MASTER_CARD_DUMP_ERROR;
   }
     
   return;
 }
 
-void processPassMasterCard(byte *data, byte dataSize)
-{
-  if(dataSize < 16)
-  {
+void processPassMasterCard(byte *data, byte dataSize) {
+  if(dataSize < 16) {
     BEEP_MASTER_CARD_PASS_ERROR;
     return;
   }
@@ -1097,10 +978,8 @@ void processPassMasterCard(byte *data, byte dataSize)
   BEEP_MASTER_CARD_PASS_OK;
 }
 
-void processGetInfoMasterCard(byte *data, byte dataSize)
-{
-  if(dataSize < 16)
-  {
+void processGetInfoMasterCard(byte *data, byte dataSize) {
+  if(dataSize < 16) {
     BEEP_MASTER_CARD_GET_INFO_ERROR;
     return;
   }  
@@ -1147,103 +1026,78 @@ void processGetInfoMasterCard(byte *data, byte dataSize)
   Watchdog.reset();
   delay(1000);
 
-  if(result)
-  {
+  if(result) {
     BEEP_MASTER_CARD_GET_INFO_OK;
-  }
-  else
-  {
+  } else {
     BEEP_MASTER_CARD_GET_INFO_ERROR;
   }
 }
 
-void processParticipantCard(uint16_t cardNum)
-{
+void processParticipantCard(uint16_t cardNum) {
   uint8_t lastNum = 0;
   uint8_t newPage = 0;
   uint8_t maxPage = rfidGetCardMaxPage();
   byte pageData[4] = {0,0,0,0};
   bool checkOk = false;
 
-  if(cardNum)
-  {
+  if(cardNum) {
     // Find the empty page to write new mark
-    if(getSettings() & SETTINGS_FAST_MARK)
-    {
-      if(rfidCardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData))
-      {
+    if(getSettings() & SETTINGS_FAST_MARK) {
+      if(rfidCardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
         lastNum = pageData[0];
         newPage = pageData[1] + 1;
 
-        if(newPage < CARD_PAGE_START || newPage > maxPage)
-        {
+        if(newPage < CARD_PAGE_START || newPage > maxPage) {
           newPage = CARD_PAGE_START;
         }
       }
-    }
-    else
-    {
+    } else {
       findNewPage(&newPage, &lastNum);
     }
   
-    if(newPage >= CARD_PAGE_START && newPage <= maxPage)
-    {
-      if(lastNum != stationNum)
-      {
+    if(newPage >= CARD_PAGE_START && newPage <= maxPage) {
+      if(lastNum != stationNum) {
         // Check Start/Finish marks on a card
         checkOk = true;
-        if(getSettings() & SETTINGS_CHECK_START_FINISH)
-        {
-          if(newPage == CARD_PAGE_START && stationNum != START_STATION_NUM)
-          {
+        if(getSettings() & SETTINGS_CHECK_START_FINISH) {
+          if(newPage == CARD_PAGE_START && stationNum != START_STATION_NUM) {
+            checkOk = false;
+          } else if(stationNum == START_STATION_NUM && newPage != CARD_PAGE_START) {
+            checkOk = false;
+          } else if(lastNum == FINISH_STATION_NUM) {
             checkOk = false;
           }
-          else if(stationNum == START_STATION_NUM && newPage != CARD_PAGE_START)
-          {
-            checkOk = false;
-          }
-          else if(lastNum == FINISH_STATION_NUM)
-          {
-            checkOk = false;
-          }
-          else if(stationNum == FINISH_STATION_NUM && newPage == CARD_PAGE_START)
-          {
+          else if(stationNum == FINISH_STATION_NUM && newPage == CARD_PAGE_START) {
             checkOk = false;
           }
         }
 
-        if(getSettings() & SETTINGS_CHECK_CARD_TIME)
-        {
+        if(getSettings() & SETTINGS_CHECK_CARD_TIME) {
           checkOk = !doesCardExpire();
         }
 
         // Записываем отметку
-        if(checkOk)
-        {
-          if(writeMarkToParticipantCard(newPage))
-          {
+        if(checkOk) {
+          if(writeMarkToParticipantCard(newPage)) {
             writeCardNumToLog(cardNum);
               
             BEEP_CARD_MARK_WRITTEN;
           }
         }
       }
-      else
-      {
+      else {
         checkOk = true;
         BEEP_CARD_MARK_OK;
       }
     }
   }
 
-  if(!checkOk)
-  {
+  if(!checkOk) {
     BEEP_CARD_MARK_ERROR;
   }
 }
 
-void findNewPage(uint8_t *newPage, uint8_t *lastNum)
-{
+void findNewPage(uint8_t *newPage, uint8_t *lastNum) {
   uint8_t startPage = CARD_PAGE_START;
   uint8_t endPage = rfidGetCardMaxPage();
   uint8_t page;
@@ -1253,29 +1107,24 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum)
   *newPage = 0;
   *lastNum = 0;
 
-  while(startPage < endPage)
-  {   
+  while(startPage < endPage) {   
     page = (startPage + endPage)/2;
 
-    if(!rfidCardPageRead(page, pageData))
-    {
+    if(!rfidCardPageRead(page, pageData)) {
       return;
     }
 
     num = pageData[0];
      
-    if(num == 0)
-    {
+    if(num == 0) {
       endPage = page;
     }
-    else
-    {
+    else {
       startPage = (startPage != page)? page : page + 1;
     }
   }
 
-  if(num > 0)
-  {
+  if(num > 0) {
     page++;
   }
 
@@ -1283,8 +1132,7 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum)
   *lastNum = num;
 }
 
-bool writeMarkToParticipantCard(uint8_t newPage)
-{
+bool writeMarkToParticipantCard(uint8_t newPage) {
   byte pageData[4] = {0,0,0,0};
   bool result = false;
   
@@ -1297,8 +1145,7 @@ bool writeMarkToParticipantCard(uint8_t newPage)
       
   result = rfidCardPageWrite(newPage, pageData);
 
-  if((getSettings() & SETTINGS_FAST_MARK) && result)
-  {
+  if((getSettings() & SETTINGS_FAST_MARK) && result) {
     pageData[0] = stationNum;
     pageData[1] = newPage;
     pageData[2] = 0;
@@ -1309,14 +1156,12 @@ bool writeMarkToParticipantCard(uint8_t newPage)
   return result;
 }
 
-void clearParticipantCard()
-{
+void clearParticipantCard() {
   byte pageData[4] = {0,0,0,0};
   uint8_t maxPage = rfidGetCardMaxPage();
   bool result = true;
 
-  for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++)
-  {
+  for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++) {
     Watchdog.reset();
     delay(50);
     
@@ -1327,8 +1172,7 @@ void clearParticipantCard()
     digitalWrite(LED,LOW);
   }
 
-  if(result)
-  {
+  if(result) {
     DS3231_get(&t);
     
     pageData[0] = (t.unixtime&0xFF000000)>>24;
@@ -1339,62 +1183,49 @@ void clearParticipantCard()
     result &= rfidCardPageWrite(CARD_PAGE_INIT_TIME, pageData);
   }
 
-  if(result)
-  {
+  if(result) {
     BEEP_CARD_CLEAR_OK;
-  }
-  else
-  {
+  } else {
     BEEP_CARD_CLEAR_ERROR;
   }
 }
 
-void checkParticipantCard()
-{
+void checkParticipantCard() {
   byte pageData[4] = {0,0,0,0};
   uint16_t cardNum = 0;
   uint8_t newPage = 0;
   uint8_t lastNum = 0;
   bool result = false;
   
-  if(rfidCardPageRead(CARD_PAGE_INIT, pageData))
-  {
+  if(rfidCardPageRead(CARD_PAGE_INIT, pageData)) {
     // Check card number
     cardNum = (((uint16_t)pageData[0])<<8) + pageData[1];
-    if(cardNum > 0 && pageData[2] != 0xFF)
-    {
+    if(cardNum > 0 && pageData[2] != 0xFF) {
       // It shouldn't be marks on a card
       findNewPage(&newPage, &lastNum);
-      if(newPage == CARD_PAGE_START && lastNum == 0)
-      {
+      if(newPage == CARD_PAGE_START && lastNum == 0) {
         result = true;
         // Check card init time
-        if(getSettings() & SETTINGS_CHECK_CARD_TIME)
-        {
+        if(getSettings() & SETTINGS_CHECK_CARD_TIME) {
           result = !doesCardExpire();
         }
       }
     }
   }
 
-  if(result)
-  {
+  if(result) {
     BEEP_CARD_CHECK_OK;
-  }
-  else
-  {
+  } else {
     BEEP_CARD_CHECK_ERROR;
   }
 }
 
-bool doesCardExpire()
-{
+bool doesCardExpire() {
   byte pageData[4] = {0,0,0,0};
   uint32_t cardTime = 0;
   bool result = true;
   
-  if(rfidCardPageRead(CARD_PAGE_INIT_TIME, pageData))
-  {
+  if(rfidCardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
     DS3231_get(&t);
 
     cardTime = (((uint32_t)pageData[0]) & 0xFF000000)<<24;
@@ -1402,12 +1233,9 @@ bool doesCardExpire()
     cardTime |= (((uint32_t)pageData[2]) & 0x0000FF00)<<8;
     cardTime |= (((uint32_t)pageData[3]) & 0x000000FF);
 
-    if(t.unixtime - cardTime >= CARD_EXPIRE_TIME)
-    {
+    if(t.unixtime - cardTime >= CARD_EXPIRE_TIME) {
       result = true;
-    }
-    else
-    {
+    } else {
       result = false;
     }
   }
@@ -1415,8 +1243,7 @@ bool doesCardExpire()
   return result;
 }
 
-void rtcAlarmIrq()
-{
+void rtcAlarmIrq() {
   // We can't process interrupt here
   // because it hangs CPU by I2C operations
   // So set flag and process interrupt in main routine
