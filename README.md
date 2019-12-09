@@ -9,7 +9,7 @@ It is also possible to use one on rogaining events, adventure races, trails, whe
 Here are hardware and firmware parts of the timing system.
 Links to data processing software are placed [below](#data-processing).
 
-[Download latest release](releases)
+[Download latest release](/sportiduino/sportiduino/releases/latest)
 
 [Manual](/Doc/en.md)
 
@@ -38,16 +38,16 @@ The base station and the master station has its own version. The release version
 
 **The current master station version is 1.6.1**
 
-Sorry, assembly instructions for new version are not yet translated to English.
+Sorry, assembly instructions for hardware version > 1 are not translated to English yet.
 You can translate Russian manual by yourself.
 
 [View changelog](CHANGELOG.md)
 
-Build the firmware of the base station with #define HW_VERS 1 to install the firmware v6.x on the hardware v1
+Build the firmware of the base station with `#define HW_VERS 1` to install the firmware v6.x on the hardware v1.
 
 ## Reporting Issues and Asking for Help
 
-Issues and possible improvements can be posted on [Issues](issues) page.
+Issues and possible improvements can be posted on [Issues](/sportiduino/sportiduino/issues) page.
 Please make sure you provide all relevant information about your problem or idea.
 
 ## Contributing
@@ -77,7 +77,7 @@ The system automatically detects the type of used cards.
 
 [Read more here](/Doc/en/Card.md)
 
-## Base stations.
+## Base stations
 
 The main components of the station are the Atmega328P microcontroller and the MFRC522 module, which operates at a frequency of 13.56MHz.
 Clock DS3231SN.
