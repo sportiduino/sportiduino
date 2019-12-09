@@ -6,7 +6,7 @@
 #include <PinChangeInterrupt.h>
 #include <sportiduino.h>
 
-#define HW_VERS         1
+#define HW_VERS         2
 #define FW_MAJOR_VERS   6
 #define FW_MINOR_VERS   1
 
