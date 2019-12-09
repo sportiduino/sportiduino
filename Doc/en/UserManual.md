@@ -80,9 +80,9 @@ It is advisable to print these instructions in large print and hang them to fami
 * Without a mark at the starting station, the chips may not work, in this case you need to return to the start
 * If you came to a CP at the same time as another participant, then you need to check in by turns. You can not simultaneously attach to the station mark two or more chips, in this case, the mark will be recorded only on one of the chips
 
-## Instructions for distance installers
+## Instructions for course installers
 
-To work with stations, you must use the SportiduinoPQ program - this is preparing the participants' chips, setting up the stations. Reading chips and counting results is implemented in the SportOrg program.
+To work with stations, you should use the SportiduinoPQ program - this is preparing the participants' chips, setting up the stations. Reading chips and counting results is implemented in the SportOrg program.
 
 SportiduinoPQ can be downloaded in the [latest release](https://github.com/alexandervolikov/SportiduinoPQ/releases). In the release there is an exe file that does not require installation. When the program is running, the entire log is saved to the log subfolder.
 
@@ -130,7 +130,7 @@ To make sure that the settings are recorded correctly, click on the Read button.
 
 ![](/Images/SportiduinoPQ-ConfigByUart2.jpg?raw=true)
 
-<b>Warning: </ b> Set the current password correctly in the SportduinoPQ program. After the station is assembled, the default password is 0.0.0. If you do not correctly set the password, the base station will not accept settings from the master chip or from the USB-to-TTL converter!
+**Warning:** Set the current password correctly in the SportduinoPQ program. After the station is assembled, the default password is 0.0.0. If you do not correctly set the password, the base station will not accept settings from the master chip or from the USB-to-TTL converter!
 
 ![](/Images/SportiduinoPQ-Pwd.jpg?raw=true)
 

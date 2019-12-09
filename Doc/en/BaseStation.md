@@ -2,11 +2,11 @@
 
 The main components of the stations: microcontroller - Atmega328p-au, RFID module RC522, clock DS3231. Powered by 3 x AA batteries via the MCP1700T-33 linear regulator. Scheme and pcb can be viewed in [Upvertet](https://upverter.com/AlexanderVolikov/a6d775cd45a22968/Sportiduino-MarkStantion/)
 
-![Scheme](https://raw.githubusercontent.com/alexandervolikov/sportIDuino/master/Base%20station/Scheme.jpg)
+![](/hardware/BaseStation/prod/sportiduino-base-scheme.jpg?raw=true "Scheme")
 
-The components are mounted on a printed circuit board, with an RFID card, a soldered connection via a pin connector. You can order the manufacture of pcb in China, it will cost around 1 $ per piece with delivery, gerber files are in the folder base stantion.
+The components are mounted on a printed circuit board, with an RFID card, a soldered connection via a pin connector. You can order the manufacture of pcb in China, it will cost around 1 $ per piece with delivery, gerber files are in the folder base station.
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Base%20station/PCB.JPG)
+![](/hardware/BaseStation/prod/sportiduino-base-assembly.jpg?raw=true "PCB")
 
 Interface implemented on the connector PBD-6, 6 contacts in two rows. As the box g1020BF used. In the box a hole is drilled for the LED and the excess plastic is cut off so that the battery compartment gets into it.
 
@@ -30,7 +30,7 @@ Also for work it is necessary to install the libraries DS3231 and RC522, in the 
 
 After soldering all the components, You need to upload the Bootloader, I performed it with the help of another Arduino through a special firmware Arduino as isp, connected the SPI pins through the pins leading to the RFID module
 
-### Firmware (Stantion)
+### Firmware (Station)
 
 After the feed enters the standby mode: the station wakes up every second and searches for a card. When a card is found, it goes into working mode with a card polling every 0.25 seconds.
 
@@ -38,13 +38,13 @@ At the card punch, the station reads the first card block, where the card number
 
 During operation, watch-dog is started, which restarts when the system hangs.
 
-The time correction at the stations is carried out using a special card. To do this, it is applied to the master stantion with the correct time and three seconds later to the base station. It is also possible to adjust the station number, similarly with a card first applied to the master stantion, in which the new number is entered via the Serial port, and then applying a mark to the station, is written to the EEPROM memory of the station. To download the data recorded on the EEPROM memory of the marked card numbers, use a dump-card
+The time correction at the stations is carried out using a special card. To do this, it is applied to the master station with the correct time and three seconds later to the base station. It is also possible to adjust the station number, similarly with a card first applied to the master station, in which the new number is entered via the Serial port, and then applying a mark to the station, is written to the EEPROM memory of the station. To download the data recorded on the EEPROM memory of the marked card numbers, use a dump-card
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/Stantion-blockscheme.png)
+![](/Images/Stantion-blockscheme.png)
 
 Byte settings. Programmed using the master chip settings. Responsible for the duration of the operating mode according to the table below, for the operation mode of the stations - with or without separate start and finish stations, checking for overdue chips, tuning the antenna power and saving or deleting settings after a reboot. When the start and finish stations are on (which is necessary when working with the SportOrg program), the start station (number = 240) will receive only cleared chips, other stations will only respond to the chip with a mark at the starting station, and after the finish station (number = 245 ) the chip will no longer be noted at other stations before cleaning. This will avoid annoying mistakes and accidents. By default, the settings byte is 0. It also sets up saving or resetting the settings when a station is getting out of sleep.
 
-![](https://raw.githubusercontent.com/alexandervolikov/sportiduino/master/Images/Setting-byte2.PNG)
+![](/Images/Setting-byte2.PNG)
 
 ### Clear station.
 
