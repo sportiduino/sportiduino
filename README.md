@@ -9,7 +9,7 @@ It is also possible to use one on rogaining events, adventure races, trails, whe
 Here are hardware and firmware parts of the timing system.
 Links to data processing software are placed [below](#data-processing).
 
-[Download latest release](/sportiduino/sportiduino/releases/latest)
+[Download latest release](https://github.com/sportiduino/sportiduino/releases/latest)
 
 [Manual](/Doc/en.md)
 
@@ -47,7 +47,7 @@ Build the firmware of the base station with `#define HW_VERS 1` to install the f
 
 ## Reporting Issues and Asking for Help
 
-Issues and possible improvements can be posted on [Issues](/sportiduino/sportiduino/issues) page.
+Issues and possible improvements can be posted on [Issues](https://github.com/sportiduino/sportiduino/issues) page.
 Please make sure you provide all relevant information about your problem or idea.
 
 ## Contributing
