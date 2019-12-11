@@ -639,7 +639,8 @@ void sleep(uint16_t ms) {
             continue;
         }
 
-        pinMode(pin, INPUT_PULLUP);
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, LOW);
     }
     // Turn off ADC
     ADCSRA = 0;
