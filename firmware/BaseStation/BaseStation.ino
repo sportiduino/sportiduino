@@ -36,7 +36,7 @@ sportiduino.build.variant=standard
 #include <PinChangeInterrupt.h>
 #include <sportiduino.h>
 
-#define HW_VERS         2
+#define HW_VERS         1
 #define FW_MAJOR_VERS   6
 #define FW_MINOR_VERS   1
 
@@ -74,6 +74,8 @@ sportiduino.build.variant=standard
     #define DS3231_VCC    8
     
 #endif
+
+#define REED_SWITCH       7
 
 #define UNKNOWN_PIN 0xFF
 
@@ -175,6 +177,9 @@ uint8_t alarmMonth;
 uint32_t alarmTimestamp = 0;
 // This flag is true when it's DS3231 interrupt
 uint8_t rtcAlarmFlag;
+
+uint8_t reedSwitchFlag = 0;
+
 // UART data buffer
 #define SERIAL_DATA_LENGTH  32
 byte serialData[SERIAL_DATA_LENGTH];
@@ -237,6 +242,7 @@ bool doesCardExpire();
 // DS3231 interrupt routine
 void rtcAlarmIrq();
 void wakeupByUartRx();
+void reedSwitchIrq();
 void serialFuncReadInfo(byte *data, byte dataSize);
 void serialFuncWriteSettings(byte *data, byte dataSize);
 void serialRespStatus(uint8_t code);
@@ -256,6 +262,7 @@ void setup() {
     pinMode(RC522_IRQ,INPUT_PULLUP);
     pinMode(DS3231_IRQ,INPUT_PULLUP);
     pinMode(DS3231_32K,INPUT_PULLUP);
+    pinMode(REED_SWITCH,INPUT_PULLUP);
     pinMode(DS3231_VCC, OUTPUT);
 
     digitalWrite(LED,LOW);
@@ -289,6 +296,9 @@ void setup() {
     attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
     // This interrupt is not need at this time
     disablePCINT(digitalPinToPCINT(UART_RX));
+
+    attachPCINT(digitalPinToPCINT(REED_SWITCH), reedSwitchIrq, FALLING);
+    disablePCINT(digitalPinToPCINT(REED_SWITCH));
 
     // Read settings from EEPROM
     stationNum = majEepromRead(EEPROM_STATION_NUM_ADDR);
@@ -332,6 +342,10 @@ void loop() {
         if(t.year == alarmYear && t.mon == alarmMonth) {
             setMode(MODE_ACTIVE);
         }
+    }
+
+    if(reedSwitchFlag) {
+        setMode(MODE_ACTIVE);
     }
 
     // automatic wake-up at competition start implementation for hw v1
@@ -641,6 +655,7 @@ void sleep(uint16_t ms) {
     Serial.end();
     // Turn on PCINT to wake-up CPU when data will arrive by UART
     enablePCINT(digitalPinToPCINT(UART_RX));
+    enablePCINT(digitalPinToPCINT(REED_SWITCH));
     // Reset watchdog
     Watchdog.reset();
     period = Watchdog.sleep(ms);
@@ -651,6 +666,7 @@ void sleep(uint16_t ms) {
     }
     // no need this interrupt anymore
     disablePCINT(digitalPinToPCINT(UART_RX));
+    disablePCINT(digitalPinToPCINT(REED_SWITCH));
     serialWakeupFlag = 0;
     serialRxPos = 0;
     Serial.begin(SERIAL_BAUDRATE);
@@ -1249,3 +1265,8 @@ void rtcAlarmIrq() {
     // So set flag and process interrupt in main routine
     rtcAlarmFlag = 1;
 }
+
+void reedSwitchIrq() {
+    reedSwitchFlag = 1;
+}
+
