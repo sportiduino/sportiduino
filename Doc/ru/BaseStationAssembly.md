@@ -6,7 +6,7 @@
 
 1.	RFID-модуль RC522.
 
-2.	Печатная плата. Можно заказать через EasyEDA. Gerber файлы находятся в папке [Проект]\Base station\hardware\prod (на фото устаревшая версия печатной платы, не обращайте внимания)
+2.	Печатная плата. Можно заказать через EasyEDA. Gerber файлы находятся в папке [Проект]\hardware\BaseStation\prod (на фото устаревшая версия печатной платы, не обращайте внимания)
 
 3.	Микросхемы
 
@@ -59,9 +59,9 @@ d.	Пищалка TR1205Y или HC0903A.
 
 ### Пайка основной платы
 
-![](/Base%20station/hardware/prod/sportiduino-base-scheme.jpg?raw=true "Принципиальная схема")
+![](/hardware/BaseStation/prod/sportiduino-base-scheme.jpg?raw=true "Принципиальная схема")
 
-![](/Base%20station/hardware/prod/sportiduino-base-assembly.jpg?raw=true "Расположение компонентов")
+![](/hardware/BaseStation/prod/sportiduino-base-assembly.jpg?raw=true "Расположение компонентов")
 
 Если нет опыта пайки мелких компонентов, хорошо бы сначала потренироваться на какой-нибудь ненужной плате. Отпаивать-припаивать разные детали. Можно посмотреть ролики на ютубе или ещё где-нибудь, информации довольно много. Промазываем флюсом все места будущей пайки. Флюс особо лучше не жалеть. Далее припаиваем микросхемы. После микросхем припаиваем транзистор, стабилизатор напряжения, резисторы и конденсаторы. Резистор R7 на 3,3 кОм можно не припаивать, так как он сейчас не выполняет никаких функций и зарезервирован для будущих версий. В конце припаиваем светодиод, пищалку, "штырьки" и батарейный отсек. Светодиод припаиваем с обратной стороны платы. При этом, помните мы отпаивали от RFID-модуля светодиод и резистор на 100 Ом, здесь мы можем их использовать. По желанию, можно аккурантно припаять SMD-светодиод от RFID-модуля на нашу печатную плату вместо 3мм-светодиода. Модуль RC-522 пока не припаиваем! 
 
@@ -71,7 +71,7 @@ d.	Пищалка TR1205Y или HC0903A.
 
 ![](/Images/BaseStationSoldedBottom.jpg?raw=true)
 
-### Прошивка микроконтроллера
+### Программатор
 
 Для прошивки микроконтроллера потребуется программатор. Если у вас нет программатора, то его можно сделать из Arduino Nano. Для этого надо всего лишь припаять шесть проводов длиной 25см к плате Arduino Nano, а с другой стороны к разъёму SIP-6. Далее будет описан процесс прошивки при помощи программатора из Arduino Nano.
 
@@ -87,26 +87,17 @@ d.	Пищалка TR1205Y или HC0903A.
 
 ![](/Images/ArduinoNanoISP.jpg?raw=true)
 
-Далее нам необходимо создать описание нашей платы Sportiduino. Для этого открываем файл [Program Files]\Arduino\hardware\boards.txt и добавляем в конец файла код
+### Настройка Arduino IDE
+
+В меню Файл->Настройки изменяем размещение папки скетчей на [Проект]/firmware.
+Или можно скопировать содержимое папки firmware в папку скечей, указанную в настройках.
+
+Далее нам необходимо создать описание нашей платы Sportiduino. Для этого открываем файл [Program Files]\Arduino\hardware\arduino\avr\boards.txt и добавляем в конец файла код
 
 ```
 ##############################################################
 
 sportiduino.name=Sportiduino
-
-sportiduino.upload.tool=avrdude
-sportiduino.upload.protocol=arduino
-sportiduino.upload.maximum_size=32256
-sportiduino.upload.maximum_data_size=2048
-sportiduino.upload.speed=115200
-
-sportiduino.bootloader.tool=avrdude
-sportiduino.bootloader.low_fuses=0xE2
-sportiduino.bootloader.high_fuses=0xDE
-sportiduino.bootloader.extended_fuses=0xFF
-sportiduino.bootloader.unlock_bits=0x3F
-sportiduino.bootloader.lock_bits=0x0F
-sportiduino.bootloader.file=optiboot/optiboot_atmega328_pro_8MHz.hex
 
 sportiduino.build.mcu=atmega328p
 sportiduino.build.f_cpu=8000000L
@@ -114,19 +105,40 @@ sportiduino.build.board=AVR_SPORTIDUINO
 sportiduino.build.core=arduino
 sportiduino.build.variant=standard
 
+sportiduino.upload.tool=avrdude
+sportiduino.upload.protocol=arduino
+sportiduino.upload.maximum_size=32256
+sportiduino.upload.maximum_data_size=2048
+sportiduino.upload.speed=38400
+
+sportiduino.bootloader.tool=avrdude
+sportiduino.bootloader.low_fuses=0xE2
+sportiduino.bootloader.high_fuses=0xDE
+sportiduino.bootloader.extended_fuses=0xFF
+sportiduino.bootloader.unlock_bits=0x3F
+sportiduino.bootloader.lock_bits=0x0F
+
+menu.bootloader=Bootloader
+
+sportiduino.menu.bootloader.optiboot=Optiboot 38400
+sportiduino.menu.bootloader.optiboot.bootloader.file=optiboot/optiboot8_38400_sportiduino.hex
+
+sportiduino.menu.bootloader.optiboot_led=Optiboot 38400 with LED
+sportiduino.menu.bootloader.optiboot_led.bootloader.file=optiboot/optiboot8_38400_sportiduino_led.hex
+
 ############################################################## 
 ```
-После этого копируем файл optiboot_atmega328_pro_8Mhz.hex из папки [Проект]\Base station\firmware\Optiboot в папку [Program Files]\Arduino\hardware\arduino\avr\bootloaders\optiboot
+После этого копируем файлы \*.hex из папки [Проект]\firmware\Optiboot в папку [Program Files]\Arduino\hardware\arduino\avr\bootloaders\optiboot
 
 Перезапускаем Arduino IDE. В меню Инструменты->Плата должна появиться наша плата Sportiduino. 
 
-Открываем скетч BaseStation.ino из папки [Проект]\Base station\firmware в Arduino IDE. В меню Инструменты->Плата устанавливаем Sportiduino. Далее в меню Инструменты->Программатор выбираем Arduino As ISP. 
+### Прошивка микроконтроллера
+
+В Arduino IDE открываем скетч BaseStation (Файл->Папка со скетчами->BaseStation). В меню Инструменты->Плата устанавливаем Sportiduino. Далее в меню Инструменты->Программатор выбираем Arduino As ISP. 
 
 ![](/Images/BaseStationProgConf.jpg?raw=true)
 
-Следующий этап - это установка зависимостей в Arduino IDE для компиляции проекта. Для этого выполняем Скетч->Подключить библиотеку->Добавить .ZIP библиотеку. Выполняем эту операцию для каждой библиотеки из папки [Проект]\Libraries. Установка зависимостей завершена.
-
-После установки зависимостей подключаем наш программатор к плате Sportiduino (разъём X3, сигнал RST должен быть на первом контакте).
+Подключаем наш программатор к плате Sportiduino (разъём X3, сигнал RST должен быть на первом контакте).
 
 ![](/Images/ProgrammerConnect.jpg?raw=true)
 
@@ -208,7 +220,7 @@ sportiduino.build.variant=standard
 
 ![](/Images/s36.jpg?raw=true)
 
-Печатаем на принтере наклейки из папки [Проект]\Base station\2d. Наклейки выполнены в программе Inkscape. Можно заказать печать наклеек на светоотражающей или светонакопительной плёнке. Приклеиваем наклейку и сверху ламинируем её скотчем (если наклейка из простой бумаги). Станция готова!
+Печатаем на принтере наклейки из папки [Проект]\hardware\BaseStation\2d. Наклейки выполнены в программе Inkscape. Можно заказать печать наклеек на светоотражающей или светонакопительной плёнке. Приклеиваем наклейку и сверху ламинируем её скотчем (если наклейка из простой бумаги). Станция готова!
 
 ![](/Images/BaseStation1.jpg)
 
