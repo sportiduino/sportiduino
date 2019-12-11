@@ -1,35 +1,5 @@
 // To compile this project with Arduino IDE change sketchbook to <Project>/firmware
 
-/* Add the board description in your <Arduino-install-dir>/hardware/arduino/avr/boards.txt
- * And copy optiboot_atmega328_pro_8Mhz.hex to <Arduino-install-dir>/hardware/arduino/avr/bootloaders/optiboot
- * Board description:
-##############################################################
-
-sportiduino.name=Sportiduino
-
-sportiduino.upload.tool=avrdude
-sportiduino.upload.protocol=arduino
-sportiduino.upload.maximum_size=32256
-sportiduino.upload.maximum_data_size=2048
-sportiduino.upload.speed=115200
-
-sportiduino.bootloader.tool=avrdude
-sportiduino.bootloader.low_fuses=0xE2
-sportiduino.bootloader.high_fuses=0xDE
-sportiduino.bootloader.extended_fuses=0xFF
-sportiduino.bootloader.unlock_bits=0x3F
-sportiduino.bootloader.lock_bits=0x0F
-sportiduino.bootloader.file=optiboot/optiboot_atmega328_pro_8MHz.hex
-
-sportiduino.build.mcu=atmega328p
-sportiduino.build.f_cpu=8000000L
-sportiduino.build.board=AVR_SPORTIDUINO
-sportiduino.build.core=arduino
-sportiduino.build.variant=standard
-
-############################################################## 
- */
-
 #include <EEPROM.h>
 #include <ds3231.h>
 #include <Adafruit_SleepyDog.h>

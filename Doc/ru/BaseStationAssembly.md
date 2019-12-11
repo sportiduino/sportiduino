@@ -99,11 +99,17 @@ d.	Пищалка TR1205Y или HC0903A.
 
 sportiduino.name=Sportiduino
 
+sportiduino.build.mcu=atmega328p
+sportiduino.build.f_cpu=8000000L
+sportiduino.build.board=AVR_SPORTIDUINO
+sportiduino.build.core=arduino
+sportiduino.build.variant=standard
+
 sportiduino.upload.tool=avrdude
 sportiduino.upload.protocol=arduino
 sportiduino.upload.maximum_size=32256
 sportiduino.upload.maximum_data_size=2048
-sportiduino.upload.speed=115200
+sportiduino.upload.speed=38400
 
 sportiduino.bootloader.tool=avrdude
 sportiduino.bootloader.low_fuses=0xE2
@@ -111,17 +117,18 @@ sportiduino.bootloader.high_fuses=0xDE
 sportiduino.bootloader.extended_fuses=0xFF
 sportiduino.bootloader.unlock_bits=0x3F
 sportiduino.bootloader.lock_bits=0x0F
-sportiduino.bootloader.file=optiboot/optiboot_atmega328_pro_8MHz.hex
 
-sportiduino.build.mcu=atmega328p
-sportiduino.build.f_cpu=8000000L
-sportiduino.build.board=AVR_SPORTIDUINO
-sportiduino.build.core=arduino
-sportiduino.build.variant=standard
+menu.bootloader=Bootloader
+
+sportiduino.menu.bootloader.optiboot=Optiboot 38400
+sportiduino.menu.bootloader.optiboot.bootloader.file=optiboot/optiboot8_38400_sportiduino.hex
+
+sportiduino.menu.bootloader.optiboot_led=Optiboot 38400 with LED
+sportiduino.menu.bootloader.optiboot_led.bootloader.file=optiboot/optiboot8_38400_sportiduino_led.hex
 
 ############################################################## 
 ```
-После этого копируем файл optiboot_atmega328_pro_8Mhz.hex из папки [Проект]\firmware\Optiboot в папку [Program Files]\Arduino\hardware\arduino\avr\bootloaders\optiboot
+После этого копируем файлы \*.hex из папки [Проект]\firmware\Optiboot в папку [Program Files]\Arduino\hardware\arduino\avr\bootloaders\optiboot
 
 Перезапускаем Arduino IDE. В меню Инструменты->Плата должна появиться наша плата Sportiduino. 
 
