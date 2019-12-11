@@ -1,7 +1,7 @@
 // To compile this project with Arduino IDE change sketchbook to <Project>/firmware
 
 #include <EEPROM.h>
-#include <Write.h>
+#include <Wire.h>
 #include <ds3231.h>
 #include <Adafruit_SleepyDog.h>
 #include <PinChangeInterrupt.h>
