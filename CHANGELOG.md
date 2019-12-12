@@ -1,3 +1,7 @@
+## [2.6.2] - 2019-12-12
+- Fix increased power consumption in sleep mode for PCB v1 (Issue #61)
+- Changed default antenna gain to 33 dB
+
 ## [2.6.1] - 2019-08-26
 - Fixed working with SportOrg
 - Changed algorithm to work with Serial in BaseStation
