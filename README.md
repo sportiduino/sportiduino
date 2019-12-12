@@ -32,9 +32,9 @@ When a new version of the firmware is released with new functions, the third num
 
 The base station and the master station has its own version. The release version is the largest of these two numbers.
 
-**The current release version is 2.6.1**
+**The current release version is 2.6.2**
 
-**The current base station version is 2.6.1**
+**The current base station version is 2.6.2**
 
 **The current master station version is 1.6.1**
 
