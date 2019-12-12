@@ -1,14 +1,18 @@
 // To compile this project with Arduino IDE change sketchbook to <Project>/firmware
 
 #include <EEPROM.h>
+#include <Wire.h>
 #include <ds3231.h>
 #include <Adafruit_SleepyDog.h>
 #include <PinChangeInterrupt.h>
 #include <sportiduino.h>
 
+// Remove a comment from a line below to compile in DEBUG mode
+//#define DEBUG
+
 #define HW_VERS         2
 #define FW_MAJOR_VERS   6
-#define FW_MINOR_VERS   1
+#define FW_MINOR_VERS   2
 
 #define VERS ((HW_VERS - 1) << 6) | ((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS
 
@@ -19,29 +23,44 @@
     
     #define BUZ           3
     #define LED           4
+
     #define RC522_RST     9
     #define RC522_SS      10
     #define RC522_IRQ     6
-    // PC3 (26) Sold a wire between Atmega328-Pin26 and DS3231-Pin3 to enable the wake-up function
+
+    #define DS3231_VCC    5
     #define DS3231_IRQ    A3
     // PC1 (24) This pin is not used. It is reserved for future
     #define DS3231_32K    A1
+    #define DS3231_RST    A0
+
     #define UART_RX       0
-    #define DS3231_VCC    5
+    #define UART_TX       1
+    #define SDA           A4
+    #define SDA           A5
     
 #else
 
     #define BUZ           3
     #define LED           4
+
     #define RC522_RST     9
     #define RC522_SS      10
     #define RC522_IRQ     6
+
+    // It is not used anymore. Just the free pin acts as output
+    #define DS3231_VCC    8
     #define DS3231_IRQ    A3
     // PD5 (9) This pin is not used. It is reserved for future
     #define DS3231_32K    5
+    #define DS3231_RST    2
+
     #define UART_RX       0
     // It is not used anymore. Just the free pin acts as output
     #define DS3231_VCC    8
+    #define UART_TX       1
+    #define SDA           A4
+    #define SCL           A5
     
 #endif
 
@@ -54,8 +73,6 @@
 
 //-------------------------------------------------------------------
 
-// Remove a comment from a line below to compile in DEBUG mode
-//#define DEBUG
 
 // 31 days = 2678400 (seconds)
 #define CARD_EXPIRE_TIME 2678400L
@@ -185,7 +202,6 @@ void setMode(uint8_t md);
 void setStationNum(uint8_t num);
 void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
-uint32_t readVcc(uint32_t refConst);
 bool checkBattery(bool beepEnabled);
 void processRfid();
 void processTimeMasterCard(byte *data, byte dataSize);
@@ -228,18 +244,20 @@ void setup() {
     pinMode(DS3231_32K,INPUT_PULLUP);
     pinMode(DS3231_VCC, OUTPUT);
 
+#if HW_VERS > 1
+    pinMode(DS3231_RST, INPUT); // if set as pull_up it takes additional supply current
+#else
+    // not connected in v1
+    pinMode(DS3231_RST, INPUT_PULLUP);
+#endif
+
     digitalWrite(LED,LOW);
     digitalWrite(BUZ,LOW);
     digitalWrite(RC522_RST,LOW);
     digitalWrite(DS3231_VCC,HIGH);
-
-    // config unused pins as pulled-up
-    for(byte pin = 0; pin < A5; pin++) {
-        if(getPinMode(pin) == INPUT) {
-            pinMode(pin, INPUT_PULLUP);
-        }
-    }
-    
+    delay(5);
+    // initialize I2C
+    Wire.begin();
     // Config DS3231
     // Reset all interrupts and disable 32 kHz output
     DS3231_set_addr(DS3231_STATUS_ADDR, 0);
@@ -255,10 +273,6 @@ void setup() {
 
     // Config DS3231 interrupts
     attachPCINT(digitalPinToPCINT(DS3231_IRQ), rtcAlarmIrq, FALLING);
-    // Attach PCINT to wake-up CPU when data will arrive by UART in sleep mode
-    attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
-    // This interrupt is not need at this time
-    disablePCINT(digitalPinToPCINT(UART_RX));
 
     // Read settings from EEPROM
     stationNum = majEepromRead(EEPROM_STATION_NUM_ADDR);
@@ -277,9 +291,7 @@ void setup() {
     // Config UART
     Serial.begin(SERIAL_BAUDRATE);
     serialRxPos = 0;
-    
-    //checkBattery(true);
-    
+
     delay(1000);
     
     BEEP_SYSTEM_STARTUP;
@@ -545,7 +557,7 @@ uint8_t getPinMode(uint8_t pin) {
     if(0 == bit) return UNKNOWN_PIN;
 
     // Is there only a single bit set?
-    if(bit & bit - 1) return UNKNOWN_PIN;
+    if(bit & (bit - 1)) return UNKNOWN_PIN;
 
     volatile uint8_t *reg, *out;
     reg = portModeRegister(port);
@@ -605,12 +617,35 @@ void sleep(uint16_t ms) {
     
     uint16_t period;
     
+    // Resolve issue #61
     digitalWrite(RC522_RST,LOW);
     digitalWrite(LED,LOW);
     digitalWrite(BUZ,LOW);
+    digitalWrite(DS3231_VCC,LOW);
+    Wire.end();
     Serial.end();
-    // Turn on PCINT to wake-up CPU when data will arrive by UART
-    enablePCINT(digitalPinToPCINT(UART_RX));
+
+    pinMode(SDA, INPUT);  // it is pulled up by hardware
+    pinMode(SCL, INPUT);  // it is pulled up by hardware
+
+    for(byte pin = 0; pin < A5; pin++) {
+        if(pin == SDA ||
+           pin == SCL ||
+           pin == RC522_RST ||
+           pin == LED ||
+           pin == BUZ ||
+           pin == DS3231_VCC ||
+           pin == DS3231_RST ) {
+            continue;
+        }
+
+        pinMode(pin, OUTPUT);
+        digitalWrite(pin, LOW);
+    }
+    // Turn off ADC
+    ADCSRA = 0;
+    // Attach PCINT to wake-up CPU when data will arrive by UART in sleep mode
+    attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
     // Reset watchdog
     Watchdog.reset();
     period = Watchdog.sleep(ms);
@@ -620,10 +655,13 @@ void sleep(uint16_t ms) {
         sleep(ms - period);
     }
     // no need this interrupt anymore
-    disablePCINT(digitalPinToPCINT(UART_RX));
+    detachPCINT(digitalPinToPCINT(UART_RX));
+    // Resolve issue #61
+    digitalWrite(DS3231_VCC, HIGH);
     serialWakeupFlag = 0;
     serialRxPos = 0;
     Serial.begin(SERIAL_BAUDRATE);
+    Wire.begin();
 }
 
 void setMode(uint8_t md) {
@@ -671,43 +709,39 @@ uint16_t getMarkLogEnd() {
     return endAdr;
 }
 
-uint32_t readVcc(uint32_t refConst) {
-    // Turn on ADC
-    ADCSRA |=  bit(ADEN); 
-    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-    // Wait refernce voltage stabilization
-    delay(5);
-    // Start to measure
-    ADCSRA |= _BV(ADSC);
-    while(bit_is_set(ADCSRA, ADSC)) {};
-
-    uint8_t low  = ADCL;
-    uint8_t high = ADCH;
-
-    uint32_t result = (high << 8) | low;
-
-    result = refConst / result; // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-    // Turn off ADC
-    ADCSRA ^= bit(ADEN);
-    
-    return result;
-}
-
 bool checkBattery(bool beepEnabled) {
     const uint32_t refConst = 1125300L; //voltage constanta
     uint32_t value = 0;
+    uint32_t adcl, adch;
     bool result = false;
 
     Watchdog.reset();
+    // Turn on ADC
+    ADCSRA |=  bit(ADEN); 
+    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
 
+    Watchdog.reset();
+    // Turn on led to increase current
     digitalWrite(LED, HIGH);
     delay(5000);
+    // Measure battery voltage
+    for(uint8_t i = 0; i < 10; i++) {
+        // Start to measure
+        ADCSRA |= _BV(ADSC);
+        while(bit_is_set(ADCSRA, ADSC));
+        // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+        adcl = ADCL;
+        adch = ADCH;
 
-    for (uint8_t i = 0; i < 10; i++) {
-        value += readVcc(refConst);
+        adcl &= 0xFF;
+        adch &= 0xFF;
+        value += ((adch << 8) | adcl);
     }
 
-    value /= 10;
+    value = (refConst*10)/value;
+
+    // Turn off ADC
+    ADCSRA = 0;
 
     digitalWrite(LED, LOW);
     delay(250);
@@ -1070,9 +1104,9 @@ void processParticipantCard(uint16_t cardNum) {
 void findNewPage(uint8_t *newPage, uint8_t *lastNum) {
     uint8_t startPage = CARD_PAGE_START;
     uint8_t endPage = rfidGetCardMaxPage();
-    uint8_t page;
+    uint8_t page = startPage;
     byte pageData[4] = {0,0,0,0};
-    byte num;
+    byte num = 0;
 
     *newPage = 0;
     *lastNum = 0;
