@@ -2066,7 +2066,7 @@
   (gr_arc (start 137.645836 101.322849) (end 142.725836 101.322849) (angle -90) (layer Edge.Cuts) (width 0.15))
   (gr_line (start 153.520836 67.032849) (end 133.835836 67.032849) (layer Edge.Cuts) (width 0.15))
   (gr_line (start 158.600836 58.142849) (end 202.415836 58.142849) (layer Edge.Cuts) (width 0.15))
-  (gr_line (start 142.725836 103.862849) (end 202.415836 103.862849) (layer Edge.Cuts) (width 0.2))
+  (gr_line (start 142.725836 103.862849) (end 202.415836 103.862849) (layer Edge.Cuts) (width 0.15))
   (gr_line (start 148.035836 61.942849) (end 154.035836 61.942849) (layer Dwgs.User) (width 0.2))
   (gr_line (start 154.035836 65.942849) (end 148.035836 65.942849) (layer Dwgs.User) (width 0.2))
   (gr_arc (start 154.035836 63.942849) (end 154.035836 65.942849) (angle -180) (layer Dwgs.User) (width 0.2) (tstamp 5DFDDF7D))
