@@ -1,3 +1,10 @@
+## [2.6.3] - 2020-01-15
+- Fix NTAG cards detection (Issue #73)
+
+## [2.6.2] - 2019-12-12
+- Fix increased power consumption in sleep mode for PCB v1 (Issue #61)
+- Changed default antenna gain to 33 dB
+
 ## [2.6.1] - 2019-08-26
 - Fixed working with SportOrg
 - Changed algorithm to work with Serial in BaseStation
@@ -33,8 +40,8 @@
 
 ## [1.3.8] - 2018-06-25
 ### Added the program for work with the system
-- The program is available at (separete rep)[https://github.com/alexandervolikov/SportiduinoPQ]/ It is
-based on [a python module](https://github.com/alexandervolikov/sportiduinoPython) and also on the PyQt package for creating window applications
+- The program is available at [separete rep](https://github.com/sportiduino/SportiduinoPQ). It is
+based on [a python module](https://github.com/sportiduino/sportiduinoPython) and also on the PyQt package for creating window applications
 
 ## [1.3.7] - 2018-06-25
 ### Fix dump uploading
