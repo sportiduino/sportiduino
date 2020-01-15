@@ -120,7 +120,7 @@ void rfidBegin(uint8_t ssPin, uint8_t rstPin) {
     
     cardType = MFRC522::PICC_GetType(mfrc522.uid.sak);
     if(cardType == MFRC522::PICC_TYPE_MIFARE_UL) {
-        byte pageData[4];
+        byte pageData[18];
         byte dataSize = sizeof(pageData);
         if(ntagCardPageRead(3, pageData, &dataSize)) {
             cardType = pageData[2];
@@ -167,7 +167,7 @@ bool rfidIsNewCardDetected() {
 }
 
 bool mifareCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
-    // data size should be 18 bytes!
+    // data size should be at least 18 bytes!
     
     if(pageAdr < 3 || *size < 18) {
         return false;
@@ -217,7 +217,7 @@ bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
 }
 
 bool ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
-    if(*size < 4) {
+    if(*size < 18) {
         return false;
     }
 
@@ -226,7 +226,7 @@ bool ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
     if(status != MFRC522::STATUS_OK) {
         return false;
     }
-    
+
     return true;
 }
 
