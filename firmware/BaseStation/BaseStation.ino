@@ -18,50 +18,40 @@
 
 //-------------------------------------------------------------------
 // HARDWARE
+    
+#define BUZ           3
+#define LED           4
+
+#define RC522_RST     9
+#define RC522_SS      10
+
+#define UART_RX       0
+#define UART_TX       1
+
+#define SDA           A4
+#define SCL           A5
 
 #if HW_VERS == 1
-    
-    #define BUZ           3
-    #define LED           4
-
-    #define RC522_RST     9
-    #define RC522_SS      10
-    #define RC522_IRQ     6
-
     #define DS3231_VCC    5
     #define DS3231_IRQ    A3
-    // PC1 (24) This pin is not used. It is reserved for future
-    #define DS3231_32K    A1
+    #define DS3231_32K    A1 // not used, reserved for future
     #define DS3231_RST    A0
 
-    #define UART_RX       0
-    #define UART_TX       1
-    #define SDA           A4
-    #define SCL           A5
-    
-#else
-
-    #define BUZ           3
-    #define LED           4
-
-    #define RC522_RST     9
-    #define RC522_SS      10
     #define RC522_IRQ     6
-
-    // It is not used anymore. Just the free pin acts as output
-    #define DS3231_VCC    8
+#elif HW_VERS == 2
+    #define DS3231_VCC    8 // not used
     #define DS3231_IRQ    A3
-    // PD5 (9) This pin is not used. It is reserved for future
-    #define DS3231_32K    5
+    #define DS3231_32K    5 // not used, reserved for future
     #define DS3231_RST    2
 
-    #define UART_RX       0
-    // It is not used anymore. Just the free pin acts as output
-    #define DS3231_VCC    8
-    #define UART_TX       1
-    #define SDA           A4
-    #define SCL           A5
-    
+    #define RC522_IRQ     6
+#else
+    #define DS3231_VCC    A3
+    #define DS3231_IRQ    A2
+    #define DS3231_32K    5 // not used, reserved for future
+    #define DS3231_RST    2
+
+    #define RC522_IRQ     8
 #endif
 
 #define UNKNOWN_PIN 0xFF
@@ -196,37 +186,6 @@ uint8_t serialWakeupFlag = 0;
 // FUNCTIONS
 
 void(*resetFunc)(void) = 0;
-uint8_t getPinMode(uint8_t pin);
-void sleep(uint16_t ms);
-void setMode(uint8_t md);
-void setStationNum(uint8_t num);
-void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
-void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
-bool checkBattery(bool beepEnabled);
-void processRfid();
-void processTimeMasterCard(byte *data, byte dataSize);
-void processStationMasterCard(byte *data, byte dataSize);
-void processSleepMasterCard(byte *data, byte dataSize);
-void processDumpMasterCard(byte *data, byte dataSize);
-void processPassMasterCard(byte *data, byte dataSize);
-void processGetInfoMasterCard(byte *data, byte dataSize);
-void processParticipantCard(uint16_t cardNum);
-// Finds new page to write a mark to a participant card. It uses the binary search algorithm
-void findNewPage(uint8_t *newPage, uint8_t *lastNum);
-void writeCardNumToLog(uint16_t num);
-void clearMarkLog();
-uint16_t getMarkLogEnd();
-bool writeMarkToParticipantCard(uint8_t newPage);
-void clearParticipantCard();
-void checkParticipantCard();
-bool doesCardExpire();
-// DS3231 interrupt routine
-void rtcAlarmIrq();
-void wakeupByUartRx();
-void serialFuncReadInfo(byte *data, byte dataSize);
-void serialFuncWriteSettings(byte *data, byte dataSize);
-void serialRespStatus(uint8_t code);
-byte serialCrc(byte *data, uint8_t from, uint8_t to);
 
 // Note: DS3231 works by UTC time!
 
@@ -712,8 +671,6 @@ uint16_t getMarkLogEnd() {
 bool checkBattery(bool beepEnabled) {
     const uint32_t refConst = 1125300L; //voltage constanta
     uint32_t value = 0;
-    uint32_t adcl, adch;
-    bool result = false;
 
     Watchdog.reset();
     // Turn on ADC
@@ -730,8 +687,8 @@ bool checkBattery(bool beepEnabled) {
         ADCSRA |= _BV(ADSC);
         while(bit_is_set(ADCSRA, ADSC));
         // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-        adcl = ADCL;
-        adch = ADCH;
+        uint32_t adcl = ADCL;
+        uint32_t adch = ADCH;
 
         adcl &= 0xFF;
         adch &= 0xFF;
@@ -748,21 +705,17 @@ bool checkBattery(bool beepEnabled) {
     
     Watchdog.reset();
 
-    if(value < 3100) {
-        result = false;
-    } else {
-        result = true;
-    }
-        
-    if(beepEnabled) {
-        if(result) {
+    if(value > 3100) {
+        if(beepEnabled) {
             BEEP_BATTERY_OK;
-        } else {
-            BEEP_LOW_BATTERY;
         }
+        return true;
     }
 
-    return result;
+    if(beepEnabled) {
+        BEEP_LOW_BATTERY;
+    }
+    return false;
 }
 
 void processRfid() {
