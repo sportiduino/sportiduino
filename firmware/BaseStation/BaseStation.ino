@@ -9,8 +9,9 @@
 
 // Remove a comment from a line below to compile in DEBUG mode
 //#define DEBUG
+#define USE_REED_SWITCH
 
-#define HW_VERS         2
+#define HW_VERS         3
 #define FW_MAJOR_VERS   6
 #define FW_MINOR_VERS   3
 
@@ -30,6 +31,8 @@
 
 #define SDA           A4
 #define SCL           A5
+
+#define REED_SWITCH   7
 
 #if HW_VERS == 1
     #define DS3231_VCC    5
@@ -56,9 +59,6 @@
 
 #define UNKNOWN_PIN 0xFF
 
-// the third parameter should be the frequency of your buzzer if you solded the buzzer without a generator else 0
-#define beep(ms,n) beep_w(LED,BUZ,0,ms,n)
-
 #define SERIAL_BAUDRATE   9600
 
 //-------------------------------------------------------------------
@@ -71,8 +71,79 @@
 
 #define DEFAULT_STATION_NUM       CHECK_STATION_NUM
 
-//-------------------------------------------------------------------
-// SIGNALS
+//--------------------------------------------------------------------
+
+// Poll time in active mode (milliseconds)
+#define MODE_ACTIVE_CARD_CHECK_PERIOD     250
+// Poll time in wait mode (milliseconds)
+#define MODE_WAIT_CARD_CHECK_PERIOD       1000
+// Poll time in sleep mode (milliseconds)
+#define MODE_SLEEP_CARD_CHECK_PERIOD      25000
+
+//--------------------------------------------------------------------
+// VARIABLES  
+
+// work time in milliseconds
+uint32_t workTimer;
+uint8_t stationNum;
+uint8_t mode;
+
+#define MODE_ACTIVE   0
+#define MODE_WAIT     1
+#define MODE_SLEEP    2
+
+// It would be better to have MODE_WAIT as default
+// If station resets on competition and default 
+// mode is SLEEP in this case the participant can't
+// do mark fast
+#define DEFAULT_MODE MODE_WAIT
+
+// date/time
+ts t;
+// We need this variable because DS321 doesn't have Year for Alarms
+int16_t alarmYear;
+// We need this variable because DS321 doesn't have Month for Alarms
+uint8_t alarmMonth;
+// To support wakeup on hw v1
+uint32_t alarmTimestamp = 0;
+// This flag is true when it's DS3231 interrupt
+uint8_t rtcAlarmFlag = 0;
+uint8_t reedSwitchFlag = 0;
+// UART data buffer
+#define SERIAL_DATA_LENGTH  32
+byte serialData[SERIAL_DATA_LENGTH];
+// Index of last received byte by UART
+uint8_t serialRxPos;
+// It's true if there are data from UART in sleep mode
+uint8_t serialWakeupFlag = 0;
+
+// UART incoming message: 0xEE, 0xEF, <func>, <func data>, CRC8 (XOR of <func> and <func data>), 0xFD, 0xDF
+// UART outcoming message: 0xEE, 0xEF, <resp>, <resp_data>, CRC8 (XOR of <resp> and <resp_data>), 0xFD, 0xDF
+// UART message length can't be more 32 bytes
+
+#define SERIAL_MSG_START1           0xFE
+#define SERIAL_MSG_START2           0xEF
+
+#define SERIAL_MSG_END1             0xFD
+#define SERIAL_MSG_END2             0xDF
+
+#define SERIAL_FUNC_READ_INFO       0xF0
+#define SERIAL_FUNC_WRITE_SETTINGS  0xF1
+
+#define SERIAL_RESP_STATUS          0x1
+#define SERIAL_RESP_INFO            0x2
+
+#define SERIAL_OK                   0x0
+#define SERIAL_ERROR_CRC            0x1
+#define SERIAL_ERROR_FUNC           0x2
+#define SERIAL_ERROR_SIZE           0x3
+#define SERIAL_ERROR_PWD            0x4
+
+//--------------------------------------------------------------------
+// FUNCTIONS
+
+// the third parameter should be the frequency of your buzzer if you solded the buzzer without a generator else 0
+#define beep(ms,n) beep_w(LED,BUZ,0,ms,n)
 
 #define BEEP_SYSTEM_STARTUP     beep(1000,1)
 
@@ -115,75 +186,15 @@
 #define BEEP_SERIAL_OK                      beep(250,1)
 #define BEEP_SERIAL_ERROR                   beep(250,2)
 
-//--------------------------------------------------------------------
 
-// Poll time in active mode (milliseconds)
-#define MODE_ACTIVE_CARD_CHECK_PERIOD     250
-// Poll time in wait mode (milliseconds)
-#define MODE_WAIT_CARD_CHECK_PERIOD       1000
-// Poll time in sleep mode (milliseconds)
-#define MODE_SLEEP_CARD_CHECK_PERIOD      25000
+#ifdef USE_REED_SWITCH
+    #define enableInterruptReedSwitch() { enablePCINT(digitalPinToPCINT(REED_SWITCH)); }
+    #define disableInterruptReedSwitch() { disablePCINT(digitalPinToPCINT(REED_SWITCH)); }
+#else
+    #define enableInterruptReedSwitch()
+    #define disableInterruptReedSwitch()
+#endif
 
-//--------------------------------------------------------------------
-// VARIABLES  
-
-// work time in milliseconds
-uint32_t workTimer;
-uint8_t stationNum;
-uint8_t mode;
-
-#define MODE_ACTIVE   0
-#define MODE_WAIT     1
-#define MODE_SLEEP    2
-
-// It would be better to have MODE_WAIT as default
-// If station resets on competition and default 
-// mode is SLEEP in this case the participant can't
-// do mark fast
-#define DEFAULT_MODE MODE_WAIT
-
-// date/time
-ts t;
-// We need this variable because DS321 doesn't have Year for Alarms
-int16_t alarmYear;
-// We need this variable because DS321 doesn't have Month for Alarms
-uint8_t alarmMonth;
-// To support wakeup on hw v1
-uint32_t alarmTimestamp = 0;
-// This flag is true when it's DS3231 interrupt
-uint8_t rtcAlarmFlag;
-// UART data buffer
-#define SERIAL_DATA_LENGTH  32
-byte serialData[SERIAL_DATA_LENGTH];
-// Index of last received byte by UART
-uint8_t serialRxPos;
-// It's true if there are data from UART in sleep mode
-uint8_t serialWakeupFlag = 0;
-
-// UART incoming message: 0xEE, 0xEF, <func>, <func data>, CRC8 (XOR of <func> and <func data>), 0xFD, 0xDF
-// UART outcoming message: 0xEE, 0xEF, <resp>, <resp_data>, CRC8 (XOR of <resp> and <resp_data>), 0xFD, 0xDF
-// UART message length can't be more 32 bytes
-
-#define SERIAL_MSG_START1           0xFE
-#define SERIAL_MSG_START2           0xEF
-
-#define SERIAL_MSG_END1             0xFD
-#define SERIAL_MSG_END2             0xDF
-
-#define SERIAL_FUNC_READ_INFO       0xF0
-#define SERIAL_FUNC_WRITE_SETTINGS  0xF1
-
-#define SERIAL_RESP_STATUS          0x1
-#define SERIAL_RESP_INFO            0x2
-
-#define SERIAL_OK                   0x0
-#define SERIAL_ERROR_CRC            0x1
-#define SERIAL_ERROR_FUNC           0x2
-#define SERIAL_ERROR_SIZE           0x3
-#define SERIAL_ERROR_PWD            0x4
-
-//--------------------------------------------------------------------
-// FUNCTIONS
 
 void(*resetFunc)(void) = 0;
 
@@ -201,6 +212,7 @@ void setup() {
     pinMode(RC522_IRQ,INPUT_PULLUP);
     pinMode(DS3231_IRQ,INPUT_PULLUP);
     pinMode(DS3231_32K,INPUT_PULLUP);
+    pinMode(REED_SWITCH,INPUT_PULLUP);
     pinMode(DS3231_VCC, OUTPUT);
 
 #if HW_VERS > 1
@@ -232,6 +244,11 @@ void setup() {
 
     // Config DS3231 interrupts
     attachPCINT(digitalPinToPCINT(DS3231_IRQ), rtcAlarmIrq, FALLING);
+    
+#ifdef USE_REED_SWITCH
+    attachPCINT(digitalPinToPCINT(REED_SWITCH), reedSwitchIrq, FALLING);
+    disablePCINT(digitalPinToPCINT(REED_SWITCH));
+#endif
 
     // Read settings from EEPROM
     stationNum = majEepromRead(EEPROM_STATION_NUM_ADDR);
@@ -284,8 +301,15 @@ void loop() {
     }
 #endif
 
+#ifdef USE_REED_SWITCH
+    if(reedSwitchFlag) {
+        reedSwitchFlag = 0;
+        processRfid();
+    }
+#else
     // process cards
     processRfid();
+#endif
 
     // process mode
     switch(mode) {
@@ -318,11 +342,13 @@ void loop() {
             }
             break;
         case MODE_SLEEP:
+            enableInterruptReedSwitch();
             sleep(MODE_SLEEP_CARD_CHECK_PERIOD);
+            disableInterruptReedSwitch();
 
-            #ifdef DEBUG
+#ifdef DEBUG
             digitalWrite(LED,HIGH);
-            #endif
+#endif
             
             break;
     }
@@ -1206,3 +1232,8 @@ void rtcAlarmIrq() {
     // So set flag and process interrupt in main routine
     rtcAlarmFlag = 1;
 }
+
+void reedSwitchIrq() {
+    reedSwitchFlag = 1;
+}
+
