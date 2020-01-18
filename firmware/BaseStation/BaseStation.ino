@@ -41,6 +41,10 @@
     #define DS3231_RST    A0
 
     #define RC522_IRQ     6
+
+    #error "Define ADC_IN and ADC_ENABLE for v1.x"
+    //#define ADC_IN        A0
+    //#define ADC_ENABLE    A1
 #elif HW_VERS == 2
     #define DS3231_VCC    8 // not used
     #define DS3231_IRQ    A3
@@ -48,6 +52,9 @@
     #define DS3231_RST    2
 
     #define RC522_IRQ     6
+
+    #define ADC_IN        A0
+    #define ADC_ENABLE    A1
 #else
     #define DS3231_VCC    A3
     #define DS3231_IRQ    A2
@@ -55,6 +62,9 @@
     #define DS3231_RST    2
 
     #define RC522_IRQ     8
+
+    #define ADC_IN        A0
+    #define ADC_ENABLE    A1
 #endif
 
 #define UNKNOWN_PIN 0xFF
@@ -214,6 +224,8 @@ void setup() {
     pinMode(DS3231_32K, INPUT_PULLUP);
     pinMode(REED_SWITCH, INPUT_PULLUP);
     pinMode(DS3231_VCC, OUTPUT);
+    pinMode(ADC_IN, INPUT);
+    pinMode(ADC_ENABLE, INPUT);
 
 #if HW_VERS > 1
     pinMode(DS3231_RST, INPUT); // if set as pull_up it takes additional supply current
@@ -627,7 +639,9 @@ void sleep(uint16_t ms) {
            pin == DS3231_IRQ ||
            pin == DS3231_32K ||
            pin == DS3231_RST ||
-           pin == REED_SWITCH) {
+           pin == REED_SWITCH ||
+           pin == ADC_IN ||
+           pin == ADC_ENABLE) {
             continue;
         }
 
