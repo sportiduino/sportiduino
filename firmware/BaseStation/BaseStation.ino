@@ -302,8 +302,12 @@ void loop() {
 #endif
 
 #ifdef USE_REED_SWITCH
-    if(reedSwitchFlag) {
-        reedSwitchFlag = 0;
+    if(mode == MODE_SLEEP) {
+        if(reedSwitchFlag) {
+            reedSwitchFlag = 0;
+            processRfid();
+        }
+    } else {
         processRfid();
     }
 #else
@@ -595,8 +599,8 @@ void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t
 }
 
 void sleep(uint16_t ms) {
-    // We can't sleep if there is data received by UART or DS3231 interrupt
-    if(rtcAlarmFlag || Serial.available() > 0 || serialWakeupFlag) {
+    // We can't sleep if there is data received by UART or special interrupts
+    if(reedSwitchFlag || rtcAlarmFlag || serialWakeupFlag || Serial.available() > 0) {
         return;
     }
     
@@ -620,7 +624,8 @@ void sleep(uint16_t ms) {
            pin == LED ||
            pin == BUZ ||
            pin == DS3231_VCC ||
-           pin == DS3231_RST ) {
+           pin == DS3231_RST ||
+           pin == REED_SWITCH) {
             continue;
         }
 
@@ -1236,4 +1241,3 @@ void rtcAlarmIrq() {
 void reedSwitchIrq() {
     reedSwitchFlag = 1;
 }
-
