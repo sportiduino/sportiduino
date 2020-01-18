@@ -205,14 +205,14 @@ void setup() {
     Watchdog.disable();
     Watchdog.reset();
 
-    pinMode(LED,OUTPUT);
-    pinMode(BUZ,OUTPUT);
-    pinMode(RC522_RST,OUTPUT);
-    pinMode(RC522_SS,OUTPUT);
-    pinMode(RC522_IRQ,INPUT_PULLUP);
-    pinMode(DS3231_IRQ,INPUT_PULLUP);
-    pinMode(DS3231_32K,INPUT_PULLUP);
-    pinMode(REED_SWITCH,INPUT_PULLUP);
+    pinMode(LED, OUTPUT);
+    pinMode(BUZ, OUTPUT);
+    pinMode(RC522_RST, OUTPUT);
+    pinMode(RC522_SS, OUTPUT);
+    pinMode(RC522_IRQ, INPUT_PULLUP);
+    pinMode(DS3231_IRQ, INPUT_PULLUP);
+    pinMode(DS3231_32K, INPUT_PULLUP);
+    pinMode(REED_SWITCH, INPUT_PULLUP);
     pinMode(DS3231_VCC, OUTPUT);
 
 #if HW_VERS > 1
@@ -222,10 +222,10 @@ void setup() {
     pinMode(DS3231_RST, INPUT_PULLUP);
 #endif
 
-    digitalWrite(LED,LOW);
-    digitalWrite(BUZ,LOW);
-    digitalWrite(RC522_RST,LOW);
-    digitalWrite(DS3231_VCC,HIGH);
+    digitalWrite(LED, LOW);
+    digitalWrite(BUZ, LOW);
+    digitalWrite(RC522_RST, LOW);
+    digitalWrite(DS3231_VCC, HIGH);
     delay(5);
     // initialize I2C
     Wire.begin();
@@ -624,6 +624,8 @@ void sleep(uint16_t ms) {
            pin == LED ||
            pin == BUZ ||
            pin == DS3231_VCC ||
+           pin == DS3231_IRQ ||
+           pin == DS3231_32K ||
            pin == DS3231_RST ||
            pin == REED_SWITCH) {
             continue;
