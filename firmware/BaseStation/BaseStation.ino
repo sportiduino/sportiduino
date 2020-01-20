@@ -12,7 +12,7 @@
 
 #define HW_VERS         2
 #define FW_MAJOR_VERS   6
-#define FW_MINOR_VERS   2
+#define FW_MINOR_VERS   3
 
 #define VERS ((HW_VERS - 1) << 6) | ((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS
 
@@ -37,7 +37,7 @@
     #define UART_RX       0
     #define UART_TX       1
     #define SDA           A4
-    #define SDA           A5
+    #define SCL           A5
     
 #else
 
