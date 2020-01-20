@@ -69,8 +69,6 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
 }
 
 bool readPwdSettings() {
-    bool result = true;
-    
     settings = majEepromRead(EEPROM_SETTINGS_ADDR);
     
     for(uint8_t i = 0; i < 3; i++) {
@@ -87,10 +85,10 @@ bool readPwdSettings() {
         setSettings(DEFAULT_SETTINGS);
         setPwd(0,0,0);
         setAntennaGain(DEFAULT_ANTENNA_GAIN);
-        result = false;
+        return false;
     }
 
-    return result;
+    return true;
 }
 
 void rfidBegin(uint8_t ssPin, uint8_t rstPin) {
@@ -282,15 +280,15 @@ CardType rfidGetCardType() {
 }
 
 bool rfidCardPageRead(uint8_t pageAdr, byte *data) {
-    byte pageData[18];
-    byte dataSize = sizeof(pageData);
-    bool result = false;
     uint8_t maxPage = rfidGetCardMaxPage();
-    
+
     if(pageAdr > maxPage) {
         return false;
     }
-    
+
+    bool result = false;
+    byte pageData[18];
+    byte dataSize = sizeof(pageData);
     switch(cardType) {
         case CardType::MIFARE_MINI:
         case CardType::MIFARE_1K:

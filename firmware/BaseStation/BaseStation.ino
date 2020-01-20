@@ -766,7 +766,6 @@ bool checkBattery(bool beepEnabled) {
 }
 
 void processRfid() {
-    bool result;
     byte pageData[4];
     byte masterCardData[16];
 
@@ -789,7 +788,7 @@ void processRfid() {
                 // Copy data
                 memcpy(masterCardData, pageData, 4);
                 // Read master card data
-                result = true;
+                bool result = true;
                     
                 result &= rfidCardPageRead(CARD_PAGE_INIT_TIME, pageData);
                 if(result) {
@@ -1138,7 +1137,6 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum) {
 
 bool writeMarkToParticipantCard(uint8_t newPage) {
     byte pageData[4] = {0,0,0,0};
-    bool result = false;
     
     DS3231_get(&t);
 
@@ -1147,7 +1145,7 @@ bool writeMarkToParticipantCard(uint8_t newPage) {
     pageData[2] = (t.unixtime & 0x0000FF00)>>8;
     pageData[3] = (t.unixtime & 0x000000FF);
             
-    result = rfidCardPageWrite(newPage, pageData);
+    bool result = rfidCardPageWrite(newPage, pageData);
 
     if((getSettings() & SETTINGS_FAST_MARK) && result) {
         pageData[0] = stationNum;
@@ -1174,6 +1172,10 @@ void clearParticipantCard() {
         result &= rfidCardPageWrite(page, pageData);
         
         digitalWrite(LED,LOW);
+
+        if(!result) {
+            break;
+        }
     }
 
     if(result) {
@@ -1227,8 +1229,7 @@ void checkParticipantCard() {
 bool doesCardExpire() {
     byte pageData[4] = {0,0,0,0};
     uint32_t cardTime = 0;
-    bool result = true;
-    
+
     if(rfidCardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
         DS3231_get(&t);
 
@@ -1237,14 +1238,12 @@ bool doesCardExpire() {
         cardTime |= (((uint32_t)pageData[2]) & 0x0000FF00)<<8;
         cardTime |= (((uint32_t)pageData[3]) & 0x000000FF);
 
-        if(t.unixtime - cardTime >= CARD_EXPIRE_TIME) {
-            result = true;
-        } else {
-            result = false;
+        if(t.unixtime - cardTime < CARD_EXPIRE_TIME) {
+            return false;
         }
     }
 
-    return result;
+    return true;
 }
 
 void rtcAlarmIrq() {
