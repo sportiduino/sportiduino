@@ -5,15 +5,14 @@
 #include <string.h>
 #include "sportiduino.h"
 
-MFRC522 mfrc522;
-MFRC522::MIFARE_Key key;
-MFRC522::StatusCode status;
-MFRC522::Uid lastCardUid;
-uint8_t rfidRstPin = 0;
-uint8_t pass[] = {0,0,0};
-uint8_t settings = DEFAULT_SETTINGS;
-uint8_t antennaGain = DEFAULT_ANTENNA_GAIN;
-uint8_t cardType = 0xFF;
+static MFRC522 mfrc522;
+static MFRC522::MIFARE_Key key;
+static MFRC522::Uid lastCardUid;
+static uint8_t rfidRstPin = 0;
+static uint8_t pass[] = {0,0,0};
+static uint8_t settings = DEFAULT_SETTINGS;
+static uint8_t antennaGain = DEFAULT_ANTENNA_GAIN;
+static CardType cardType = CardType::UNKNOWN;
 
 // data buffer size should be greater 18 bytes
 bool mifareCardPageRead(uint8_t pageAdr, byte *data, byte *size);
@@ -95,7 +94,7 @@ bool readPwdSettings() {
 }
 
 void rfidBegin(uint8_t ssPin, uint8_t rstPin) {
-    cardType = 0xFF;
+    cardType = CardType::UNKNOWN;
     rfidRstPin = rstPin;
     
     memset(&key, 0xFF, sizeof(key));
@@ -118,12 +117,33 @@ void rfidBegin(uint8_t ssPin, uint8_t rstPin) {
         return;
     }
     
-    cardType = MFRC522::PICC_GetType(mfrc522.uid.sak);
-    if(cardType == MFRC522::PICC_TYPE_MIFARE_UL) {
-        byte pageData[18];
-        byte dataSize = sizeof(pageData);
-        if(ntagCardPageRead(3, pageData, &dataSize)) {
-            cardType = pageData[2];
+    auto piccType = MFRC522::PICC_GetType(mfrc522.uid.sak);
+    switch(piccType) {
+        case MFRC522::PICC_TYPE_MIFARE_MINI:
+            cardType = CardType::MIFARE_MINI;
+            return;
+        case MFRC522::PICC_TYPE_MIFARE_1K:
+            cardType = CardType::MIFARE_1K;
+            return;
+        case MFRC522::PICC_TYPE_MIFARE_4K:
+            cardType = CardType::MIFARE_4K;
+            return;
+        case MFRC522::PICC_TYPE_MIFARE_UL: {
+            byte pageData[18];
+            byte dataSize = sizeof(pageData);
+            if(ntagCardPageRead(3, pageData, &dataSize)) {
+                switch(pageData[2]) {
+                    case 0x12:
+                        cardType = CardType::NTAG213;
+                        return;
+                    case 0x3e:
+                        cardType = CardType::NTAG215;
+                        return;
+                    case 0x6d:
+                        cardType = CardType::NTAG216;
+                        return;
+                }
+            }
         }
     }
 }
@@ -140,17 +160,9 @@ void rfidEnd() {
 }
 
 bool rfidIsCardDetected() {
-    switch(cardType) {
-        case MFRC522::PICC_TYPE_MIFARE_MINI:
-        case MFRC522::PICC_TYPE_MIFARE_1K:
-        case MFRC522::PICC_TYPE_MIFARE_4K:
-        case MFRC522::PICC_TYPE_MIFARE_UL:
-        case 0x6D: // NTAG_216
-        case 0x3E: // NTAG_215
-        case 0x12: // NTAG_213
-            return true;
+    if(cardType != CardType::UNKNOWN) {
+        return true;
     }
-
     return false;
 }
 
@@ -176,7 +188,7 @@ bool mifareCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
     byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
     byte trailerBlock = blockAddr + (3-blockAddr%4);
 
-    status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
+    auto status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
     
     if(status != MFRC522::STATUS_OK) {
         return false;
@@ -201,7 +213,7 @@ bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
     byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
     byte trailerBlock = blockAddr + (3-blockAddr%4);
 
-    status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
+    auto status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
     
     if(status != MFRC522::STATUS_OK) {
         return false;
@@ -221,7 +233,7 @@ bool ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
         return false;
     }
 
-    status = (MFRC522::StatusCode)mfrc522.MIFARE_Read(pageAdr, data, size);
+    auto status = (MFRC522::StatusCode)mfrc522.MIFARE_Read(pageAdr, data, size);
     
     if(status != MFRC522::STATUS_OK) {
         return false;
@@ -235,7 +247,7 @@ bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
         return false;
     }
 
-    status = (MFRC522::StatusCode)mfrc522.MIFARE_Ultralight_Write(pageAdr, data, size);
+    auto status = (MFRC522::StatusCode)mfrc522.MIFARE_Ultralight_Write(pageAdr, data, size);
     
     if(status != MFRC522::STATUS_OK) {
         return false;
@@ -246,26 +258,26 @@ bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
 
 uint8_t rfidGetCardMaxPage() {
     switch(cardType) {
-        case MFRC522::PICC_TYPE_MIFARE_MINI:
+        case CardType::MIFARE_MINI:
             return 17;
-        case MFRC522::PICC_TYPE_MIFARE_1K:
+        case CardType::MIFARE_1K:
             return 50;
-        case MFRC522::PICC_TYPE_MIFARE_4K:
+        case CardType::MIFARE_4K:
             return 98;
-        case MFRC522::PICC_TYPE_MIFARE_UL:
+        case CardType::MIFARE_UL:
             return 39;
-        case 0x6D: // NTAG_216
+        case CardType::NTAG216:
             return 225;
-        case 0x3E: // NTAG_215
+        case CardType::NTAG215:
             return 129;
-        case 0x12: // NTAG_213
+        case CardType::NTAG213:
             return 39;
     }
     
     return 0;
 }
 
-uint8_t rfidGetCardType() {
+CardType rfidGetCardType() {
     return cardType;
 }
 
@@ -280,15 +292,15 @@ bool rfidCardPageRead(uint8_t pageAdr, byte *data) {
     }
     
     switch(cardType) {
-        case MFRC522::PICC_TYPE_MIFARE_MINI:
-        case MFRC522::PICC_TYPE_MIFARE_1K:
-        case MFRC522::PICC_TYPE_MIFARE_4K:
+        case CardType::MIFARE_MINI:
+        case CardType::MIFARE_1K:
+        case CardType::MIFARE_4K:
             result = mifareCardPageRead(pageAdr, pageData, &dataSize);
             break;
-        case MFRC522::PICC_TYPE_MIFARE_UL:
-        case 0x12:
-        case 0x3E:
-        case 0x6D:
+        case CardType::MIFARE_UL:
+        case CardType::NTAG213:
+        case CardType::NTAG215:
+        case CardType::NTAG216:
         default:
             result = ntagCardPageRead(pageAdr, pageData, &dataSize);
             break;
@@ -302,33 +314,28 @@ bool rfidCardPageRead(uint8_t pageAdr, byte *data) {
 }
 
 bool rfidCardPageWrite(uint8_t pageAdr, byte *data) {
-    byte pageData[16];
-    bool result = false;
     uint8_t maxPage = rfidGetCardMaxPage();
-    
+
     if(pageAdr > maxPage) {
         return false;
     }
 
+    byte pageData[16];
     memset(pageData, 0, sizeof(pageData));
     memcpy(pageData, data, 4);
-    
+
     switch(cardType) {
-        case MFRC522::PICC_TYPE_MIFARE_MINI:
-        case MFRC522::PICC_TYPE_MIFARE_1K:
-        case MFRC522::PICC_TYPE_MIFARE_4K:
-            result = mifareCardPageWrite(pageAdr, pageData, sizeof(pageData));
-            break;
-        case MFRC522::PICC_TYPE_MIFARE_UL:
-        case 0x12:
-        case 0x3E:
-        case 0x6D:
+        case CardType::MIFARE_MINI:
+        case CardType::MIFARE_1K:
+        case CardType::MIFARE_4K:
+            return mifareCardPageWrite(pageAdr, pageData, sizeof(pageData));
+        case CardType::MIFARE_UL:
+        case CardType::NTAG213:
+        case CardType::NTAG215:
+        case CardType::NTAG216:
         default:
-            result = ntagCardPageWrite(pageAdr, pageData, sizeof(pageData));
-            break;
+            return ntagCardPageWrite(pageAdr, pageData, sizeof(pageData));
     }
-        
-    return result;
 }
 
 void setPwd(uint8_t pwd1, uint8_t pwd2, uint8_t pwd3) {

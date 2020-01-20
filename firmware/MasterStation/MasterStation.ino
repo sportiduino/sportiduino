@@ -1,8 +1,8 @@
 #include <sportiduino.h>
 
 #define HW_VERS           1
-#define FW_MAJOR_VERS     6
-#define FW_MINOR_VERS     3
+#define FW_MAJOR_VERS     7
+#define FW_MINOR_VERS     0
 
 #define FW_VERS (((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS)
 
@@ -17,15 +17,7 @@
 #define RC522_RST_PIN   9
 #define RC522_SS_PIN    10
 
-// the third parameter should be the frequency of your buzzer if you solded the buzzer without a generator else 0
-#define beep(ms,n) beep_w(LED,BUZ,0,ms,n)
-
-//-----------------------------------------------------------
-// SIGNALS
-
-#define BEEP_TIME_CARD_OK beep(500,3)
-#define BEEP_ERROR beep(100, 3)
-#define BEEP_OK beep(500, 1)
+#define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
 
 //-----------------------------------------------------------
 // CONST
@@ -53,10 +45,11 @@
 //-----------------------------------------------------------
 // FUNCTIONS
 
-void serialClearBuffer();
-uint8_t serialCheckSum();
-void serialSend(uint8_t func, uint8_t data);
-void serialFlush(uint8_t func);
+#define beep(ms, n) { beep_w(LED, BUZ, BUZZER_FREQUENCY, ms, n); }
+#define beepTimeCardOk() { beep(500,3); }
+#define beepError() { beep(100, 3); }
+#define beepOk() { beep(500, 1); }
+
 void signalError(uint8_t error);
 void signalOK(bool beepOK = true);
 
@@ -148,10 +141,10 @@ void findFunc() {
             funcReadCardType();
             break;
         case 0x58:
-            BEEP_ERROR;
+            beepError();
             break;
         case 0x59:
-            BEEP_OK;
+            beepOk();
             break;
     }
 }
@@ -215,20 +208,20 @@ void signalError(uint8_t error) {
     serialClearBuffer();
 
     serialSend(RESP_FUNC_ERROR, error);
-    serialSend(RESP_FUNC_ERROR, rfidGetCardType());
+    serialSend(RESP_FUNC_ERROR, static_cast<uint8_t>(rfidGetCardType()));
     serialFlush(RESP_FUNC_ERROR);
 
-    BEEP_ERROR;
+    beepError();
 }
 
 void signalOK(bool beepOK) {
     serialClearBuffer();
     
-    serialSend(RESP_FUNC_OK, rfidGetCardType());
+    serialSend(RESP_FUNC_OK, static_cast<uint8_t>(rfidGetCardType()));
     serialFlush(RESP_FUNC_OK);
 
     if(beepOK) {
-        BEEP_OK;
+        beepOk();
     }
 }
 
@@ -262,7 +255,7 @@ void funcWriteMasterTime() {
         signalError(error);
     } else {
         signalOK(false);
-        BEEP_TIME_CARD_OK;
+        beepTimeCardOk();
     }
 }
 
@@ -348,16 +341,19 @@ void funcWriteInit() {
     
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
     
-    uint8_t ntagType = rfidGetCardType();
+    CardType cardType = rfidGetCardType();
 
-    if(ntagType == 0x6D) {
-        ntagType = 6;
-    } else if(ntagType == 0x3E) {
-        ntagType = 5;
-    } else if(ntagType == 0x12) {
-        ntagType = 3;
-    } else {
-        ntagType = 0;
+    uint8_t ntagType = 0;
+    switch(cardType) {
+        case CardType::NTAG213:
+            ntagType = 3;
+            break;
+        case CardType::NTAG215:
+            ntagType = 5;
+            break;
+        case CardType::NTAG216:
+            ntagType = 6;
+            break;
     }
 
     byte emptyBlock[] = {0,0,0,0};
@@ -554,7 +550,7 @@ void funcReadLog() {
         signalError(error);
     } else { 
         serialFlush(func);
-        BEEP_OK;
+        beepOk();
     }
 }
 
@@ -650,7 +646,7 @@ void funcReadCard() {
     //else
     //{
     //  serialFlush(func);
-    //  BEEP_OK;
+    //  beepOk();
     //}
 
     if(!error) {
@@ -688,7 +684,7 @@ void funcReadRawCard() {
         signalError(error);
     } else {
         serialFlush(func);
-        BEEP_OK;
+        beepOk();
     }
 }
 
@@ -697,7 +693,7 @@ void funcReadCardType() {
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
     rfidEnd();
 
-    serialSend(func, rfidGetCardType());
+    serialSend(func, static_cast<uint8_t>(rfidGetCardType()));
     serialFlush(func);
 }
 

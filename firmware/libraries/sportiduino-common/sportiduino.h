@@ -69,6 +69,21 @@
 #define CARD_PAGE_STATION_NUM		6
 #define CARD_PAGE_DUMP_START		5
 
+enum class CardType : byte {
+    UNKNOWN	    = 0,
+    ISO_14443_4	= 1,
+    ISO_18092   = 2,
+    MIFARE_MINI	= 3,
+    MIFARE_1K   = 4,
+    MIFARE_4K   = 5,
+    MIFARE_UL   = 6,
+    MIFARE_PLUS	= 7,
+    TNP3XXX	    = 8,
+    NTAG213     = 9,
+    NTAG215     = 10,
+    NTAG216     = 11
+};
+
 /**
  * Writes data with a majority backup in three cells of EEPROM
  */
@@ -94,22 +109,6 @@ bool readPwdSettings();
 /**
  * Begins to work with RFID module
  * Turn on RC522, detect a card and return the card type if a new one has presented else return 0 if the same card has presented or 0xFF if no any card
- * cardType is MFRC522::PICC_Type
- * PICC_TYPE_UNKNOWN		,
- * PICC_TYPE_ISO_14443_4	,	// PICC compliant with ISO/IEC 14443-4 
- * PICC_TYPE_ISO_18092		, 	// PICC compliant with ISO/IEC 18092 (NFC)
- * PICC_TYPE_MIFARE_MINI	,	// MIFARE Classic protocol, 320 bytes
- * PICC_TYPE_MIFARE_1K		,	// MIFARE Classic protocol, 1KB
- * PICC_TYPE_MIFARE_4K		,	// MIFARE Classic protocol, 4KB
- * PICC_TYPE_MIFARE_UL		,	// MIFARE Ultralight or Ultralight C
- * PICC_TYPE_MIFARE_PLUS	,	// MIFARE Plus
- * PICC_TYPE_MIFARE_DESFIRE,	// MIFARE DESFire
- * PICC_TYPE_TNP3XXX		,	// Only mentioned in NXP AN 10833 MIFARE Type Identification Procedure
- * PICC_TYPE_NOT_COMPLETE	= 0xff	// SAK indicates UID is not complete.
- * NTAG_213 = 0x12
- * NTAG_215 = 0x3E
- * NTAG_216 = 0x6D
- 
  */
 void rfidBegin(uint8_t ssPin, uint8_t rstPin);
 
@@ -146,7 +145,7 @@ uint8_t rfidGetCardMaxPage();
 /**
  * Returns type of the card
  */
-uint8_t rfidGetCardType();
+CardType rfidGetCardType();
 
 /**
  * Sets new password and save it in EEPROM
