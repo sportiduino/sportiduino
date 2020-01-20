@@ -1,5 +1,6 @@
-## [2.6.3] - 2020-01-15
+## [2.6.3] - 2020-01-20
 - Fix NTAG cards detection (Issue #73)
+- Fix increased power consumption in sleep mode for PCB v2 (Issue #61)
 
 ## [2.6.2] - 2019-12-12
 - Fix increased power consumption in sleep mode for PCB v1 (Issue #61)
