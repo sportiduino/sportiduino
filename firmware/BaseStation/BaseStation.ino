@@ -635,6 +635,8 @@ void sleep(uint16_t ms) {
            pin == LED ||
            pin == BUZ ||
            pin == DS3231_VCC ||
+           pin == DS3231_IRQ ||
+           pin == DS3231_32K ||
            pin == DS3231_RST ) {
             continue;
         }
