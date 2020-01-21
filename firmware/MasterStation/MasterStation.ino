@@ -22,11 +22,13 @@
 #define SERIAL_START_BYTE       0xFE
 #define SERIAL_DATA_MAX_SIZE    28
 
-#define ERROR_COM               0x01
+#define NO_ERRORS               0x00
+#define ERROR_SERIAL            0x01
 #define ERROR_CARD_WRITE        0x02
 #define ERROR_CARD_READ         0x03
 #define ERROR_EEPROM_READ       0x04
 #define ERROR_CARD_NOT_FOUND    0x05
+#define ERROR_UNKNOWN_CMD       0x06
 
 #define RESP_FUNC_LOG           0x61
 #define RESP_FUNC_MARKS         0x63
@@ -41,12 +43,11 @@
 // FUNCTIONS
 
 #define beep(ms, n) { beep_w(LED, BUZ, BUZZER_FREQUENCY, ms, n); }
-#define beepTimeCardOk() { beep(500,3); }
+#define beepTimeCardOk() { beep(500, 3); }
 #define beepError() { beep(100, 3); }
 #define beepOk() { beep(500, 1); }
 
-void signalError(uint8_t error);
-void signalOK(bool beepOK = true);
+//void signalOK(bool beepOK = true);
 
 //-----------------------------------------------------------
 // VARIABLES
@@ -73,25 +74,25 @@ void setup() {
 
 void loop() { 
     if(Serial.available() > 0) {
-        serialClearBuffer();
+        static uint8_t inputBuffer[SERIAL_PACKET_SIZE];
+
+        Serial.readBytes(inputBuffer, SERIAL_PACKET_SIZE);
         
-        Serial.readBytes(serialBuffer, SERIAL_PACKET_SIZE);
-        
-        uint8_t dataSize = serialBuffer[2];
+        uint8_t dataSize = inputBuffer[2];
         
         if(dataSize > SERIAL_DATA_MAX_SIZE) {
             dataSize = SERIAL_DATA_MAX_SIZE;  
         }
         
-        if(serialBuffer[0] != SERIAL_START_BYTE || serialBuffer[dataSize + 3] != serialCheckSum()) {
-            signalError(ERROR_COM);
-        } else {
-            findFunc();
+        if(inputBuffer[0] != SERIAL_START_BYTE || inputBuffer[dataSize + 3] != serialCheckSum(inputBuffer, dataSize)) {
+            signalError(ERROR_SERIAL);
+            return;
         }
+        handleCmd();
     }
 }
 
-void findFunc() {
+void handleCmd() {
     switch(serialBuffer[1]) {
         case 0x41:
             funcWriteMasterTime();
@@ -141,53 +142,53 @@ void findFunc() {
         case 0x59:
             beepOk();
             break;
+        default:
+            signalError(ERROR_UNKNOWN_CMD);
+            break;
     }
 }
 
-uint8_t serialCheckSum() {
+uint8_t serialCheckSum(uint8_t *buffer, uint8_t dataSize) {
     uint8_t sum = 0;
-    uint8_t dataSize = serialBuffer[2];
-    if(dataSize > SERIAL_DATA_MAX_SIZE) {
-        dataSize = SERIAL_DATA_MAX_SIZE;
-    }
-    uint8_t len = dataSize + 3;  // + func byte + length byte + offset from start
+    uint8_t len = dataSize + 2;  // + cmd/resp byte + length byte
     
-    for (uint8_t i = 1; i < len; i++) {
-        sum += serialBuffer[i];
+    for (uint8_t i = 1; i <= len; ++i) {
+        sum += buffer[i];
     }
     
     return sum;
 }
 
-void serialClearBuffer() {
+void serialStart(uint8_t resp) {
     serialDataPos = 3;
     serialPacketCount = 0;
-    memset(serialBuffer, 0, SERIAL_PACKET_SIZE);
+    memset(serialBuffer + 2, 0, SERIAL_PACKET_SIZE);
+
+    serialBuffer[0] = SERIAL_START_BYTE;
+    serialBuffer[1] = resp;
 }
 
-void serialAdd(uint8_t func, uint8_t data) { 
+void serialAdd(uint8_t dataByte) {
     if(serialDataPos >= SERIAL_PACKET_SIZE - 1) {
         serialDataPos++;  // to indicate that we going to send packet count
-        serialSend(func);
+        serialSend();
     }
 
-    serialBuffer[serialDataPos] = data;
+    serialBuffer[serialDataPos] = dataByte;
     serialDataPos++;
 }
 
-void serialSend(uint8_t func) {
-    uint8_t dataSize = serialDataPos - 3; // minus start,func,datalen
+void serialSend() {
+    uint8_t dataSize = serialDataPos - 3; // minus start, resp code, datalen
     
     if(dataSize > SERIAL_DATA_MAX_SIZE) {
         dataSize = serialPacketCount + 0x1E;
         serialDataPos = SERIAL_PACKET_SIZE - 1;
         serialPacketCount++;
     }
-    
-    serialBuffer[0] = SERIAL_START_BYTE;
-    serialBuffer[1] = func;
+
     serialBuffer[2] = dataSize;
-    serialBuffer[serialDataPos] = serialCheckSum();
+    serialBuffer[serialDataPos] = serialCheckSum(serialBuffer, dataSize);
 
     for(uint8_t i = 0; i <= serialDataPos; i++) {
         Serial.write(serialBuffer[i]);
@@ -197,20 +198,18 @@ void serialSend(uint8_t func) {
 }
 
 void signalError(uint8_t error) { 
-    serialClearBuffer();
-
-    serialAdd(RESP_FUNC_ERROR, error);
-    serialAdd(RESP_FUNC_ERROR, static_cast<uint8_t>(rfidGetCardType()));
-    serialSend(RESP_FUNC_ERROR);
+    serialStart(RESP_FUNC_ERROR);
+    serialAdd(error);
+    serialAdd(static_cast<uint8_t>(rfidGetCardType()));
+    serialSend();
 
     beepError();
 }
 
-void signalOK(bool beepOK) {
-    serialClearBuffer();
-    
-    serialAdd(RESP_FUNC_OK, static_cast<uint8_t>(rfidGetCardType()));
-    serialSend(RESP_FUNC_OK);
+void signalOK(bool beepOK = true) {
+    serialStart(RESP_FUNC_OK);
+    serialAdd(static_cast<uint8_t>(rfidGetCardType()));
+    serialSend();
 
     if(beepOK) {
         beepOk();
@@ -218,8 +217,6 @@ void signalOK(bool beepOK) {
 }
 
 void funcWriteMasterTime() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-
     byte dataBlock1[] = {0, MASTER_CARD_SET_TIME, 255, FW_MAJOR_VERS};
     byte dataBlock2[] = {getPwd(0), getPwd(1), getPwd(2), 0};
     byte dataBlock3[] = {serialBuffer[4], serialBuffer[3], serialBuffer[5], 0};  // month, year, day, 0
@@ -227,6 +224,7 @@ void funcWriteMasterTime() {
     
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
     
+    uint8_t error = ERROR_CARD_NOT_FOUND;
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_WRITE;
         
@@ -252,21 +250,21 @@ void funcWriteMasterTime() {
 }
 
 void funcWriteMasterNum() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-
     byte dataBlock1[] = {0, MASTER_CARD_SET_NUMBER, 255, FW_MAJOR_VERS};
     byte dataBlock2[] = {getPwd(0), getPwd(1), getPwd(2), 0};
     byte dataBlock3[] = {serialBuffer[3], 0, 0, 0};     // station num
     
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
 
+    uint8_t error = ERROR_CARD_NOT_FOUND;
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_WRITE;
         
         if(rfidCardPageWrite(CARD_PAGE_INIT, dataBlock1)) {
             if(rfidCardPageWrite(CARD_PAGE_PASS, dataBlock2)) {
-                if(rfidCardPageWrite(CARD_PAGE_STATION_NUM, dataBlock3))
+                if(rfidCardPageWrite(CARD_PAGE_STATION_NUM, dataBlock3)) {
                     error = 0;
+                }
             }
         }
     }
@@ -281,15 +279,14 @@ void funcWriteMasterNum() {
 }
 
 void funcWriteMasterPass() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-    
-    uint8_t gain = serialBuffer[10];
     uint8_t newSettings = serialBuffer[9];
     uint8_t oldPass[] = {serialBuffer[6], serialBuffer[7], serialBuffer[8]};
     uint8_t newPass[] = {serialBuffer[3], serialBuffer[4], serialBuffer[5]};
-    
-    if(gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN)
+
+    uint8_t gain = serialBuffer[10];
+    if(gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN) {
         gain = DEFAULT_ANTENNA_GAIN;
+    }
 
     byte dataBlock1[] = {0, MASTER_CARD_SET_PASS, 255, FW_MAJOR_VERS};
     byte dataBlock2[] = {oldPass[0], oldPass[1], oldPass[2], gain};
@@ -297,6 +294,7 @@ void funcWriteMasterPass() {
 
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
 
+    uint8_t error = ERROR_CARD_NOT_FOUND;
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_WRITE;
         
@@ -329,13 +327,11 @@ void funcApplyPassword() {
 }
 
 void funcWriteInit() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-    
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
     
     CardType cardType = rfidGetCardType();
 
-    uint8_t ntagType = 0;
+    uint8_t ntagType = 0; // for old BS firmware?
     switch(cardType) {
         case CardType::NTAG213:
             ntagType = 3;
@@ -354,6 +350,7 @@ void funcWriteInit() {
     byte dataBlock3[] = {serialBuffer[9], serialBuffer[10], serialBuffer[11], serialBuffer[12]};        // page6
     byte dataBlock4[] = {serialBuffer[13], serialBuffer[14], serialBuffer[15], serialBuffer[16]};       // page7
 
+    uint8_t error = ERROR_CARD_NOT_FOUND;
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_WRITE;
         
@@ -361,14 +358,14 @@ void funcWriteInit() {
             if(rfidCardPageWrite(CARD_PAGE_INIT_TIME, dataBlock2)) {
                 if(rfidCardPageWrite(CARD_PAGE_INFO1, dataBlock3)) {
                     if(rfidCardPageWrite(CARD_PAGE_INFO2, dataBlock4)) {
+                        error = 0;
                         uint8_t maxPage = rfidGetCardMaxPage();
-                        for(uint8_t page = CARD_PAGE_START; page <= maxPage; page++) {
+                        for(uint8_t page = CARD_PAGE_START; page <= maxPage; ++page) {
                             if(!rfidCardPageWrite(page, emptyBlock)) {
+                                error = ERROR_CARD_WRITE;
                                 break;
                             }
                         }
-
-                        error = 0;
                     }
                 }
             }
@@ -385,13 +382,12 @@ void funcWriteInit() {
 }
 
 void funcWriteInfo() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-    
     byte dataBlock1[] = {serialBuffer[3], serialBuffer[4], serialBuffer[5], serialBuffer[6]};
     byte dataBlock2[] = {serialBuffer[7], serialBuffer[8], serialBuffer[9], serialBuffer[10]};
 
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
 
+    uint8_t error = ERROR_CARD_NOT_FOUND;
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_WRITE;
         
@@ -412,13 +408,12 @@ void funcWriteInfo() {
 }
 
 void funcWriteMasterLog() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-
     byte dataBlock1[] = {0, MASTER_CARD_READ_DUMP, 255, FW_MAJOR_VERS};
     byte dataBlock2[] = {getPwd(0), getPwd(1), getPwd(2), 0};
 
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
-    
+
+    uint8_t error = ERROR_CARD_NOT_FOUND;
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_WRITE;
         
@@ -439,13 +434,12 @@ void funcWriteMasterLog() {
 }
 
 void funcWriteGetInfoCard() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-    
     byte dataBlock1[] = {0, MASTER_CARD_GET_INFO, 255, FW_MAJOR_VERS};
     byte dataBlock2[] = {getPwd(0), getPwd(1), getPwd(2), 0};
 
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
 
+    uint8_t error = ERROR_CARD_NOT_FOUND;
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_WRITE;
         
@@ -466,8 +460,6 @@ void funcWriteGetInfoCard() {
 }
 
 void funcWriteMasterSleep() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-    
     byte dataBlock1[] = {0, MASTER_CARD_SLEEP, 255, FW_MAJOR_VERS};
     byte dataBlock2[] = {getPwd(0), getPwd(1), getPwd(2), 0};
     // wakeup time
@@ -476,6 +468,7 @@ void funcWriteMasterSleep() {
 
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
 
+    uint8_t error = ERROR_CARD_NOT_FOUND;
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_WRITE;
         
@@ -500,19 +493,17 @@ void funcWriteMasterSleep() {
 }
 
 void funcReadLog() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-    byte pageData[] = {0,0,0,0};
-    uint8_t func = RESP_FUNC_LOG;
-    
-    serialClearBuffer();
+    serialStart(RESP_FUNC_LOG);
 
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
 
+    uint8_t error = ERROR_CARD_NOT_FOUND;
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_READ;
-        
+
+        byte pageData[] = {0,0,0,0};
         if(rfidCardPageRead(CARD_PAGE_INIT, pageData)) {
-            serialAdd(func, pageData[0]);   // add station number
+            serialAdd(pageData[0]);   // add station number
             
             uint8_t maxPage = rfidGetCardMaxPage();
             
@@ -526,8 +517,8 @@ void funcReadLog() {
                                 uint16_t num = (page - CARD_PAGE_DUMP_START)*32 + i*8 + y;
                                 uint8_t first = (num&0xFF00)>>8;
                                 uint8_t second = num&0x00FF; 
-                                serialAdd(func, first);
-                                serialAdd(func, second);      
+                                serialAdd(first);
+                                serialAdd(second);
                             }
                         }
                     }
@@ -541,131 +532,122 @@ void funcReadLog() {
     if(error) {
         signalError(error);
     } else { 
-        serialSend(func);
+        serialSend();
         beepOk();
     }
 }
 
-void funcReadCard() {
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-    byte pageData[] = {0,0,0,0};
-    uint8_t func = RESP_FUNC_MARKS;
-    uint8_t timeHighByte = 0;
-    uint32_t initTime = 0;
-    uint32_t markTime = 0;
+uint8_t readCard() {
+    if(!rfidIsCardDetected()) {
+        return ERROR_CARD_NOT_FOUND;
+    }
 
-    serialClearBuffer();
+    byte pageData[] = {0,0,0,0};
+    if(!rfidCardPageRead(CARD_PAGE_INIT, pageData)) {
+        return ERROR_CARD_READ;
+    }
+    // Output the card number
+    serialAdd(pageData[0]);
+    serialAdd(pageData[1]);
+
+    if(!rfidCardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
+        return ERROR_CARD_READ;
+    }
+    uint8_t timeHighByte = pageData[0];
+    uint32_t initTime = pageData[1];
+    initTime <<= 8;
+    initTime |= pageData[2];
+    initTime <<= 8;
+    initTime |= pageData[3];
+
+    if(!rfidCardPageRead(CARD_PAGE_INFO1, pageData)) {
+        return ERROR_CARD_READ;
+    }
+    // Output page 6
+    for(uint8_t i = 0; i < 4; i++) {
+        serialAdd(pageData[i]);
+    }
+
+    if(!rfidCardPageRead(CARD_PAGE_INFO2, pageData)) {
+        return ERROR_CARD_READ;
+    }
+    // Output page 7
+    for(uint8_t i = 0; i < 4; i++) {
+        serialAdd(pageData[i]);
+    }
+
+    uint8_t maxPage = rfidGetCardMaxPage();
+
+    for(uint8_t page = CARD_PAGE_START; page <= maxPage; ++page) {
+        if(!rfidCardPageRead(page, pageData)) {
+            return ERROR_CARD_READ;
+        }
+
+        if(pageData[0] == 0) { // no new punches
+            return NO_ERRORS;
+        }
+        // Output station number
+        serialAdd(pageData[0]);
+
+        uint32_t markTime = pageData[1];
+        markTime <<= 8;
+        markTime |= pageData[2];
+        markTime <<= 8;
+        markTime |= pageData[3];
+
+        // for example, we have init time 0x00FFFFFF
+        // all mark time will be 0x01xxxxxx
+        // in this case we have to add 1 to timeHighByte
+        if(markTime < initTime) {
+            serialAdd(timeHighByte + 1);
+        } else {
+            serialAdd(timeHighByte);
+        }
+        // Output time
+        serialAdd(pageData[1]);
+        serialAdd(pageData[2]);
+        serialAdd(pageData[3]);
+    }
+
+    return NO_ERRORS;
+}
+
+void funcReadCard() {
+    serialStart(RESP_FUNC_MARKS);
 
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
 
-    if(rfidIsCardDetected()) {
-        error = ERROR_CARD_READ;
-        
-        if(rfidCardPageRead(CARD_PAGE_INIT, pageData)) {
-            // Output the card number
-            serialAdd(func, pageData[0]);
-            serialAdd(func, pageData[1]);
-            if(rfidCardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
-                timeHighByte = pageData[0];
-
-                initTime = pageData[1];
-                initTime <<= 8;
-                initTime |= pageData[2];
-                initTime <<= 8;
-                initTime |= pageData[3];
-
-                if(rfidCardPageRead(CARD_PAGE_INFO1, pageData)) {
-                    // Output page 6
-                    for(uint8_t i = 0; i < 4; i++)
-                        serialAdd(func, pageData[i]);
-
-                    if(rfidCardPageRead(CARD_PAGE_INFO2, pageData)) {
-                        // Output page 7
-                        for(uint8_t i = 0; i < 4; i++)
-                            serialAdd(func, pageData[i]);
-
-                        uint8_t maxPage = rfidGetCardMaxPage();
-
-                        for(uint8_t page = CARD_PAGE_START; page <= maxPage; page++) {
-                            if(rfidCardPageRead(page, pageData)) {
-                                error = 0;
-                                
-                                if(pageData[0] > 0) {
-                                    // Output station number                  
-                                    serialAdd(func, pageData[0]);
-
-                                    markTime = pageData[1];
-                                    markTime <<= 8;
-                                    markTime |= pageData[2];
-                                    markTime <<= 8;
-                                    markTime |= pageData[3];
-
-                                    // for example, we have init time 0x00FFFFFF
-                                    // all mark time will be 0x01xxxxxx
-                                    // in this case we have to add 1 to timeHighByte
-                                    if(markTime < initTime) {
-                                        serialAdd(func, timeHighByte + 1);
-                                    } else {
-                                        serialAdd(func, timeHighByte);
-                                    }
-                                    // Output time
-                                    serialAdd(func, pageData[1]);
-                                    serialAdd(func, pageData[2]);
-                                    serialAdd(func, pageData[3]);
-                                } else {
-                                    // fix issue #56
-                                    // no new marks will be
-                                    // stop to read card and send data as soon as possible
-                                    // else we will get serial timeout error on the host side
-                                    break;
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
+    uint8_t error = readCard();
 
     rfidEnd();
 
-    // fix issue #56
-    // Commented to prevent discontiniuos beep in the poll mode
-    //if(error)
-    //{
-    //  signalError(error);
-    //}
-    //else
-    //{
-    //  serialSend(func);
-    //  beepOk();
-    //}
-
+    // Don't signal error to prevent discontiniuos beep in the poll mode
     if(!error) {
-        serialSend(func);
+        serialSend();
     }
 }
 
 void funcReadRawCard() {
     uint8_t error = ERROR_CARD_NOT_FOUND;
     byte pageData[] = {0,0,0,0};
-    uint8_t func = RESP_FUNC_RAW_DATA;
-    
-    serialClearBuffer();
+
+    serialStart(RESP_FUNC_RAW_DATA);
 
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
 
     if(rfidIsCardDetected()) {
         error = ERROR_CARD_READ;
         uint8_t maxPage = rfidGetCardMaxPage();
-    
+
         for(uint8_t page = CARD_PAGE_INIT; page <= maxPage; page++) {
-            if(rfidCardPageRead(page, pageData)) {
-                error = 0;
-                serialAdd(func, page);
-                for(uint8_t i = 0; i < 4; i++) {
-                    serialAdd(func, pageData[i]);
-                }
+            if(!rfidCardPageRead(page, pageData)) {
+                error = ERROR_CARD_READ;
+                break;
+            }
+            error = 0;
+            serialAdd(page);
+            for(uint8_t i = 0; i < 4; i++) {
+                serialAdd(pageData[i]);
             }
         }   
     }
@@ -675,33 +657,31 @@ void funcReadRawCard() {
     if(error) {
         signalError(error);
     } else {
-        serialSend(func);
+        serialSend();
         beepOk();
     }
 }
 
 void funcReadCardType() {
-    uint8_t func = RESP_FUNC_CARD_TYPE;
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
     rfidEnd();
 
-    serialAdd(func, static_cast<uint8_t>(rfidGetCardType()));
-    serialSend(func);
+    serialStart(RESP_FUNC_CARD_TYPE);
+    serialAdd(static_cast<uint8_t>(rfidGetCardType()));
+    serialSend();
 }
 
 void funcGetVersion() {
-    uint8_t func = RESP_FUNC_VERSION;
-    
-    serialClearBuffer();
+    serialStart(RESP_FUNC_VERSION);
 
-    serialAdd(func, HW_VERS);
-    serialAdd(func, FW_MAJOR_VERS);
-    serialAdd(func, FW_MINOR_VERS);
-    //serialAdd(func, getPwd(0));
-    //serialAdd(func, getPwd(1));
-    //serialAdd(func, getPwd(2));
-    //serialAdd(func, getSettings());
-    //serialAdd(func, getAntennaGain());
+    serialAdd(HW_VERS);
+    serialAdd(FW_MAJOR_VERS);
+    serialAdd(FW_MINOR_VERS);
+    //serialAdd(getPwd(0));
+    //serialAdd(getPwd(1));
+    //serialAdd(getPwd(2));
+    //serialAdd(getSettings());
+    //serialAdd(getAntennaGain());
 
-    serialSend(func);
+    serialSend();
 }
