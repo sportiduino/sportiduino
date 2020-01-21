@@ -12,10 +12,8 @@
 #define USE_REED_SWITCH
 
 #define HW_VERS         3
-#define FW_MAJOR_VERS   6
-#define FW_MINOR_VERS   3
-
-#define VERS ((HW_VERS - 1) << 6) | ((FW_MAJOR_VERS - 1) << 2) | FW_MINOR_VERS
+#define FW_MAJOR_VERS   7
+#define FW_MINOR_VERS   255
 
 //-------------------------------------------------------------------
 // HARDWARE
@@ -446,7 +444,9 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
     // Write func
     sendData[pos++] = SERIAL_RESP_INFO;
     // Write version
-    sendData[pos++] = VERS;
+    sendData[pos++] = HW_VERS;
+    sendData[pos++] = FW_MAJOR_VERS;
+    sendData[pos++] = FW_MINOR_VERS;
     // Write info about station
     sendData[pos++] = stationNum;
     sendData[pos++] = getSettings();
@@ -994,7 +994,9 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     // Get actual time and date
     DS3231_get(&t);
     // Write version & gain
-    pageData[0] = VERS;
+    pageData[0] = HW_VERS;
+    pageData[1] = FW_MAJOR_VERS;
+    pageData[2] = FW_MINOR_VERS;
     pageData[3] = getAntennaGain();
     bool result = rfidCardPageWrite(CARD_PAGE_START, pageData);
     // Write info about station
