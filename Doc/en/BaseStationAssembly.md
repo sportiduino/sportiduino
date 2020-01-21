@@ -4,49 +4,49 @@
 
 1. RFID module RC522. Pretty common.
 
-2. PCB. Gerber files are in the repository
+2. PCB. Can be orderd viae EasyEDA. Gerber files are in the repository.
 
 3. Microcircuits
 
 a. Microcontroller Atmega328pAU
 
-b. DS3231SN Watch
+b. DS3231SN clock
 
-c. The voltage regulator MCP1700T-33.
+c. Voltage regulator MCP1700T-33.
 
-d. Transistor BC817 sot 23. Or similar.
+d. Transistor BC817 SOT-23. Or similar.
 
 4. Passive components in the 0805 format.
 
-a. Two Resistor 150 Ohm
+a. Resistor 100 Ohm 1 pc
 
-c. Three 10 kΩ resistors
+b. Resistor 3.3 kOhm 3 pcs
 
-d. Three 0.1 uF capacitors
+c. Resistor 33 kOhm 2 pcs
 
-e. 1 μF capacitor
+d. 0.1 uF capacitors 4 pcs
 
-f. 4.7uF capacitor
+e. 1 μF capacitor 2 pcs
 
-g. Two inductances of 2.2 μH,> 500 mA (for example LQH32MN2R2K)
+g. Inductor 2.2 μH, max current > 500 mA (for example LQH32MN2R2K) 2 pcs, optional for greater antenna power
 
 5. Output components
 
-a. Pins (come with RFID board)
+a. PLS-8 pins (come with RFID board)
 
-b. Connector PBD-6. It is better to order good, the Chinese are not soldered at all
+b. Connector SIP-6. Can be "obtained" from SIP-40
 
-c. LED 3mm. I'm using blue
+c. LED 3mm. I'm using blue.
 
-d. Buzzer. it is worth ordering more expensive and reliable, for example, Jl WorldHC0903A
+d. Beeper TR1205Y or HC0903A.
 
-6. Battery compartment.
+6. Battery compartment 3xAA or 3xAAA (the latter is recommended)
 
-7. The case is Gainta 1020BF. A good body made of ABS plastic, can be doped well for your purposes. You can find another one.
+7. The case is Gainta G1020BF. A good body made of ABS plastic, can be doped well for your purposes. You can find another one.
 
+Equipment that is useful for assembly is given [on a separate page](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/Equipment.md)
 
-Equipment, which is useful for assembly, is given [on a separate page](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/Equipment.md)
-
+(Translation below was not updated.)
 
 ### Soldering the main board
 
