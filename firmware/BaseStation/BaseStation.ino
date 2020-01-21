@@ -721,7 +721,7 @@ void clearMarkLog() {
 }
 
 uint16_t getMarkLogEnd() {
-    uint16_t endAdr = MAX_CARD_NUM_TO_LOG/ 8;
+    uint16_t endAdr = MAX_CARD_NUM_TO_LOG/8;
     
     if(endAdr > 1000) {
         endAdr = 1000;
@@ -751,7 +751,7 @@ void i2cEepromWritePunch(uint16_t cardNum) {
     digitalWrite(I2C_EEPROM_VCC, LOW);
 }
 
-void i2cEepromReadPunch(uint16_t cardNum, uint8_t *data) {
+void i2cEepromReadPunch(uint16_t cardNum, uint8_t *timeData) {
     pinMode(I2C_EEPROM_VCC, OUTPUT);
     // Power on I2C EEPROM
     digitalWrite(I2C_EEPROM_VCC, HIGH);
@@ -765,7 +765,7 @@ void i2cEepromReadPunch(uint16_t cardNum, uint8_t *data) {
         Wire.endTransmission();
         Wire.requestFrom(I2C_EEPROM_ADDRESS, 1);
         if(Wire.available()) {
-            data[i] = Wire.read();
+            timeData[i] = Wire.read();
         }
     }
 
@@ -921,7 +921,11 @@ void processMasterCard(uint8_t *pageInitData) {
             processSleepMasterCard(masterCardData, sizeof(masterCardData));
             break;
         case MASTER_CARD_READ_DUMP:
+#ifdef USE_I2C_EEPROM
+            processDumpMasterCardWithTimestamps(masterCardData, sizeof(masterCardData));
+#else
             processDumpMasterCard(masterCardData, sizeof(masterCardData));
+#endif
             break;
         case MASTER_CARD_SET_PASS:
             processPassMasterCard(masterCardData, sizeof(masterCardData));
@@ -997,22 +1001,20 @@ void processDumpMasterCard(byte *data, byte dataSize) {
         BEEP_MASTER_CARD_DUMP_ERROR;
         return;
     }
-    
-    byte pageData[4] = {0,0,0,0};
-    uint16_t eepromAdr = 0;
-    uint8_t maxPage = rfidGetCardMaxPage();
-    uint16_t eepromEnd = getMarkLogEnd();
-    bool result = true;
 
+    byte pageData[4] = {0,0,0,0};
     // Write station num
     pageData[0] = stationNum;
-    result &= rfidCardPageWrite(CARD_PAGE_INIT, pageData);
+    bool result = rfidCardPageWrite(CARD_PAGE_INIT, pageData);
 
+    uint16_t eepromAdr = 0;
+    uint16_t eepromEnd = getMarkLogEnd();
+    uint8_t maxPage = rfidGetCardMaxPage();
     for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++) {
         Watchdog.reset();
         delay(50);
         
-        digitalWrite(LED,HIGH);
+        digitalWrite(LED, HIGH);
         
         for(uint8_t m = 0; m < 4; m++) {
             pageData[m] = EEPROM.read(eepromAdr);
@@ -1024,8 +1026,13 @@ void processDumpMasterCard(byte *data, byte dataSize) {
         }
 
         result &= rfidCardPageWrite(page, pageData);
-        
+
         digitalWrite(LED, LOW);
+
+        if(!result) {
+            break;
+        }
+        
 
         if(eepromAdr > eepromEnd) {
             break;
@@ -1037,8 +1044,51 @@ void processDumpMasterCard(byte *data, byte dataSize) {
     } else {
         BEEP_MASTER_CARD_DUMP_ERROR;
     }
-    
-    return;
+}
+
+void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
+    if(dataSize < 16) {
+        BEEP_MASTER_CARD_DUMP_ERROR;
+        return;
+    }
+
+    byte pageData[4] = {0,0,0,0};
+    pageData[0] = stationNum;
+    pageData[3] = 1; // flag: have timestamps
+    bool result = rfidCardPageWrite(CARD_PAGE_INIT, pageData);
+
+    uint8_t maxPage = rfidGetCardMaxPage();
+    uint8_t page = CARD_PAGE_INIT_TIME;
+    for(uint8_t cardNum = 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
+        Watchdog.reset();
+
+        uint8_t timeData[4];
+        i2cEepromReadPunch(cardNum, timeData);
+        uint32_t *timestamps = (uint32_t*)timeData;
+        if(timestamps == 0) {
+            // No timestamp for cardNum
+            continue;
+        }
+
+        digitalWrite(LED, HIGH);
+
+        pageData[0] = cardNum >> 8;
+        pageData[1] = cardNum & 0xff;
+        result &= rfidCardPageWrite(page++, pageData);
+        result &= rfidCardPageWrite(page++, timeData);
+
+        digitalWrite(LED, LOW);
+
+        if(page > maxPage - 1) {
+            break;
+        }
+    }
+
+    if(result) {
+        BEEP_MASTER_CARD_DUMP_OK;
+    } else {
+        BEEP_MASTER_CARD_DUMP_ERROR;
+    }
 }
 
 void processPassMasterCard(byte *data, byte dataSize) {
