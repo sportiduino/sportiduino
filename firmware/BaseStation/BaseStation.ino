@@ -33,36 +33,42 @@
 #define REED_SWITCH   7
 
 #if HW_VERS == 1
-    #define DS3231_VCC    5
-    #define DS3231_IRQ    A3
-    #define DS3231_32K    A1 // not used, reserved for future
-    #define DS3231_RST    A0
+    #define DS3231_VCC     5
+    #define DS3231_IRQ     A3
+    #define DS3231_32K     A1 // not used, reserved for future
+    #define DS3231_RST     A0
 
-    #define RC522_IRQ     6
+    #define RC522_IRQ      6
 
     #error "Define ADC_IN and ADC_ENABLE for v1.x"
-    //#define ADC_IN        A0
-    //#define ADC_ENABLE    A1
+    //#define ADC_IN         A0
+    //#define ADC_ENABLE     A1
 #elif HW_VERS == 2
-    #define DS3231_VCC    8 // not used
-    #define DS3231_IRQ    A3
-    #define DS3231_32K    5 // not used, reserved for future
-    #define DS3231_RST    2
+    #define DS3231_VCC     8 // not used
+    #define DS3231_IRQ     A3
+    #define DS3231_32K     5 // not used, reserved for future
+    #define DS3231_RST     2
 
-    #define RC522_IRQ     6
+    #define RC522_IRQ      6
 
-    #define ADC_IN        A0
-    #define ADC_ENABLE    A1
+    #define ADC_IN         A0
+    #define ADC_ENABLE     A1
 #else
-    #define DS3231_VCC    A3
-    #define DS3231_IRQ    A2
-    #define DS3231_32K    5 // not used, reserved for future
-    #define DS3231_RST    2
+    #define DS3231_VCC     A3
+    #define DS3231_IRQ     A2
+    #define DS3231_32K     5 // not used, reserved for future
+    #define DS3231_RST     2
 
-    #define RC522_IRQ     8
+    #define RC522_IRQ      8
 
-    #define ADC_IN        A0
-    #define ADC_ENABLE    A1
+    #define ADC_IN         A0
+    #define ADC_ENABLE     A1
+
+    #define I2C_EEPROM_VCC 6
+#endif
+
+#ifdef I2C_EEPROM_VCC
+    #define USE_I2C_EEPROM
 #endif
 
 #define UNKNOWN_PIN 0xFF
@@ -75,7 +81,12 @@
 // 31 days = 2678400 (seconds)
 #define CARD_EXPIRE_TIME 2678400L
 
-#define MAX_CARD_NUM_TO_LOG 4000
+#ifdef USE_I2C_EEPROM
+    #define MAX_CARD_NUM_TO_LOG 8000 // 32*1024 byte / 4
+    #define I2C_EEPROM_ADDRESS  0x50
+#else
+    #define MAX_CARD_NUM_TO_LOG 4000
+#endif
 
 #define DEFAULT_STATION_NUM       CHECK_STATION_NUM
 
@@ -688,11 +699,15 @@ void writeCardNumToLog(uint16_t num) {
         return;
     }
     
+#ifdef USE_I2C_EEPROM
+    i2cEepromWritePunch(num);
+#else
     uint16_t byteAdr = num/8;
     uint16_t bitAdr = num%8;
     uint8_t eepromByte = EEPROM.read(byteAdr);
     bitSet(eepromByte, bitAdr);
     EEPROM.write(byteAdr, eepromByte);
+#endif
 }
 
 void clearMarkLog() {
@@ -713,6 +728,70 @@ uint16_t getMarkLogEnd() {
     }
 
     return endAdr;
+}
+
+void i2cEepromWritePunch(uint16_t cardNum) {
+    pinMode(I2C_EEPROM_VCC, OUTPUT);
+    // Power on I2C EEPROM
+    digitalWrite(I2C_EEPROM_VCC, HIGH);
+    delay(1);
+
+    DS3231_get(&t);
+    uint32_t timestamp = t.unixtime;
+    uint16_t recordAddress = (cardNum - 1)*4;
+    for(uint8_t i = 0; i < 4; ++i) {
+        Wire.beginTransmission(I2C_EEPROM_ADDRESS);
+        Wire.write((recordAddress + i) >> 8);
+        Wire.write((recordAddress + i) & 0xff);
+        Wire.write((timestamp >> (8*i)) & 0xff);
+        Wire.endTransmission();
+        delay(5);
+    }
+
+    digitalWrite(I2C_EEPROM_VCC, LOW);
+}
+
+void i2cEepromReadPunch(uint16_t cardNum, uint8_t *data) {
+    pinMode(I2C_EEPROM_VCC, OUTPUT);
+    // Power on I2C EEPROM
+    digitalWrite(I2C_EEPROM_VCC, HIGH);
+    delay(1);
+
+    uint16_t recordAddress = (cardNum - 1)*4;
+    for(uint8_t i = 0; i < 4; ++i) {
+        Wire.beginTransmission(I2C_EEPROM_ADDRESS);
+        Wire.write((recordAddress + i) >> 8);
+        Wire.write((recordAddress + i) & 0xff);
+        Wire.endTransmission();
+        Wire.requestFrom(I2C_EEPROM_ADDRESS, 1);
+        if(Wire.available()) {
+            data[i] = Wire.read();
+        }
+    }
+
+    digitalWrite(I2C_EEPROM_VCC, LOW);
+}
+
+void i2cEepromErase() {
+    pinMode(I2C_EEPROM_VCC, OUTPUT);
+    digitalWrite(I2C_EEPROM_VCC, HIGH);
+    delay(1);
+
+    const uint16_t lastAddress = MAX_CARD_NUM_TO_LOG*4;
+    for(uint16_t i = 0; i < lastAddress; ++i) {
+        Wire.beginTransmission(I2C_EEPROM_ADDRESS);
+        Wire.write(i >> 8);
+        Wire.write(i & 0xff);
+        const uint8_t pageSize = 64;
+        for(uint8_t j = 0; j < pageSize; ++j) {
+            Wire.write(0);
+            Watchdog.reset();
+        }
+        Wire.endTransmission();
+        delay(5);
+    }
+
+    digitalWrite(I2C_EEPROM_VCC, LOW);
 }
 
 bool checkBattery(bool beepEnabled) {
@@ -766,96 +845,90 @@ bool checkBattery(bool beepEnabled) {
 }
 
 void processRfid() {
-    byte pageData[4];
-    byte masterCardData[16];
-
     rfidBegin(RC522_SS, RC522_RST);
-    
-    if(rfidIsNewCardDetected()) {
-        memset(pageData, 0, sizeof(pageData));
-        memset(masterCardData, 0, sizeof(masterCardData));
-        
-        if(rfidCardPageRead(CARD_PAGE_INIT, pageData)) {
-            // Check the card role
-            if(pageData[2] == 0xFF) {
-                // This is a master card
-
-                // Don't change mode if it's the get info card
-                if(pageData[1] != MASTER_CARD_GET_INFO) {
-                    setMode(MODE_ACTIVE);
-                }
-                    
-                // Copy data
-                memcpy(masterCardData, pageData, 4);
-                // Read master card data
-                bool result = true;
-                    
-                result &= rfidCardPageRead(CARD_PAGE_INIT_TIME, pageData);
-                if(result) {
-                    memcpy(masterCardData + 4, pageData, 4);
-                }
-
-                result &= rfidCardPageRead(CARD_PAGE_INFO1, pageData);
-                if(result) {
-                    memcpy(masterCardData + 8, pageData, 4);
-                }
-
-                result &= rfidCardPageRead(CARD_PAGE_INFO2, pageData);
-                if(result) {
-                    memcpy(masterCardData + 12, pageData, 4);
-                }
-
-                if(result) {
-                    // Process master card
-                    // Check password
-                    if( (getPwd(0) == masterCardData[4]) &&
-                            (getPwd(1) == masterCardData[5]) &&
-                            (getPwd(2) == masterCardData[6]) ) {
-                        switch(masterCardData[1]) {
-                            case MASTER_CARD_SET_TIME:
-                                processTimeMasterCard(masterCardData, sizeof(masterCardData));
-                                break;
-                            case MASTER_CARD_SET_NUMBER:
-                                processStationMasterCard(masterCardData, sizeof(masterCardData));
-                                break;
-                            case MASTER_CARD_SLEEP:
-                                processSleepMasterCard(masterCardData, sizeof(masterCardData));
-                                break;
-                            case MASTER_CARD_READ_DUMP:
-                                processDumpMasterCard(masterCardData, sizeof(masterCardData));
-                                break;
-                            case MASTER_CARD_SET_PASS:
-                                processPassMasterCard(masterCardData, sizeof(masterCardData));
-                                break;
-                            case MASTER_CARD_GET_INFO:
-                                processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
-                        }
-                    } else {
-                        BEEP_PASS_ERROR;
-                    }
-                }
-            } else {
-                setMode(MODE_ACTIVE);
-                // Process a participant card
-                switch(stationNum) {
-                    case CLEAR_STATION_NUM:
-                        clearParticipantCard();
-                        break;
-                    case CHECK_STATION_NUM:
-                        checkParticipantCard();
-                        break;
-                    default:
-                        uint16_t cardNum = pageData[0];
-                        cardNum <<= 8;
-                        cardNum |= pageData[1];
-                        processParticipantCard(cardNum);
-                        break;
-                }
-            }
-        } 
-    } // End of rfidIsNewCardDetected
-
+    processCard();
     rfidEnd();
+}
+    
+void processCard() {
+    if(!rfidIsNewCardDetected()) {
+        return;
+    }
+    byte pageData[4];
+    memset(pageData, 0, sizeof(pageData));
+    
+    if(!rfidCardPageRead(CARD_PAGE_INIT, pageData)) {
+        return;
+    }
+    // Check the card role
+    if(pageData[2] == 0xFF) {
+        // This is a master card
+        processMasterCard(pageData);
+    } else {
+        setMode(MODE_ACTIVE);
+        // Process a participant card
+        switch(stationNum) {
+            case CLEAR_STATION_NUM:
+                clearParticipantCard();
+                break;
+            case CHECK_STATION_NUM:
+                checkParticipantCard();
+                break;
+            default:
+                uint16_t cardNum = pageData[0];
+                cardNum <<= 8;
+                cardNum |= pageData[1];
+                processParticipantCard(cardNum);
+                break;
+        }
+    }
+}
+
+void processMasterCard(uint8_t *pageInitData) {
+    // Don't change mode if it's the get info card
+    if(pageInitData[1] != MASTER_CARD_GET_INFO) {
+        setMode(MODE_ACTIVE);
+    }
+
+    byte masterCardData[16];
+    memcpy(masterCardData, pageInitData, 4);
+    memset(masterCardData, 4, sizeof(masterCardData));
+
+    byte pageData[4];
+    for(uint8_t i = 1; i < 4; ++i) {
+        if(!rfidCardPageRead(CARD_PAGE_INIT + i, pageData)) {
+            return;
+        }
+        memcpy(masterCardData + 4*i, pageData, 4);
+    }
+
+    // Check password
+    if( (getPwd(0) != masterCardData[4]) ||
+            (getPwd(1) != masterCardData[5]) ||
+            (getPwd(2) != masterCardData[6]) ) {
+        BEEP_PASS_ERROR;
+        return;
+    }
+
+    switch(masterCardData[1]) {
+        case MASTER_CARD_SET_TIME:
+            processTimeMasterCard(masterCardData, sizeof(masterCardData));
+            break;
+        case MASTER_CARD_SET_NUMBER:
+            processStationMasterCard(masterCardData, sizeof(masterCardData));
+            break;
+        case MASTER_CARD_SLEEP:
+            processSleepMasterCard(masterCardData, sizeof(masterCardData));
+            break;
+        case MASTER_CARD_READ_DUMP:
+            processDumpMasterCard(masterCardData, sizeof(masterCardData));
+            break;
+        case MASTER_CARD_SET_PASS:
+            processPassMasterCard(masterCardData, sizeof(masterCardData));
+            break;
+        case MASTER_CARD_GET_INFO:
+            processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
+    }
 }
 
 void processTimeMasterCard(byte *data, byte dataSize) {
