@@ -2,7 +2,7 @@
 
 This project is devoted to building an electronic timing system for orienteering and similar outdoor sports events on Arduino.
 
-The English translation is rough, sometimes there may be unclear moments, write in the Issue in case of questions
+The English translation is rough, there may be some unclear moments. Create an Issue if you have any questions.
 
 * [User Manual](/Doc/en/UserManual.md)
 * [Card](/Doc/en/Card.md)
