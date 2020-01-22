@@ -2,7 +2,7 @@
 
 #define HW_VERS           1
 #define FW_MAJOR_VERS     7
-#define FW_MINOR_VERS     0
+#define FW_MINOR_VERS     99
 
 //-----------------------------------------------------------
 // HARDWARE
@@ -74,26 +74,25 @@ void setup() {
 
 void loop() { 
     if(Serial.available() > 0) {
-        static uint8_t inputBuffer[SERIAL_PACKET_SIZE];
-
-        Serial.readBytes(inputBuffer, SERIAL_PACKET_SIZE);
+        Serial.readBytes(serialBuffer, SERIAL_PACKET_SIZE);
         
-        uint8_t dataSize = inputBuffer[2];
+        uint8_t dataSize = serialBuffer[2];
         
+        // if at dataSize position we have packet count
         if(dataSize > SERIAL_DATA_MAX_SIZE) {
             dataSize = SERIAL_DATA_MAX_SIZE;  
         }
         
-        if(inputBuffer[0] != SERIAL_START_BYTE || inputBuffer[dataSize + 3] != serialCheckSum(inputBuffer, dataSize)) {
+        if(serialBuffer[0] != SERIAL_START_BYTE || serialBuffer[dataSize + 3] != serialCheckSum(serialBuffer, dataSize)) {
             signalError(ERROR_SERIAL);
             return;
         }
-        handleCmd();
+        handleCmd(serialBuffer[1]);
     }
 }
 
-void handleCmd() {
-    switch(serialBuffer[1]) {
+void handleCmd(uint8_t cmdCode) {
+    switch(cmdCode) {
         case 0x41:
             funcWriteMasterTime();
             break;
@@ -149,9 +148,13 @@ void handleCmd() {
 }
 
 uint8_t serialCheckSum(uint8_t *buffer, uint8_t dataSize) {
-    uint8_t sum = 0;
+    // if at dataSize position we have packet count
+    if(dataSize > SERIAL_DATA_MAX_SIZE) {
+        dataSize = SERIAL_DATA_MAX_SIZE;
+    }
+
     uint8_t len = dataSize + 2;  // + cmd/resp byte + length byte
-    
+    uint8_t sum = 0;
     for (uint8_t i = 1; i <= len; ++i) {
         sum += buffer[i];
     }
