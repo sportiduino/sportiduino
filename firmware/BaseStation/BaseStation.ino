@@ -13,7 +13,7 @@
 
 #define HW_VERS         3
 #define FW_MAJOR_VERS   7
-#define FW_MINOR_VERS   255
+#define FW_MINOR_VERS   99
 
 //-------------------------------------------------------------------
 // HARDWARE
@@ -164,23 +164,25 @@ uint8_t serialWakeupFlag = 0;
 // the third parameter should be the frequency of your buzzer if you solded the buzzer without a generator else 0
 #define beep(ms,n) beep_w(LED,BUZ,0,ms,n)
 
-#define BEEP_SYSTEM_STARTUP     beep(1000,1)
+#define BEEP_SYSTEM_STARTUP     beep(1000, 1)
+#define BEEP_OK                 beep(500, 1)
 
 #define BEEP_EEPROM_ERROR       beep(100,2)
 #define BEEP_TIME_ERROR         beep(100,3)
 #define BEEP_PASS_ERROR         beep(100,4)
 
 #define BEEP_LOW_BATTERY        beep(100,5)
-#define BEEP_BATTERY_OK         beep(500,1)
+#define BEEP_BATTERY_OK         BEEP_OK
+#define BEEP_MASTER_CARD_READ_ERROR beep(50,4)
 
 #define BEEP_CARD_CHECK_ERROR   //beep(200,3)
-#define BEEP_CARD_CHECK_OK      beep(500,1)
+#define BEEP_CARD_CHECK_OK      BEEP_OK
 
-#define BEEP_CARD_MARK_WRITTEN  beep(500,1)
+#define BEEP_CARD_MARK_WRITTEN  BEEP_OK
 #define BEEP_CARD_MARK_OK       beep(250,2)
 #define BEEP_CARD_MARK_ERROR
 
-#define BEEP_CARD_CLEAR_OK      beep(500,1)
+#define BEEP_CARD_CLEAR_OK      BEEP_OK
 #define BEEP_CARD_CLEAR_ERROR
 
 #define BEEP_MASTER_CARD_PASS_OK            beep(500,2)
@@ -193,10 +195,10 @@ uint8_t serialWakeupFlag = 0;
 #define BEEP_MASTER_CARD_SLEEP_ERROR
 
 #define BEEP_MASTER_CARD_STATION_WRITTEN    beep(500,5)
-#define BEEP_MASTER_CARD_STATION_OK         beep(500,1)
+#define BEEP_MASTER_CARD_STATION_OK         BEEP_OK
 #define BEEP_MASTER_CARD_STATION_ERROR      beep(50,6)
 
-#define BEEP_MASTER_CARD_DUMP_OK            beep(500,6)
+#define BEEP_MASTER_CARD_DUMP_OK            BEEP_OK
 #define BEEP_MASTER_CARD_DUMP_ERROR
 
 #define BEEP_MASTER_CARD_GET_INFO_OK        beep(250,1)
@@ -772,6 +774,34 @@ void i2cEepromReadPunch(uint16_t cardNum, uint8_t *timeData) {
     digitalWrite(I2C_EEPROM_VCC, LOW);
 }
 
+//void i2cEepromErase() {
+//    pinMode(I2C_EEPROM_VCC, OUTPUT);
+//    digitalWrite(I2C_EEPROM_VCC, HIGH);
+//    delay(1);
+//
+//    const uint16_t lastAddress = MAX_CARD_NUM_TO_LOG*4/64;
+//    for(uint16_t i = 0; i < lastAddress; ++i) {
+//        digitalWrite(LED, HIGH);
+//
+//        Wire.beginTransmission(I2C_EEPROM_ADDRESS);
+//        uint16_t pageAddress = i*64;
+//        Wire.write(pageAddress >> 8);
+//        Wire.write(pageAddress & 0xff);
+//        const uint8_t pageSize = 64;
+//        for(uint8_t j = 0; j < pageSize; ++j) {
+//            Wire.write(0);
+//            Watchdog.reset();
+//        }
+//        Wire.endTransmission();
+//
+//        digitalWrite(LED, LOW);
+//
+//        delay(5);
+//    }
+//
+//    digitalWrite(I2C_EEPROM_VCC, LOW);
+//}
+
 void i2cEepromErase() {
     pinMode(I2C_EEPROM_VCC, OUTPUT);
     digitalWrite(I2C_EEPROM_VCC, HIGH);
@@ -779,15 +809,18 @@ void i2cEepromErase() {
 
     const uint16_t lastAddress = MAX_CARD_NUM_TO_LOG*4;
     for(uint16_t i = 0; i < lastAddress; ++i) {
+        digitalWrite(LED, HIGH);
+
+        Watchdog.reset();
+
         Wire.beginTransmission(I2C_EEPROM_ADDRESS);
         Wire.write(i >> 8);
         Wire.write(i & 0xff);
-        const uint8_t pageSize = 64;
-        for(uint8_t j = 0; j < pageSize; ++j) {
-            Wire.write(0);
-            Watchdog.reset();
-        }
+        Wire.write(0);
         Wire.endTransmission();
+
+        digitalWrite(LED, LOW);
+
         delay(5);
     }
 
@@ -891,8 +924,8 @@ void processMasterCard(uint8_t *pageInitData) {
     }
 
     byte masterCardData[16];
+    memset(masterCardData, 0, sizeof(masterCardData));
     memcpy(masterCardData, pageInitData, 4);
-    memset(masterCardData, 4, sizeof(masterCardData));
 
     byte pageData[4];
     for(uint8_t i = 1; i < 4; ++i) {
@@ -932,6 +965,10 @@ void processMasterCard(uint8_t *pageInitData) {
             break;
         case MASTER_CARD_GET_INFO:
             processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
+            break;
+        default:
+            BEEP_MASTER_CARD_READ_ERROR;
+            break;
     }
 }
 
@@ -991,7 +1028,9 @@ void processSleepMasterCard(byte *data, byte dataSize) {
     // Config alarm
     setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
     
+#ifndef USE_I2C_EEPROM
     clearMarkLog();
+#endif
 
     BEEP_MASTER_CARD_SLEEP_OK;
 }
@@ -1052,20 +1091,23 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
         return;
     }
 
-    byte pageData[4] = {0,0,0,0};
+    byte pageData[4];
+    memcpy(pageData, data, 4);
     pageData[0] = stationNum;
     pageData[3] = 1; // flag: have timestamps
     bool result = rfidCardPageWrite(CARD_PAGE_INIT, pageData);
 
     uint8_t maxPage = rfidGetCardMaxPage();
-    uint8_t page = CARD_PAGE_INIT_TIME;
-    for(uint8_t cardNum = 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
+    uint8_t page = CARD_PAGE_INFO1;
+    for(uint16_t cardNum = 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
         Watchdog.reset();
 
         uint8_t timeData[4];
         i2cEepromReadPunch(cardNum, timeData);
-        uint32_t *timestamps = (uint32_t*)timeData;
-        if(timestamps == 0) {
+        if(timeData[0] == 0
+                && timeData[1] == 0
+                && timeData[2] == 0
+                && timeData[3] == 0) {
             // No timestamp for cardNum
             continue;
         }
@@ -1074,6 +1116,8 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
 
         pageData[0] = cardNum >> 8;
         pageData[1] = cardNum & 0xff;
+        pageData[2] = 0;
+        pageData[3] = 0;
         result &= rfidCardPageWrite(page++, pageData);
         result &= rfidCardPageWrite(page++, timeData);
 
