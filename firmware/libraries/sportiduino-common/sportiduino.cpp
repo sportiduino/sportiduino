@@ -154,7 +154,7 @@ void rfidEnd() {
     mfrc522.PICC_HaltA();
     mfrc522.PCD_StopCrypto1();
     SPI.end();
-    digitalWrite(rfidRstPin,LOW);
+    digitalWrite(rfidRstPin, LOW);
 }
 
 bool rfidIsCardDetected() {

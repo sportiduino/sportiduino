@@ -69,6 +69,7 @@
 
 #ifdef I2C_EEPROM_VCC
     #define USE_I2C_EEPROM
+    #define I2C_EEPROM_ADDRESS  0x50
 #endif
 
 #define UNKNOWN_PIN 0xFF
@@ -81,12 +82,7 @@
 // 31 days = 2678400 (seconds)
 #define CARD_EXPIRE_TIME 2678400L
 
-#ifdef USE_I2C_EEPROM
-    #define MAX_CARD_NUM_TO_LOG 8000 // 32*1024 byte / 4
-    #define I2C_EEPROM_ADDRESS  0x50
-#else
-    #define MAX_CARD_NUM_TO_LOG 4000
-#endif
+#define MAX_CARD_NUM_TO_LOG 4000
 
 #define DEFAULT_STATION_NUM       CHECK_STATION_NUM
 
@@ -745,7 +741,7 @@ void i2cEepromWritePunch(uint16_t cardNum) {
         Wire.beginTransmission(I2C_EEPROM_ADDRESS);
         Wire.write((recordAddress + i) >> 8);
         Wire.write((recordAddress + i) & 0xff);
-        Wire.write((timestamp >> (8*i)) & 0xff);
+        Wire.write((timestamp >> (8*i)) & 0xff); // litle endian order
         Wire.endTransmission();
         delay(5);
     }
@@ -767,7 +763,8 @@ void i2cEepromReadPunch(uint16_t cardNum, uint8_t *timeData) {
         Wire.endTransmission();
         Wire.requestFrom(I2C_EEPROM_ADDRESS, 1);
         if(Wire.available()) {
-            timeData[i] = Wire.read();
+            // Transform timestamp to big endian order
+            timeData[3 - i] = Wire.read();
         }
     }
 
@@ -1097,29 +1094,38 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
     pageData[3] = 1; // flag: have timestamps
     bool result = rfidCardPageWrite(CARD_PAGE_INIT, pageData);
 
-    uint8_t maxPage = rfidGetCardMaxPage();
+    DS3231_get(&t);
+    uint32_t now = t.unixtime;
+    uint32_t from = t.unixtime - 0xfffff; // about last 12 days
+
     uint8_t page = CARD_PAGE_INFO1;
+    // Write initial timestamp (4 bytes) in first data page
+    result &= rfidCardPageWrite(page++, (uint8_t*)&from);
+
+    uint8_t maxPage = rfidGetCardMaxPage();
     for(uint16_t cardNum = 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
         Watchdog.reset();
 
         uint8_t timeData[4];
         i2cEepromReadPunch(cardNum, timeData);
-        if(timeData[0] == 0
-                && timeData[1] == 0
-                && timeData[2] == 0
-                && timeData[3] == 0) {
+        uint32_t *timestamp = (uint32_t*)timeData;
+        if(*timestamp < from || *timestamp > now) {
             // No timestamp for cardNum
             continue;
         }
 
+        if(cardNum > 4095) {
+            break;
+        }
+
         digitalWrite(LED, HIGH);
 
-        pageData[0] = cardNum >> 8;
-        pageData[1] = cardNum & 0xff;
-        pageData[2] = 0;
-        pageData[3] = 0;
+        // Pack card number in first 12 bits of page
+        pageData[0] = cardNum >> 4;
+        pageData[1] = (cardNum << 4)&0xf0 | timeData[1]&0x0f;
+        pageData[2] = timeData[2];
+        pageData[3] = timeData[3];
         result &= rfidCardPageWrite(page++, pageData);
-        result &= rfidCardPageWrite(page++, timeData);
 
         digitalWrite(LED, LOW);
 
