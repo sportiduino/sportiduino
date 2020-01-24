@@ -383,3 +383,22 @@ void setAntennaGain(uint8_t gain) {
 uint8_t getAntennaGain() {
     return antennaGain;
 }
+
+bool uint32ToByteArray(uint32_t value, uint8_t *byteArray) {
+    for(uint8_t i = 0; i < 4; ++i) {
+        byteArray[3 - i] = value & 0xff;
+        value >>= 8;
+    }
+    return true;
+}
+
+uint32_t byteArrayToUint32(uint8_t *byteArray) {
+    uint32_t value = 0;
+    for(uint8_t i = 0; i < 4; ++i) {
+        value |= byteArray[i];
+        value <<= 8;
+    }
+
+    return value;
+}
+

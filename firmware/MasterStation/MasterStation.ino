@@ -516,6 +516,7 @@ void funcReadLog() {
 
     uint8_t maxPage = rfidGetCardMaxPage();
     if(pageData[3] > 0) { // have timestamps
+        serialAdd(0); // flag: have timestamps
         uint16_t timeHigh12bits = 0;
         uint32_t initTime = 0;
         for(uint8_t page = CARD_PAGE_INFO1; page <= maxPage; ++page) {
@@ -536,6 +537,10 @@ void funcReadLog() {
             uint16_t cardNum = pageData[0] << 8;
             cardNum |= pageData[1] & 0xff;
             cardNum >>= 4;
+
+            if(cardNum == 0) {
+                continue;
+            }
             serialAdd(pageData[0] >> 4); // card number first byte
             serialAdd(pageData[0] << 4 | pageData[1] >> 4); // card number second byte
             uint32_t punchTime = (pageData[1] & 0x0f) << 16;

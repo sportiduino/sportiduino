@@ -741,7 +741,7 @@ void i2cEepromWritePunch(uint16_t cardNum) {
         Wire.beginTransmission(I2C_EEPROM_ADDRESS);
         Wire.write((recordAddress + i) >> 8);
         Wire.write((recordAddress + i) & 0xff);
-        Wire.write((timestamp >> (8*i)) & 0xff); // litle endian order
+        Wire.write((timestamp >> (8*i)) & 0xff); // little endian order
         Wire.endTransmission();
         delay(5);
     }
@@ -749,13 +749,14 @@ void i2cEepromWritePunch(uint16_t cardNum) {
     digitalWrite(I2C_EEPROM_VCC, LOW);
 }
 
-void i2cEepromReadPunch(uint16_t cardNum, uint8_t *timeData) {
+uint32_t i2cEepromReadPunch(uint16_t cardNum) {
     pinMode(I2C_EEPROM_VCC, OUTPUT);
     // Power on I2C EEPROM
     digitalWrite(I2C_EEPROM_VCC, HIGH);
     delay(1);
 
     uint16_t recordAddress = (cardNum - 1)*4;
+    uint32_t timestamp = 0;
     for(uint8_t i = 0; i < 4; ++i) {
         Wire.beginTransmission(I2C_EEPROM_ADDRESS);
         Wire.write((recordAddress + i) >> 8);
@@ -764,11 +765,13 @@ void i2cEepromReadPunch(uint16_t cardNum, uint8_t *timeData) {
         Wire.requestFrom(I2C_EEPROM_ADDRESS, 1);
         if(Wire.available()) {
             // Transform timestamp to big endian order
-            timeData[3 - i] = Wire.read();
+            timestamp |= (Wire.read() & 0xff) << 8*(3 - i);
         }
     }
 
     digitalWrite(I2C_EEPROM_VCC, LOW);
+
+    return timestamp;
 }
 
 //void i2cEepromErase() {
@@ -1100,16 +1103,17 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
 
     uint8_t page = CARD_PAGE_INFO1;
     // Write initial timestamp (4 bytes) in first data page
-    result &= rfidCardPageWrite(page++, (uint8_t*)&from);
+    uint32ToByteArray(from, pageData);
+    result &= rfidCardPageWrite(page++, pageData);
+
+    digitalWrite(LED, HIGH);
 
     uint8_t maxPage = rfidGetCardMaxPage();
     for(uint16_t cardNum = 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
         Watchdog.reset();
 
-        uint8_t timeData[4];
-        i2cEepromReadPunch(cardNum, timeData);
-        uint32_t *timestamp = (uint32_t*)timeData;
-        if(*timestamp < from || *timestamp > now) {
+        uint32_t timestamp = i2cEepromReadPunch(cardNum);
+        if(timestamp < from || timestamp > now) {
             // No timestamp for cardNum
             continue;
         }
@@ -1118,7 +1122,8 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
             break;
         }
 
-        digitalWrite(LED, HIGH);
+        uint8_t timeData[4];
+        uint32ToByteArray(timestamp, timeData);
 
         // Pack card number in first 12 bits of page
         pageData[0] = cardNum >> 4;
@@ -1127,12 +1132,12 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
         pageData[3] = timeData[3];
         result &= rfidCardPageWrite(page++, pageData);
 
-        digitalWrite(LED, LOW);
-
         if(page > maxPage - 1) {
             break;
         }
     }
+
+    digitalWrite(LED, LOW);
 
     if(result) {
         BEEP_MASTER_CARD_DUMP_OK;

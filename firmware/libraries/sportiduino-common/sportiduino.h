@@ -177,4 +177,7 @@ void setAntennaGain(uint8_t gain);
  */
 uint8_t getAntennaGain();
 
+bool uint32ToByteArray(uint32_t value, uint8_t *byteArray);
+uint32_t byteArrayToUint32(uint8_t *byteArray);
+
 #endif
