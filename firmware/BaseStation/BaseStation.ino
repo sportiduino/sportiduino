@@ -443,8 +443,6 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
     uint8_t pos = 0;
     byte *sendData = &serialData[0];
     
-    // Check battery
-    bool batteryOk = checkBattery(false);
     // Get actual date and time
     DS3231_get(&t);
     // Write message start
@@ -459,7 +457,7 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
     // Write info about station
     sendData[pos++] = stationNum;
     sendData[pos++] = getSettings();
-    sendData[pos++] = batteryOk;
+    sendData[pos++] = batteryVoltageToByte(measureBatteryVoltage());
     sendData[pos++] = mode;
     // Write current time
     sendData[pos++] = (t.unixtime & 0xFF000000)>>24;
@@ -827,55 +825,93 @@ void i2cEepromErase() {
     digitalWrite(I2C_EEPROM_VCC, LOW);
 }
 
-bool checkBattery(bool beepEnabled) {
-    const uint32_t refConst = 1125300L; //voltage constanta
-    uint32_t value = 0;
+uint32_t measureBatteryVoltage() {
+    analogReference(INTERNAL);
+    pinMode(ADC_ENABLE, OUTPUT);
+    digitalWrite(ADC_ENABLE, LOW);
+    pinMode(ADC_IN, INPUT);
+    ADCSRA |= bit(ADEN);
 
-    Watchdog.reset();
-    // Turn on ADC
-    ADCSRA |=  bit(ADEN); 
-    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-
-    Watchdog.reset();
     // Turn on led to increase current
     digitalWrite(LED, HIGH);
-    delay(5000);
-    // Measure battery voltage
-    for(uint8_t i = 0; i < 10; i++) {
-        // Start to measure
-        ADCSRA |= _BV(ADSC);
-        while(bit_is_set(ADCSRA, ADSC));
-        // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-        uint32_t adcl = ADCL;
-        uint32_t adch = ADCH;
 
-        adcl &= 0xFF;
-        adch &= 0xFF;
-        value += ((adch << 8) | adcl);
+    Watchdog.reset();
+    delay(2000);
+
+    uint32_t value = 0;
+    for(uint8_t i = 0; i < 10; ++i) {
+        Watchdog.reset();
+        value += analogRead(ADC_IN);
+        delay(1);
     }
-
-    value = (refConst*10)/value;
-
-    // Turn off ADC
-    ADCSRA = 0;
+    value /= 10;
 
     digitalWrite(LED, LOW);
-    delay(250);
-    
-    Watchdog.reset();
+    pinMode(ADC_ENABLE, INPUT);
 
-    if(value > 3100) {
-        if(beepEnabled) {
-            BEEP_BATTERY_OK;
-        }
-        return true;
-    }
-
-    if(beepEnabled) {
-        BEEP_LOW_BATTERY;
-    }
-    return false;
+    const uint32_t R_HIGH = 100000; // Ohm
+    const uint32_t R_LOW = 33000; // Ohm
+    const uint32_t DIODE_VOLTAGE_DROP = 847; // mV
+    return value*1100/1023*(R_HIGH + R_LOW)/R_LOW + DIODE_VOLTAGE_DROP;
 }
+
+uint8_t batteryVoltageToByte(uint32_t voltage) {
+    const uint32_t maxVoltage = 0xff*20; // mV
+    if(voltage > maxVoltage) {
+        voltage = maxVoltage;
+    }
+    return voltage/20;
+}
+
+//bool checkBattery(bool beepEnabled = false) {
+//    const uint32_t refConst = 1125300L; //voltage constanta
+//    uint32_t value = 0;
+//
+//    Watchdog.reset();
+//    // Turn on ADC
+//    ADCSRA |=  bit(ADEN); 
+//    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+//
+//    Watchdog.reset();
+//    // Turn on led to increase current
+//    digitalWrite(LED, HIGH);
+//    delay(5000);
+//    // Measure battery voltage
+//    for(uint8_t i = 0; i < 10; i++) {
+//        // Start to measure
+//        ADCSRA |= _BV(ADSC);
+//        while(bit_is_set(ADCSRA, ADSC));
+//        // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+//        uint32_t adcl = ADCL;
+//        uint32_t adch = ADCH;
+//
+//        adcl &= 0xFF;
+//        adch &= 0xFF;
+//        value += ((adch << 8) | adcl);
+//    }
+//
+//    value = (refConst*10)/value;
+//
+//    // Turn off ADC
+//    ADCSRA = 0;
+//
+//    digitalWrite(LED, LOW);
+//    delay(250);
+//    
+//    Watchdog.reset();
+//
+//    if(value > 3100) {
+//        if(beepEnabled) {
+//            BEEP_BATTERY_OK;
+//        }
+//        return true;
+//    }
+//
+//    if(beepEnabled) {
+//        BEEP_LOW_BATTERY;
+//    }
+//    return false;
+//}
 
 void processRfid() {
     rfidBegin(RC522_SS, RC522_RST);
@@ -1167,8 +1203,6 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
 
     byte pageData[4] = {0,0,0,0};
     
-    // Check battery
-    bool batteryOk = checkBattery(false);
     // Get actual time and date
     DS3231_get(&t);
     // Write version & gain
@@ -1181,7 +1215,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     memset(pageData, 0, sizeof(pageData));
     pageData[0] = stationNum;
     pageData[1] = getSettings();
-    pageData[2] = batteryOk;
+    pageData[2] = batteryVoltageToByte(measureBatteryVoltage());
     pageData[3] = mode;
     result &= rfidCardPageWrite(CARD_PAGE_START + 1, pageData);
     // Write current time and date
@@ -1207,7 +1241,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     result &= rfidCardPageWrite(CARD_PAGE_START + 3, pageData);
     
     Watchdog.reset();
-    delay(1000);
+    delay(250);
 
     if(result) {
         BEEP_MASTER_CARD_GET_INFO_OK;
