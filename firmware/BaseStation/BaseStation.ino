@@ -39,10 +39,6 @@
     #define DS3231_RST     A0
 
     #define RC522_IRQ      6
-
-    #error "Define ADC_IN and ADC_ENABLE for v1.x"
-    //#define ADC_IN         A0
-    //#define ADC_ENABLE     A1
 #elif HW_VERS == 2
     #define DS3231_VCC     8 // not used
     #define DS3231_IRQ     A3
@@ -231,8 +227,10 @@ void setup() {
     pinMode(DS3231_32K, INPUT_PULLUP);
     pinMode(REED_SWITCH, INPUT_PULLUP);
     pinMode(DS3231_VCC, OUTPUT);
+#if defined(ADC_IN) && defined(ADC_ENABLE)
     pinMode(ADC_IN, INPUT);
     pinMode(ADC_ENABLE, INPUT);
+#endif
 
 #if HW_VERS > 1
     pinMode(DS3231_RST, INPUT); // if set as pull_up it takes additional supply current
@@ -457,7 +455,11 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
     // Write info about station
     sendData[pos++] = stationNum;
     sendData[pos++] = getSettings();
+#if defined(ADC_IN) && defined(ADC_ENABLE)
     sendData[pos++] = batteryVoltageToByte(measureBatteryVoltage());
+#else
+    sendData[pos++] = checkBattery();
+#endif
     sendData[pos++] = mode;
     // Write current time
     sendData[pos++] = (t.unixtime & 0xFF000000)>>24;
@@ -642,13 +644,15 @@ void sleep(uint16_t ms) {
            pin == RC522_RST ||
            pin == LED ||
            pin == BUZ ||
+#if defined(ADC_IN) && defined(ADC_ENABLE)
+           pin == ADC_IN ||
+           pin == ADC_ENABLE ||
+#endif
            pin == DS3231_VCC ||
            pin == DS3231_IRQ ||
            pin == DS3231_32K ||
            pin == DS3231_RST ||
-           pin == REED_SWITCH ||
-           pin == ADC_IN ||
-           pin == ADC_ENABLE) {
+           pin == REED_SWITCH) {
             continue;
         }
 
@@ -763,7 +767,7 @@ uint32_t i2cEepromReadPunch(uint16_t cardNum) {
         Wire.requestFrom(I2C_EEPROM_ADDRESS, 1);
         if(Wire.available()) {
             // Transform timestamp to big endian order
-            timestamp |= (Wire.read() & 0xff) << 8*(3 - i);
+            timestamp |= (Wire.read() & 0xff) << (8*i);
         }
     }
 
@@ -863,55 +867,56 @@ uint8_t batteryVoltageToByte(uint32_t voltage) {
     return voltage/20;
 }
 
-//bool checkBattery(bool beepEnabled = false) {
-//    const uint32_t refConst = 1125300L; //voltage constanta
-//    uint32_t value = 0;
-//
-//    Watchdog.reset();
-//    // Turn on ADC
-//    ADCSRA |=  bit(ADEN); 
-//    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
-//
-//    Watchdog.reset();
-//    // Turn on led to increase current
-//    digitalWrite(LED, HIGH);
-//    delay(5000);
-//    // Measure battery voltage
-//    for(uint8_t i = 0; i < 10; i++) {
-//        // Start to measure
-//        ADCSRA |= _BV(ADSC);
-//        while(bit_is_set(ADCSRA, ADSC));
-//        // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
-//        uint32_t adcl = ADCL;
-//        uint32_t adch = ADCH;
-//
-//        adcl &= 0xFF;
-//        adch &= 0xFF;
-//        value += ((adch << 8) | adcl);
-//    }
-//
-//    value = (refConst*10)/value;
-//
-//    // Turn off ADC
-//    ADCSRA = 0;
-//
-//    digitalWrite(LED, LOW);
-//    delay(250);
-//    
-//    Watchdog.reset();
-//
-//    if(value > 3100) {
-//        if(beepEnabled) {
-//            BEEP_BATTERY_OK;
-//        }
-//        return true;
-//    }
-//
-//    if(beepEnabled) {
-//        BEEP_LOW_BATTERY;
-//    }
-//    return false;
-//}
+bool checkBattery(bool beepEnabled = false) {
+    Watchdog.reset();
+    // Turn on ADC
+    ADCSRA |=  bit(ADEN);
+    ADMUX = _BV(REFS0) | _BV(MUX3) | _BV(MUX2) | _BV(MUX1);
+
+    Watchdog.reset();
+    // Turn on led to increase current
+    digitalWrite(LED, HIGH);
+
+    delay(5000);
+
+    uint32_t value = 0;
+    // Measure battery voltage
+    for(uint8_t i = 0; i < 10; i++) {
+        // Start to measure
+        ADCSRA |= _BV(ADSC);
+        while(bit_is_set(ADCSRA, ADSC));
+        // Calculate Vcc (in mV); 1125300 = 1.1*1023*1000
+        uint32_t adcl = ADCL;
+        uint32_t adch = ADCH;
+
+        adcl &= 0xFF;
+        adch &= 0xFF;
+        value += ((adch << 8) | adcl);
+    }
+
+    const uint32_t refConst = 1125300L; //voltage constanta
+    value = (refConst*10)/value;
+
+    // Turn off ADC
+    ADCSRA = 0;
+
+    digitalWrite(LED, LOW);
+    delay(250);
+    
+    Watchdog.reset();
+
+    if(value > 3100) {
+        if(beepEnabled) {
+            BEEP_BATTERY_OK;
+        }
+        return true;
+    }
+
+    if(beepEnabled) {
+        BEEP_LOW_BATTERY;
+    }
+    return false;
+}
 
 void processRfid() {
     rfidBegin(RC522_SS, RC522_RST);
@@ -1175,6 +1180,8 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
 
     digitalWrite(LED, LOW);
 
+    delay(250);
+
     if(result) {
         BEEP_MASTER_CARD_DUMP_OK;
     } else {
@@ -1215,7 +1222,11 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     memset(pageData, 0, sizeof(pageData));
     pageData[0] = stationNum;
     pageData[1] = getSettings();
+#if defined(ADC_IN) && defined(ADC_ENABLE)
     pageData[2] = batteryVoltageToByte(measureBatteryVoltage());
+#else
+    pageData[2] = checkBattery();
+#endif
     pageData[3] = mode;
     result &= rfidCardPageWrite(CARD_PAGE_START + 1, pageData);
     // Write current time and date
