@@ -752,26 +752,27 @@ void i2cEepromWritePunch(uint16_t cardNum) {
 }
 
 uint32_t i2cEepromReadPunch(uint16_t cardNum) {
-    pinMode(I2C_EEPROM_VCC, OUTPUT);
+    //pinMode(I2C_EEPROM_VCC, OUTPUT);
     // Power on I2C EEPROM
-    digitalWrite(I2C_EEPROM_VCC, HIGH);
-    delay(1);
+    //digitalWrite(I2C_EEPROM_VCC, HIGH);
+    //delay(1);
 
     uint16_t recordAddress = (cardNum - 1)*4;
+    Wire.beginTransmission(I2C_EEPROM_ADDRESS);
+    Wire.write(recordAddress >> 8);
+    Wire.write(recordAddress & 0xff);
+    Wire.endTransmission(false);
+    Wire.requestFrom(I2C_EEPROM_ADDRESS, 4);
+
+    //digitalWrite(I2C_EEPROM_VCC, LOW);
+
     uint32_t timestamp = 0;
     for(uint8_t i = 0; i < 4; ++i) {
-        Wire.beginTransmission(I2C_EEPROM_ADDRESS);
-        Wire.write((recordAddress + i) >> 8);
-        Wire.write((recordAddress + i) & 0xff);
-        Wire.endTransmission();
-        Wire.requestFrom(I2C_EEPROM_ADDRESS, 1);
         if(Wire.available()) {
             // Transform timestamp to big endian order
-            timestamp |= (Wire.read() & 0xff) << (8*i);
+            timestamp |= ((uint32_t)Wire.read() & 0xff) << (8*i);
         }
     }
-
-    digitalWrite(I2C_EEPROM_VCC, LOW);
 
     return timestamp;
 }
@@ -1150,6 +1151,8 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
     digitalWrite(LED, HIGH);
 
     uint8_t maxPage = rfidGetCardMaxPage();
+    digitalWrite(I2C_EEPROM_VCC, HIGH);
+    delay(5);
     for(uint16_t cardNum = 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
         Watchdog.reset();
 
@@ -1163,7 +1166,7 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
             break;
         }
 
-        uint8_t timeData[4];
+        byte timeData[4];
         uint32ToByteArray(timestamp, timeData);
 
         // Pack card number in first 12 bits of page
@@ -1173,10 +1176,16 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
         pageData[3] = timeData[3];
         result &= rfidCardPageWrite(page++, pageData);
 
-        if(page > maxPage - 1) {
+        if(page > maxPage) {
             break;
         }
     }
+
+    memset(pageData, 0, sizeof(pageData));
+    for(uint8_t p = page; page <= maxPage; ++ page) {
+        result &= rfidCardPageWrite(page, pageData);
+    }
+    digitalWrite(I2C_EEPROM_VCC, LOW);
 
     digitalWrite(LED, LOW);
 
