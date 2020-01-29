@@ -9,7 +9,6 @@
 
 // Remove a comment from a line below to compile in DEBUG mode
 //#define DEBUG
-#define USE_REED_SWITCH
 
 #define HW_VERS         3
 #define FW_MAJOR_VERS   7
@@ -29,8 +28,6 @@
 
 #define SDA           A4
 #define SCL           A5
-
-#define REED_SWITCH   7
 
 #if HW_VERS == 1
     #define DS3231_VCC     5
@@ -61,6 +58,11 @@
     #define ADC_ENABLE     A1
 
     #define I2C_EEPROM_VCC 6
+    #define REED_SWITCH    7
+#endif
+
+#ifdef REED_SWITCH
+    #define USE_REED_SWITCH
 #endif
 
 #ifdef I2C_EEPROM_VCC
