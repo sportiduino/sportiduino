@@ -528,8 +528,8 @@ void funcReadLog() {
             if(timeHigh12bits == 0) {
                 timeHigh12bits = pageData[0] << 8;
                 timeHigh12bits |= pageData[1] & 0xf0;
-                initTime = (pageData[1] & 0x0f) << 16;
-                initTime |= pageData[2] << 8;
+                initTime = ((uint32_t)pageData[1] & 0x0f) << 16;
+                initTime |= (uint32_t)pageData[2] << 8;
                 initTime |= pageData[3];
                 continue;
             }
@@ -543,8 +543,8 @@ void funcReadLog() {
             }
             serialAdd(pageData[0] >> 4); // card number first byte
             serialAdd(pageData[0] << 4 | pageData[1] >> 4); // card number second byte
-            uint32_t punchTime = (pageData[1] & 0x0f) << 16;
-            punchTime |= pageData[2] << 8;
+            uint32_t punchTime = ((uint32_t)pageData[1] & 0x0f) << 16;
+            punchTime |= (uint32_t)pageData[2] << 8;
             punchTime |= pageData[3];
             uint16_t currentTimeHigh12bits = timeHigh12bits;
             if(punchTime < initTime) {
