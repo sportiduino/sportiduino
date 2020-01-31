@@ -66,8 +66,6 @@ void setup() {
     
     Serial.begin(9600);
     Serial.setTimeout(SERIAL_TIMEOUT);
-
-    readPwdSettings();
 }
 
 void loop() { 
@@ -104,7 +102,7 @@ void handleCmd(uint8_t cmdCode) {
             funcWriteMasterNum();
             break;
         case 0x43:
-            funcWriteMasterPass();
+            funcWriteMasterSettings();
             break;
         case 0x44:
             funcWriteInit();
@@ -169,7 +167,7 @@ uint8_t serialCheckSum(uint8_t *buffer, uint8_t dataSize) {
 void serialStart(uint8_t resp) {
     serialDataPos = 3;
     serialPacketCount = 0;
-    memset(serialBuffer + 2, 0, SERIAL_PACKET_SIZE);
+    memset(serialBuffer, 0, SERIAL_PACKET_SIZE);
 
     serialBuffer[0] = SERIAL_START_BYTE;
     serialBuffer[1] = resp;
@@ -285,7 +283,7 @@ void funcWriteMasterNum() {
     }
 }
 
-void funcWriteMasterPass() {
+void funcWriteMasterSettings() {
     uint8_t newSettings = serialBuffer[9];
     uint8_t oldPass[] = {serialBuffer[6], serialBuffer[7], serialBuffer[8]};
     uint8_t newPass[] = {serialBuffer[3], serialBuffer[4], serialBuffer[5]};
@@ -295,9 +293,9 @@ void funcWriteMasterPass() {
         gain = DEFAULT_ANTENNA_GAIN;
     }
 
-    byte dataBlock1[] = {0, MASTER_CARD_SET_PASS, 255, FW_MAJOR_VERS};
-    byte dataBlock2[] = {oldPass[0], oldPass[1], oldPass[2], gain};
-    byte dataBlock3[] = {newPass[0], newPass[1], newPass[2], newSettings};
+    byte dataBlock1[] = {0, MASTER_CARD_SETTINGS, 255, FW_MAJOR_VERS};
+    byte dataBlock2[] = {oldPass[0], oldPass[1], oldPass[2], 0};
+    byte dataBlock3[] = {newPass[0], newPass[1], newPass[2], 0};
 
     rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
 
@@ -319,16 +317,12 @@ void funcWriteMasterPass() {
     if(error) {
         signalError(error);
     } else {
-        setSettings(newSettings);
-        setAntennaGain(gain);
-        setPwd(newPass[0], newPass[1], newPass[2]);
-
         signalOK();
     }
 }
 
 void funcApplyPassword() {
-    setPwd(serialBuffer[3], serialBuffer[4], serialBuffer[5]);
+    setPwd(&serialBuffer[3]);
     
     signalOK();
 }
@@ -707,11 +701,17 @@ void funcGetVersion() {
     serialAdd(HW_VERS);
     serialAdd(FW_MAJOR_VERS);
     serialAdd(FW_MINOR_VERS);
-    //serialAdd(getPwd(0));
-    //serialAdd(getPwd(1));
-    //serialAdd(getPwd(2));
-    //serialAdd(getSettings());
-    //serialAdd(getAntennaGain());
 
     serialSend();
 }
+
+uint8_t pwd[] = {0, 0, 0};
+
+void setPwd(uint8_t newPwd[]) {
+    memcpy(pwd, newPwd, 3);
+}
+
+uint8_t getPwd(uint8_t i) {
+    return pwd[i];
+}
+

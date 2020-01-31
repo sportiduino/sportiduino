@@ -9,9 +9,6 @@ static MFRC522 mfrc522;
 static MFRC522::MIFARE_Key key;
 static MFRC522::Uid lastCardUid;
 static uint8_t rfidRstPin = 0;
-static uint8_t pass[] = {0,0,0};
-static uint8_t settings = DEFAULT_SETTINGS;
-static uint8_t antennaGain = DEFAULT_ANTENNA_GAIN;
 static CardType cardType = CardType::UNKNOWN;
 
 // data buffer size should be greater 18 bytes
@@ -68,39 +65,17 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
     }
 }
 
-bool readPwdSettings() {
-    settings = majEepromRead(EEPROM_SETTINGS_ADDR);
-    
-    for(uint8_t i = 0; i < 3; i++) {
-        pass[i] = majEepromRead(EEPROM_PASS_ADDR + i*3);
-    }
-    
-    antennaGain = majEepromRead(EEPROM_ANTENNA_GAIN_ADDR);
-
-    if(antennaGain > MAX_ANTENNA_GAIN || antennaGain < MIN_ANTENNA_GAIN) {
-        setAntennaGain(DEFAULT_ANTENNA_GAIN);
-    }
-    
-    if(settings & SETTINGS_INVALID) {
-        setSettings(DEFAULT_SETTINGS);
-        setPwd(0,0,0);
-        setAntennaGain(DEFAULT_ANTENNA_GAIN);
-        return false;
-    }
-
-    return true;
-}
-
-void rfidBegin(uint8_t ssPin, uint8_t rstPin) {
+void rfidBegin(uint8_t ssPin, uint8_t rstPin, uint8_t antennaGain) {
     cardType = CardType::UNKNOWN;
     rfidRstPin = rstPin;
+    antennaGain = constrain(antennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
     
     memset(&key, 0xFF, sizeof(key));
     
     SPI.begin();
     mfrc522.PCD_Init(ssPin, rstPin);
     mfrc522.PCD_AntennaOff();
-    mfrc522.PCD_SetAntennaGain(antennaGain);
+    mfrc522.PCD_SetAntennaGain(antennaGain<<4);
     mfrc522.PCD_AntennaOn();
     
     delay(5);
@@ -334,54 +309,6 @@ bool rfidCardPageWrite(uint8_t pageAdr, byte *data) {
         default:
             return ntagCardPageWrite(pageAdr, pageData, sizeof(pageData));
     }
-}
-
-void setPwd(uint8_t pwd1, uint8_t pwd2, uint8_t pwd3) {
-    if(pass[0] == pwd1 && pass[1] == pwd2 && pass[2] == pwd3) {
-        return;
-    }
-        
-    pass[0] = pwd1;
-    pass[1] = pwd2;
-    pass[2] = pwd3;
-    
-    for(uint8_t i = 0; i < 3; i++) {
-        majEepromWrite(EEPROM_PASS_ADDR + i*3, pass[i]);
-    }
-}
-
-uint8_t getPwd(uint8_t n) {
-    if(n > 2) {
-        return 0xFF;
-    }
-    
-    return pass[n];
-}
-
-void setSettings(uint8_t value) {
-    if(settings == value) {
-        return;
-    }
-
-    settings = value;
-    majEepromWrite(EEPROM_SETTINGS_ADDR, settings);
-}
-
-uint8_t getSettings() {
-    return settings;
-}
-
-void setAntennaGain(uint8_t gain) {
-    if(antennaGain == gain || gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN) {
-        return;
-    }
-
-    antennaGain = gain;
-    majEepromWrite(EEPROM_ANTENNA_GAIN_ADDR, antennaGain);
-}
-
-uint8_t getAntennaGain() {
-    return antennaGain;
 }
 
 bool uint32ToByteArray(uint32_t value, uint8_t *byteArray) {

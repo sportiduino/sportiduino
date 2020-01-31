@@ -96,9 +96,50 @@
 //--------------------------------------------------------------------
 // VARIABLES  
 
+#define EEPROM_CONFIG_ADDR  0x3EE
+
+// Configuration
+// Bits 0-2 - Active mode duration:
+// Bit 3 - Check start/finish station marks on a participant card (0 - no, 1 - yes)
+// Bit 4 - Check init time of a participant card (0 - no, 1 - yes)
+// Bit 5 - Clean settings after getting in sleep mode (0 - no, 1 - yes)
+// Bit 6 - Fast mark mode (0 - no, 1 - yes)
+// Bit 7 - Reserved
+// Bits 8-10 - Antenna gain
+// Bits 11-15 - Reserved
+
+typedef struct __attribute__((packed)) {
+    uint8_t stationNumber;
+// activeModeDuration
+//    (xxx) - 2^(bit2:bit0) hours in active mode (1 - 32 hours)
+//    (110) - always be in active mode (check card in 0.25 second period)
+//    (111) - always be in wait mode (check card in 1 second period)
+    uint8_t activeModeDuration: 3;
+    uint8_t checkStartFinish: 1;
+    uint8_t checkCardInitTime: 1;
+    uint8_t _reserved0: 1;
+    uint8_t fastMark: 1;
+    uint8_t _reserved1: 1;
+    uint8_t antennaGain: 3;
+    uint8_t _reserved2: 5;
+    uint8_t password[3];
+} Configuration;
+
+
+#define SETTINGS_ALWAYS_ACTIVE          0x06
+#define SETTINGS_ALWAYS_WAIT            0x07
+
+//#define SETTINGS_CHECK_START_FINISH     0x08
+//#define SETTINGS_CHECK_CARD_TIME        0x10
+//#define SETTINGS_CLEAR_IN_SLEEP         0x20
+//#define SETTINGS_FAST_MARK              0x40
+
+#define DEFAULT_ACTIVE_MODE_DURATION 1 // 2 hours
+
+
 // work time in milliseconds
 uint32_t workTimer;
-uint8_t stationNum;
+Configuration config;
 uint8_t mode;
 
 #define MODE_ACTIVE   0
@@ -270,15 +311,13 @@ void setup() {
 #endif
 
     // Read settings from EEPROM
-    stationNum = majEepromRead(EEPROM_STATION_NUM_ADDR);
+    readConfig(&config);
 
-    if(stationNum == 0) {
-        setStationNum(DEFAULT_STATION_NUM);
-    }
-
-    if(!readPwdSettings()) {
+    if(config.stationNumber == 0) {
+        config.stationNumber = DEFAULT_STATION_NUM;
+        config.antennaGain = DEFAULT_ANTENNA_GAIN;
+        config.activeModeDuration = DEFAULT_ACTIVE_MODE_DURATION;
         clearMarkLog();
-        setStationNum(DEFAULT_STATION_NUM);
     }
 
     setMode(DEFAULT_MODE);
@@ -343,9 +382,9 @@ void loop() {
             digitalWrite(LED,HIGH);
 #endif
 
-            if(getSettings() & SETTINGS_ALWAYS_ACTIVE) {
+            if(config.activeModeDuration == SETTINGS_ALWAYS_ACTIVE) {
                   workTimer = 0;
-            } else if(workTimer >= WAIT_PERIOD1) {
+            } else if(workTimer >= (1<<(uint32_t)config.activeModeDuration)*3600000UL) {
                 setMode(MODE_WAIT);
             }
             break;
@@ -356,12 +395,8 @@ void loop() {
             digitalWrite(LED,HIGH);
 #endif
 
-            if(getSettings() & SETTINGS_ALWAYS_WAIT) {
+            if(config.activeModeDuration == SETTINGS_ALWAYS_WAIT) {
                 workTimer = 0;
-            } else if(workTimer >= WAIT_PERIOD1 && (getSettings() & SETTINGS_WAIT_PERIOD1)) {
-                setMode(MODE_SLEEP);
-            } else if(workTimer >= WAIT_PERIOD2 && (getSettings() & SETTINGS_WAIT_PERIOD2)) {
-                setMode(MODE_SLEEP);
             }
             break;
         case MODE_SLEEP:
@@ -433,15 +468,15 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
         return;
     }
 
-    if(data[3] != getPwd(0) ||
-       data[4] != getPwd(1) ||
-       data[5] != getPwd(2) ) {
+    if(data[3] != config.password[0] ||
+       data[4] != config.password[1] ||
+       data[5] != config.password[2] ) {
         serialRespStatus(SERIAL_ERROR_PWD);
         return;
     }
 
     uint8_t pos = 0;
-    byte *sendData = &serialData[0];
+    byte *sendData = serialData;
     
     // Get actual date and time
     DS3231_get(&t);
@@ -454,9 +489,10 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
     sendData[pos++] = HW_VERS;
     sendData[pos++] = FW_MAJOR_VERS;
     sendData[pos++] = FW_MINOR_VERS;
-    // Write info about station
-    sendData[pos++] = stationNum;
-    sendData[pos++] = getSettings();
+    // Write station config
+    for(uint8_t i = 0; i < sizeof(Configuration); ++i) {
+        sendData[pos++] = *(byte*)(&config + i);
+    }
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     sendData[pos++] = batteryVoltageToByte(measureBatteryVoltage());
 #else
@@ -480,8 +516,6 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
     sendData[pos++] = (t.unixtime & 0x00FF0000)>>16;
     sendData[pos++] = (t.unixtime & 0x0000FF00)>>8;
     sendData[pos++] = (t.unixtime & 0x000000FF);
-    // Write antenna gain
-    sendData[pos++] = getAntennaGain();
     // Write message end
     sendData[pos] = serialCrc(sendData, 2, pos);
     pos++;
@@ -499,19 +533,20 @@ void serialFuncWriteSettings(byte *data, byte dataSize) {
         return;
     }
     
-    if(data[3] != getPwd(0) ||
-       data[4] != getPwd(1) ||
-       data[5] != getPwd(2) ) {
+    if(data[3] != config.password[0] ||
+       data[4] != config.password[1] ||
+       data[5] != config.password[2] ) {
         serialRespStatus(SERIAL_ERROR_PWD);
         return;
     }
 
     setTime(data[6] + 2000, data[7], data[8], data[9], data[10], data[11]);
-    setPwd(data[12], data[13], data[14]);  
+    memcpy(config.password, &data[12], 3);  
     setStationNum(data[15]);
-    setSettings(data[16]);
+    //setSettings(data[16]);
     setWakeupTime(data[17] + 2000, data[18], data[19], data[20], data[21], data[22]);
     setAntennaGain(data[23]);
+    writeConfig(&config);
 
     mode = MODE_SLEEP;
 
@@ -585,12 +620,19 @@ uint8_t getPinMode(uint8_t pin) {
 }
 
 void setStationNum(uint8_t num) {
-    if(num == stationNum || num == 0) {
+    if(num == 0) {
         return;
     }
 
-    stationNum = num;
-    majEepromWrite(EEPROM_STATION_NUM_ADDR, stationNum);
+    config.stationNumber = num;
+}
+
+void setAntennaGain(uint8_t gain) {
+    if(gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN) {
+        return;
+    }
+
+    config.antennaGain = gain;
 }
 
 void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
@@ -688,9 +730,9 @@ void setMode(uint8_t md) {
     workTimer = 0;
 
     // Check mode with settings
-    if(getSettings() & SETTINGS_ALWAYS_WAIT) {
+    if(config.activeModeDuration == SETTINGS_ALWAYS_WAIT) {
         mode = MODE_WAIT;
-    } else if(getSettings() & SETTINGS_ALWAYS_ACTIVE) {
+    } else if(config.activeModeDuration == SETTINGS_ALWAYS_ACTIVE) {
         mode = MODE_ACTIVE;
     }
 }
@@ -922,7 +964,7 @@ bool checkBattery(bool beepEnabled = false) {
 }
 
 void processRfid() {
-    rfidBegin(RC522_SS, RC522_RST);
+    rfidBegin(RC522_SS, RC522_RST, config.antennaGain);
     processCard();
     rfidEnd();
 }
@@ -944,7 +986,7 @@ void processCard() {
     } else {
         setMode(MODE_ACTIVE);
         // Process a participant card
-        switch(stationNum) {
+        switch(config.stationNumber) {
             case CLEAR_STATION_NUM:
                 clearParticipantCard();
                 break;
@@ -980,9 +1022,9 @@ void processMasterCard(uint8_t *pageInitData) {
     }
 
     // Check password
-    if( (getPwd(0) != masterCardData[4]) ||
-            (getPwd(1) != masterCardData[5]) ||
-            (getPwd(2) != masterCardData[6]) ) {
+    if( (config.password[0] != masterCardData[4]) ||
+            (config.password[1] != masterCardData[5]) ||
+            (config.password[2] != masterCardData[6]) ) {
         BEEP_PASS_ERROR;
         return;
     }
@@ -1004,8 +1046,8 @@ void processMasterCard(uint8_t *pageInitData) {
             processDumpMasterCard(masterCardData, sizeof(masterCardData));
 #endif
             break;
-        case MASTER_CARD_SET_PASS:
-            processPassMasterCard(masterCardData, sizeof(masterCardData));
+        case MASTER_CARD_SETTINGS:
+            processSettingsMasterCard(masterCardData, sizeof(masterCardData));
             break;
         case MASTER_CARD_GET_INFO:
             processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
@@ -1044,8 +1086,9 @@ void processStationMasterCard(byte *data, byte dataSize) {
     uint8_t newNum = data[8];
 
     if(newNum > 0) {
-        if(stationNum != newNum) {
+        if(config.stationNumber != newNum) {
             setStationNum(newNum);
+            writeConfig(&config);
             BEEP_MASTER_CARD_STATION_WRITTEN;
         } else {
             BEEP_MASTER_CARD_STATION_OK;
@@ -1065,10 +1108,6 @@ void processSleepMasterCard(byte *data, byte dataSize) {
     // in this case we can't sleep if always work is set
     mode = MODE_SLEEP;
     
-    if(getSettings() & SETTINGS_CLEAR_ON_SLEEP) {
-        setSettings(DEFAULT_SETTINGS);
-    }
-
     // Config alarm
     setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
     
@@ -1087,7 +1126,7 @@ void processDumpMasterCard(byte *data, byte dataSize) {
 
     byte pageData[4] = {0,0,0,0};
     // Write station num
-    pageData[0] = stationNum;
+    pageData[0] = config.stationNumber;
     bool result = rfidCardPageWrite(CARD_PAGE_INIT, pageData);
 
     uint16_t eepromAdr = 0;
@@ -1137,7 +1176,7 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
 
     byte pageData[4];
     memcpy(pageData, data, 4);
-    pageData[0] = stationNum;
+    pageData[0] = config.stationNumber;
     pageData[3] = 1; // flag: have timestamps
     bool result = rfidCardPageWrite(CARD_PAGE_INIT, pageData);
 
@@ -1200,15 +1239,19 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
     }
 }
 
-void processPassMasterCard(byte *data, byte dataSize) {
+void processSettingsMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
         BEEP_MASTER_CARD_PASS_ERROR;
         return;
     }
 
-    setAntennaGain(data[7]);
-    setPwd(data[8], data[9], data[10]);
-    setSettings(data[11]);
+    uint8_t lastStationNumber = config.stationNumber;
+    memcpy(&config, &data[7], sizeof(Configuration));
+    if(config.stationNumber == 0) {
+        config.stationNumber = lastStationNumber;
+    }
+
+    writeConfig(&config);
 
     BEEP_MASTER_CARD_PASS_OK;
 }
@@ -1219,34 +1262,39 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
         return;
     }  
 
+    uint8_t page = CARD_PAGE_START;
     byte pageData[4] = {0,0,0,0};
-    
-    // Get actual time and date
-    DS3231_get(&t);
-    // Write version & gain
+
+    // Write version
     pageData[0] = HW_VERS;
     pageData[1] = FW_MAJOR_VERS;
     pageData[2] = FW_MINOR_VERS;
-    pageData[3] = getAntennaGain();
-    bool result = rfidCardPageWrite(CARD_PAGE_START, pageData);
-    // Write info about station
-    memset(pageData, 0, sizeof(pageData));
-    pageData[0] = stationNum;
-    pageData[1] = getSettings();
+    pageData[3] = 0;
+    bool result = rfidCardPageWrite(page++, pageData);
+
+    // Write station config
+    result &= rfidCardPageWrite(page++, (byte*)&config);
+
+    // Write station state
 #if defined(ADC_IN) && defined(ADC_ENABLE)
-    pageData[2] = batteryVoltageToByte(measureBatteryVoltage());
+    pageData[0] = batteryVoltageToByte(measureBatteryVoltage());
 #else
-    pageData[2] = checkBattery();
+    pageData[0] = checkBattery();
 #endif
-    pageData[3] = mode;
-    result &= rfidCardPageWrite(CARD_PAGE_START + 1, pageData);
+    pageData[1] = mode;
+    pageData[2] = 0;
+    pageData[3] = 0;
+    result &= rfidCardPageWrite(page++, pageData);
+
+    // Get actual time and date
+    DS3231_get(&t);
     // Write current time and date
-    memset(pageData, 0, sizeof(pageData));
-    pageData[0] = (t.unixtime & 0xFF000000)>>24;
-    pageData[1] = (t.unixtime & 0x00FF0000)>>16;
-    pageData[2] = (t.unixtime & 0x0000FF00)>>8;
-    pageData[3] = (t.unixtime & 0x000000FF);
-    result &= rfidCardPageWrite(CARD_PAGE_START + 2, pageData);
+    pageData[0] = t.unixtime >> 24;
+    pageData[1] = t.unixtime >> 16;
+    pageData[2] = t.unixtime >> 8;
+    pageData[3] = t.unixtime & 0xFF;
+    result &= rfidCardPageWrite(page++, pageData);
+
     // Write wake-up time
     memset(&t, 0, sizeof(t));
     t.sec = bcdtodec(DS3231_get_addr(0x07));
@@ -1256,11 +1304,11 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     t.mon = alarmMonth;
     t.year = alarmYear;
     t.unixtime = get_unixtime(t);
-    pageData[0] = (t.unixtime & 0xFF000000)>>24;
-    pageData[1] = (t.unixtime & 0x00FF0000)>>16;
-    pageData[2] = (t.unixtime & 0x0000FF00)>>8;
-    pageData[3] = (t.unixtime & 0x000000FF);
-    result &= rfidCardPageWrite(CARD_PAGE_START + 3, pageData);
+    pageData[0] = t.unixtime >> 24;
+    pageData[1] = t.unixtime >> 16;
+    pageData[2] = t.unixtime >> 8;
+    pageData[3] = t.unixtime & 0xFF;
+    result &= rfidCardPageWrite(page++, pageData);
     
     Watchdog.reset();
     delay(250);
@@ -1281,7 +1329,7 @@ void processParticipantCard(uint16_t cardNum) {
 
     if(cardNum) {
         // Find the empty page to write new mark
-        if(getSettings() & SETTINGS_FAST_MARK) {
+        if(config.fastMark) {
             if(rfidCardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
                 lastNum = pageData[0];
                 newPage = pageData[1] + 1;
@@ -1295,23 +1343,23 @@ void processParticipantCard(uint16_t cardNum) {
         }
     
         if(newPage >= CARD_PAGE_START && newPage <= maxPage) {
-            if(lastNum != stationNum) {
+            if(lastNum != config.stationNumber) {
                 // Check Start/Finish marks on a card
                 checkOk = true;
-                if(getSettings() & SETTINGS_CHECK_START_FINISH) {
-                    if(newPage == CARD_PAGE_START && stationNum != START_STATION_NUM) {
+                if(config.checkStartFinish) {
+                    if(newPage == CARD_PAGE_START && config.stationNumber != START_STATION_NUM) {
                         checkOk = false;
-                    } else if(stationNum == START_STATION_NUM && newPage != CARD_PAGE_START) {
+                    } else if(config.stationNumber == START_STATION_NUM && newPage != CARD_PAGE_START) {
                         checkOk = false;
                     } else if(lastNum == FINISH_STATION_NUM) {
                         checkOk = false;
                     }
-                    else if(stationNum == FINISH_STATION_NUM && newPage == CARD_PAGE_START) {
+                    else if(config.stationNumber == FINISH_STATION_NUM && newPage == CARD_PAGE_START) {
                         checkOk = false;
                     }
                 }
 
-                if(getSettings() & SETTINGS_CHECK_CARD_TIME) {
+                if(config.checkCardInitTime) {
                     checkOk = !doesCardExpire();
                 }
 
@@ -1376,15 +1424,15 @@ bool writeMarkToParticipantCard(uint8_t newPage) {
     
     DS3231_get(&t);
 
-    pageData[0] = stationNum;
+    pageData[0] = config.stationNumber;
     pageData[1] = (t.unixtime & 0x00FF0000)>>16;
     pageData[2] = (t.unixtime & 0x0000FF00)>>8;
     pageData[3] = (t.unixtime & 0x000000FF);
             
     bool result = rfidCardPageWrite(newPage, pageData);
 
-    if((getSettings() & SETTINGS_FAST_MARK) && result) {
-        pageData[0] = stationNum;
+    if(config.fastMark && result) {
+        pageData[0] = config.stationNumber;
         pageData[1] = newPage;
         pageData[2] = 0;
         pageData[3] = 0;
@@ -1448,7 +1496,7 @@ void checkParticipantCard() {
             if(newPage == CARD_PAGE_START && lastNum == 0) {
                 result = true;
                 // Check card init time
-                if(getSettings() & SETTINGS_CHECK_CARD_TIME) {
+                if(config.checkCardInitTime) {
                     result = !doesCardExpire();
                 }
             }
@@ -1492,3 +1540,22 @@ void rtcAlarmIrq() {
 void reedSwitchIrq() {
     reedSwitchFlag = 1;
 }
+
+bool readConfig(Configuration *config) {
+    uint16_t eepromAdr = EEPROM_CONFIG_ADDR;
+    for(uint8_t i = 0; i < sizeof(Configuration); ++i) {
+        *((uint8_t*)config + i) = majEepromRead(eepromAdr++);
+    }
+
+    return true;
+}
+
+bool writeConfig(Configuration *config) {
+    uint16_t eepromAdr = EEPROM_CONFIG_ADDR;
+    for(uint8_t i = 0; i < sizeof(Configuration); ++i) {
+        majEepromWrite(eepromAdr++, *((uint8_t*)config + i));
+    }
+
+    return true;
+}
+
