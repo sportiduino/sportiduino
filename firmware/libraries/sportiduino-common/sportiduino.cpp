@@ -21,8 +21,11 @@ bool ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size);
 bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size);
 
 void majEepromWrite(uint16_t adr, uint8_t val) {
-    for(uint16_t i = 0; i < 3; i++) {
-        EEPROM.write(adr + i, val);
+    uint8_t oldVal = majEepromRead(adr);
+    if(val != oldVal) {
+        for(uint16_t i = 0; i < 3; i++) {
+            EEPROM.write(adr + i, val);
+        }
     }
 }
 

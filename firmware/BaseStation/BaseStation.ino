@@ -102,7 +102,7 @@
 // Bits 0-2 - Active mode duration:
 // Bit 3 - Check start/finish station marks on a participant card (0 - no, 1 - yes)
 // Bit 4 - Check init time of a participant card (0 - no, 1 - yes)
-// Bit 5 - Clean settings after getting in sleep mode (0 - no, 1 - yes)
+// Bit 5 - Reserved
 // Bit 6 - Fast mark mode (0 - no, 1 - yes)
 // Bit 7 - Reserved
 // Bits 8-10 - Antenna gain
@@ -313,10 +313,13 @@ void setup() {
     // Read settings from EEPROM
     readConfig(&config);
 
-    if(config.stationNumber == 0) {
+    if(config.stationNumber == 0
+       || config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
         config.stationNumber = DEFAULT_STATION_NUM;
         config.antennaGain = DEFAULT_ANTENNA_GAIN;
         config.activeModeDuration = DEFAULT_ACTIVE_MODE_DURATION;
+        config.password[0] = config.password[1] = config.password[2] = 0;
+        writeConfig(&config);
         clearMarkLog();
     }
 
@@ -1046,7 +1049,7 @@ void processMasterCard(uint8_t *pageInitData) {
             processDumpMasterCard(masterCardData, sizeof(masterCardData));
 #endif
             break;
-        case MASTER_CARD_SETTINGS:
+        case MASTER_CARD_CONFIG:
             processSettingsMasterCard(masterCardData, sizeof(masterCardData));
             break;
         case MASTER_CARD_GET_INFO:
@@ -1245,12 +1248,15 @@ void processSettingsMasterCard(byte *data, byte dataSize) {
         return;
     }
 
-    uint8_t lastStationNumber = config.stationNumber;
-    memcpy(&config, &data[7], sizeof(Configuration));
-    if(config.stationNumber == 0) {
-        config.stationNumber = lastStationNumber;
+    Configuration *newConfig = (Configuration*)&data[8];
+    if(newConfig->stationNumber == 0) {
+        newConfig->stationNumber = config.stationNumber;
+    }
+    if(newConfig->antennaGain > MAX_ANTENNA_GAIN || newConfig->antennaGain < MIN_ANTENNA_GAIN) {
+        newConfig->antennaGain = DEFAULT_ANTENNA_GAIN;
     }
 
+    memcpy(&config, newConfig, sizeof(Configuration));
     writeConfig(&config);
 
     BEEP_MASTER_CARD_PASS_OK;
@@ -1544,16 +1550,18 @@ void reedSwitchIrq() {
 bool readConfig(Configuration *config) {
     uint16_t eepromAdr = EEPROM_CONFIG_ADDR;
     for(uint8_t i = 0; i < sizeof(Configuration); ++i) {
-        *((uint8_t*)config + i) = majEepromRead(eepromAdr++);
+        *((uint8_t*)config + i) = majEepromRead(eepromAdr);
+        eepromAdr += 3;
     }
 
     return true;
 }
 
-bool writeConfig(Configuration *config) {
+bool writeConfig(Configuration *newConfig) {
     uint16_t eepromAdr = EEPROM_CONFIG_ADDR;
     for(uint8_t i = 0; i < sizeof(Configuration); ++i) {
-        majEepromWrite(eepromAdr++, *((uint8_t*)config + i));
+        majEepromWrite(eepromAdr, *((uint8_t*)newConfig + i));
+        eepromAdr += 3;
     }
 
     return true;

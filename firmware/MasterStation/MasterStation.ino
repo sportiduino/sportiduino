@@ -29,6 +29,7 @@
 #define ERROR_EEPROM_READ       0x04
 #define ERROR_CARD_NOT_FOUND    0x05
 #define ERROR_UNKNOWN_CMD       0x06
+#define ERROR_BAD_DATASIZE      0x07
 
 #define RESP_FUNC_LOG           0x61
 #define RESP_FUNC_MARKS         0x63
@@ -101,8 +102,8 @@ void handleCmd(uint8_t cmdCode) {
         case 0x42:
             funcWriteMasterNum();
             break;
-        case 0x43:
-            funcWriteMasterSettings();
+        case 0x5A:
+            rfidFunction(funcWriteMasterConfig);
             break;
         case 0x44:
             funcWriteInit();
@@ -283,42 +284,34 @@ void funcWriteMasterNum() {
     }
 }
 
-void funcWriteMasterSettings() {
-    uint8_t newSettings = serialBuffer[9];
-    uint8_t oldPass[] = {serialBuffer[6], serialBuffer[7], serialBuffer[8]};
-    uint8_t newPass[] = {serialBuffer[3], serialBuffer[4], serialBuffer[5]};
-
-    uint8_t gain = serialBuffer[10];
-    if(gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN) {
-        gain = DEFAULT_ANTENNA_GAIN;
+void funcWriteMasterConfig() {
+    uint8_t inputDataSize = serialBuffer[2];
+    if(inputDataSize != 6) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
+    if(!rfidIsCardDetected()) {
+        signalError(ERROR_CARD_NOT_FOUND);
+        return;
     }
 
-    byte dataBlock1[] = {0, MASTER_CARD_SETTINGS, 255, FW_MAJOR_VERS};
-    byte dataBlock2[] = {oldPass[0], oldPass[1], oldPass[2], 0};
-    byte dataBlock3[] = {newPass[0], newPass[1], newPass[2], 0};
+    byte *configData = &serialBuffer[3];
+    byte data[][4] = {
+        {0, MASTER_CARD_CONFIG, 255, FW_MAJOR_VERS},
+        {getPwd(0), getPwd(1), getPwd(2), 0},
+        {configData[0], configData[1], configData[2], configData[3]},
+        {configData[4], configData[5], 0, 0}
+    };
 
-    rfidBegin(RC522_SS_PIN, RC522_RST_PIN);
-
-    uint8_t error = ERROR_CARD_NOT_FOUND;
-    if(rfidIsCardDetected()) {
-        error = ERROR_CARD_WRITE;
-        
-        if(rfidCardPageWrite(CARD_PAGE_INIT, dataBlock1)) {
-            if(rfidCardPageWrite(CARD_PAGE_PASS, dataBlock2)) {
-                if(rfidCardPageWrite(CARD_PAGE_NEW_PASS, dataBlock3)) {
-                    error = 0;
-                }
-            }
+    uint8_t page = CARD_PAGE_INIT;
+    for(uint8_t i = 0; i < 4; ++i) {
+        if(!rfidCardPageWrite(page++, data[i])) {
+            signalError(ERROR_CARD_WRITE);
+            return;
         }
     }
 
-    rfidEnd();
-
-    if(error) {
-        signalError(error);
-    } else {
-        signalOK();
-    }
+    signalOK();
 }
 
 void funcApplyPassword() {

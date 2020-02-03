@@ -18,7 +18,7 @@
 #define MASTER_CARD_SET_NUMBER      251
 #define MASTER_CARD_SLEEP           252
 #define MASTER_CARD_READ_DUMP       253
-#define MASTER_CARD_SETTINGS        254
+#define MASTER_CARD_CONFIG          254
 
 #define CARD_PAGE_INIT              4
 #define CARD_PAGE_INIT_TIME         5
@@ -28,7 +28,6 @@
 #define CARD_PAGE_START             8
 
 #define CARD_PAGE_PASS				5
-#define CARD_PAGE_NEW_PASS			6
 #define CARD_PAGE_DATE				6
 #define CARD_PAGE_TIME				7
 #define CARD_PAGE_STATION_NUM		6
