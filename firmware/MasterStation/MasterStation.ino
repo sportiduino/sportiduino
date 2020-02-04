@@ -48,6 +48,12 @@ inline void beepTimeCardOk() { beep(500, 3); }
 inline void beepError() { beep(100, 3); }
 inline void beepOk() { beep(500, 1); }
 
+uint8_t serialCheckSum(uint8_t *buffer, uint8_t dataSize);
+void signalError(uint8_t error);
+void handleCmd(uint8_t cmdCode);
+void setPwd(uint8_t newPwd[]);
+uint8_t getPwd(uint8_t i);
+
 //-----------------------------------------------------------
 // VARIABLES
 
@@ -91,67 +97,6 @@ void loop() {
     }
 }
 
-void callRfidFunction(void (*func)()) {
-    rfid.begin();
-    func();
-    rfid.end();
-}
-
-void handleCmd(uint8_t cmdCode) {
-    switch(cmdCode) {
-        case 0x41:
-            callRfidFunction(funcWriteMasterTime);
-            break;
-        case 0x42:
-            callRfidFunction(funcWriteMasterNum);
-            break;
-        case 0x5A:
-            callRfidFunction(funcWriteMasterConfig);
-            break;
-        case 0x44:
-            callRfidFunction(funcInitPaticipantCard);
-            break;
-        case 0x45:
-            callRfidFunction(funcWriteInfo);
-            break;
-        case 0x46:
-            funcGetVersion();
-            break;
-        case 0x47:
-            callRfidFunction(funcWriteMasterLog);
-            break;
-        case 0x48:
-            callRfidFunction(funcReadLog);
-            break;
-        case 0x4B:
-            callRfidFunction(funcReadCard);
-            break;
-        case 0x4C:
-            callRfidFunction(funcReadRawCard);
-            break;
-        case 0x4E:
-            callRfidFunction(funcWriteMasterSleep);
-            break;
-        case 0x4F:
-            funcApplyPassword();
-            break;
-        case 0x50:
-            callRfidFunction(funcWriteGetInfoCard);
-            break;
-        case 0x51:
-            callRfidFunction(funcReadCardType);
-            break;
-        case 0x58:
-            beepError();
-            break;
-        case 0x59:
-            beepOk();
-            break;
-        default:
-            signalError(ERROR_UNKNOWN_CMD);
-            break;
-    }
-}
 
 uint8_t serialCheckSum(uint8_t *buffer, uint8_t dataSize) {
     // if at dataSize position we have packet count
@@ -177,16 +122,6 @@ void serialStart(uint8_t resp) {
     serialBuffer[1] = resp;
 }
 
-void serialAdd(uint8_t dataByte) {
-    if(serialDataPos >= SERIAL_PACKET_SIZE - 1) {
-        serialDataPos++;  // to indicate that we going to send packet count
-        serialSend();
-    }
-
-    serialBuffer[serialDataPos] = dataByte;
-    serialDataPos++;
-}
-
 void serialSend() {
     uint8_t dataSize = serialDataPos - 3; // minus start, resp code, datalen
     
@@ -204,6 +139,16 @@ void serialSend() {
     }
 
     serialDataPos = 3;
+}
+
+void serialAdd(uint8_t dataByte) {
+    if(serialDataPos >= SERIAL_PACKET_SIZE - 1) {
+        serialDataPos++;  // to indicate that we going to send packet count
+        serialSend();
+    }
+
+    serialBuffer[serialDataPos] = dataByte;
+    serialDataPos++;
 }
 
 void signalError(uint8_t error) { 
@@ -380,9 +325,6 @@ void funcWriteGetInfoCard() {
 }
 
 void funcWriteMasterSleep() {
-    byte dataBlock1[] = {0, MASTER_CARD_SLEEP, 255, FW_MAJOR_VERS};
-    byte dataBlock2[] = {getPwd(0), getPwd(1), getPwd(2), 0};
-
     // wakeup time
     byte data[] = {
         serialBuffer[4], serialBuffer[3], serialBuffer[5], 0,
@@ -601,6 +543,68 @@ void funcGetVersion() {
     serialAdd(FW_MINOR_VERS);
 
     serialSend();
+}
+
+void callRfidFunction(void (*func)()) {
+    rfid.begin();
+    func();
+    rfid.end();
+}
+
+void handleCmd(uint8_t cmdCode) {
+    switch(cmdCode) {
+        case 0x41:
+            callRfidFunction(funcWriteMasterTime);
+            break;
+        case 0x42:
+            callRfidFunction(funcWriteMasterNum);
+            break;
+        case 0x5A:
+            callRfidFunction(funcWriteMasterConfig);
+            break;
+        case 0x44:
+            callRfidFunction(funcInitPaticipantCard);
+            break;
+        case 0x45:
+            callRfidFunction(funcWriteInfo);
+            break;
+        case 0x46:
+            funcGetVersion();
+            break;
+        case 0x47:
+            callRfidFunction(funcWriteMasterLog);
+            break;
+        case 0x48:
+            callRfidFunction(funcReadLog);
+            break;
+        case 0x4B:
+            callRfidFunction(funcReadCard);
+            break;
+        case 0x4C:
+            callRfidFunction(funcReadRawCard);
+            break;
+        case 0x4E:
+            callRfidFunction(funcWriteMasterSleep);
+            break;
+        case 0x4F:
+            funcApplyPassword();
+            break;
+        case 0x50:
+            callRfidFunction(funcWriteGetInfoCard);
+            break;
+        case 0x51:
+            callRfidFunction(funcReadCardType);
+            break;
+        case 0x58:
+            beepError();
+            break;
+        case 0x59:
+            beepOk();
+            break;
+        default:
+            signalError(ERROR_UNKNOWN_CMD);
+            break;
+    }
 }
 
 uint8_t pwd[] = {0, 0, 0};
