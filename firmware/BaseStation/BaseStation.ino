@@ -141,6 +141,7 @@ typedef struct __attribute__((packed)) {
 uint32_t workTimer;
 Configuration config;
 uint8_t mode;
+Rfid rfid;
 
 #define MODE_ACTIVE   0
 #define MODE_WAIT     1
@@ -253,6 +254,47 @@ uint8_t serialWakeupFlag = 0;
 
 
 void(*resetFunc)(void) = 0;
+bool readConfig(Configuration *config);
+bool writeConfig(Configuration *newConfig);
+void reedSwitchIrq();
+void rtcAlarmIrq();
+bool doesCardExpire();
+void checkParticipantCard();
+void serialEvent();
+void serialFuncReadInfo(byte *data, byte dataSize);
+void serialFuncWriteSettings(byte *data, byte dataSize);
+void serialRespStatus(uint8_t code);
+byte serialCrc(byte *data, uint8_t from, uint8_t to);
+void wakeupByUartRx();
+uint8_t getPinMode(uint8_t pin);
+void setStationNum(uint8_t num);
+void setAntennaGain(uint8_t gain);
+void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
+void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
+void sleep(uint16_t ms);
+void setMode(uint8_t md);
+void writeCardNumToLog(uint16_t num);
+void clearMarkLog();
+uint16_t getMarkLogEnd();
+void i2cEepromWritePunch(uint16_t cardNum);
+uint32_t i2cEepromReadPunch(uint16_t cardNum);
+void processRfid();
+uint32_t measureBatteryVoltage();
+uint8_t batteryVoltageToByte(uint32_t voltage);
+void processCard();
+void processMasterCard(uint8_t *pageInitData);
+void processTimeMasterCard(byte *data, byte dataSize);
+void processStationMasterCard(byte *data, byte dataSize);
+void processSleepMasterCard(byte *data, byte dataSize);
+void processDumpMasterCard(byte *data, byte dataSize);
+void processDumpMasterCardWithTimestamps(byte *data, byte dataSize);
+void processSettingsMasterCard(byte *data, byte dataSize);
+void processGetInfoMasterCard(byte *data, byte dataSize);
+void processParticipantCard(uint16_t cardNum);
+void findNewPage(uint8_t *newPage, uint8_t *lastNum);
+bool writeMarkToParticipantCard(uint8_t newPage);
+void clearParticipantCard();
+void checkParticipantCard();
 
 // Note: DS3231 works by UTC time!
 
@@ -335,6 +377,7 @@ void setup() {
 
     workTimer = 0;
     Watchdog.enable(8000);
+    rfid.init(RC522_SS, RC522_RST, config.antennaGain);
 }
 
 void loop() {
@@ -967,19 +1010,19 @@ bool checkBattery(bool beepEnabled = false) {
 }
 
 void processRfid() {
-    rfidBegin(RC522_SS, RC522_RST, config.antennaGain);
+    rfid.begin(config.antennaGain);
     processCard();
-    rfidEnd();
+    rfid.end();
 }
     
 void processCard() {
-    if(!rfidIsNewCardDetected()) {
+    if(!rfid.isNewCardDetected()) {
         return;
     }
     byte pageData[4];
     memset(pageData, 0, sizeof(pageData));
     
-    if(!rfidCardPageRead(CARD_PAGE_INIT, pageData)) {
+    if(!rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
         return;
     }
     // Check the card role
@@ -1018,7 +1061,7 @@ void processMasterCard(uint8_t *pageInitData) {
 
     byte pageData[4];
     for(uint8_t i = 1; i < 4; ++i) {
-        if(!rfidCardPageRead(CARD_PAGE_INIT + i, pageData)) {
+        if(!rfid.cardPageRead(CARD_PAGE_INIT + i, pageData)) {
             return;
         }
         memcpy(masterCardData + 4*i, pageData, 4);
@@ -1130,11 +1173,11 @@ void processDumpMasterCard(byte *data, byte dataSize) {
     byte pageData[4] = {0,0,0,0};
     // Write station num
     pageData[0] = config.stationNumber;
-    bool result = rfidCardPageWrite(CARD_PAGE_INIT, pageData);
+    bool result = rfid.cardPageWrite(CARD_PAGE_INIT, pageData);
 
     uint16_t eepromAdr = 0;
     uint16_t eepromEnd = getMarkLogEnd();
-    uint8_t maxPage = rfidGetCardMaxPage();
+    uint8_t maxPage = rfid.getCardMaxPage();
     for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++) {
         Watchdog.reset();
         delay(50);
@@ -1150,7 +1193,7 @@ void processDumpMasterCard(byte *data, byte dataSize) {
             }
         }
 
-        result &= rfidCardPageWrite(page, pageData);
+        result &= rfid.cardPageWrite(page, pageData);
 
         digitalWrite(LED, LOW);
 
@@ -1181,7 +1224,7 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
     memcpy(pageData, data, 4);
     pageData[0] = config.stationNumber;
     pageData[3] = 1; // flag: have timestamps
-    bool result = rfidCardPageWrite(CARD_PAGE_INIT, pageData);
+    bool result = rfid.cardPageWrite(CARD_PAGE_INIT, pageData);
 
     DS3231_get(&t);
     uint32_t now = t.unixtime;
@@ -1190,11 +1233,11 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
     uint8_t page = CARD_PAGE_INFO1;
     // Write initial timestamp (4 bytes) in first data page
     uint32ToByteArray(from, pageData);
-    result &= rfidCardPageWrite(page++, pageData);
+    result &= rfid.cardPageWrite(page++, pageData);
 
     digitalWrite(LED, HIGH);
 
-    uint8_t maxPage = rfidGetCardMaxPage();
+    uint8_t maxPage = rfid.getCardMaxPage();
     digitalWrite(I2C_EEPROM_VCC, HIGH);
     delay(5);
     for(uint16_t cardNum = 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
@@ -1215,20 +1258,18 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
 
         // Pack card number in first 12 bits of page
         pageData[0] = cardNum >> 4;
-        pageData[1] = (cardNum << 4)&0xf0 | timeData[1]&0x0f;
+        pageData[1] = ((cardNum << 4)&0xf0) | (timeData[1]&0x0f);
         pageData[2] = timeData[2];
         pageData[3] = timeData[3];
-        result &= rfidCardPageWrite(page++, pageData);
+        result &= rfid.cardPageWrite(page++, pageData);
 
         if(page > maxPage) {
             break;
         }
     }
 
-    memset(pageData, 0, sizeof(pageData));
-    for(uint8_t p = page; page <= maxPage; ++ page) {
-        result &= rfidCardPageWrite(page, pageData);
-    }
+    result &= rfid.cardErase(page, maxPage);
+
     digitalWrite(I2C_EEPROM_VCC, LOW);
 
     digitalWrite(LED, LOW);
@@ -1276,10 +1317,10 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     pageData[1] = FW_MAJOR_VERS;
     pageData[2] = FW_MINOR_VERS;
     pageData[3] = 0;
-    bool result = rfidCardPageWrite(page++, pageData);
+    bool result = rfid.cardPageWrite(page++, pageData);
 
     // Write station config
-    result &= rfidCardPageWrite(page++, (byte*)&config);
+    result &= rfid.cardPageWrite(page++, (byte*)&config);
 
     // Write station state
 #if defined(ADC_IN) && defined(ADC_ENABLE)
@@ -1290,7 +1331,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     pageData[1] = mode;
     pageData[2] = 0;
     pageData[3] = 0;
-    result &= rfidCardPageWrite(page++, pageData);
+    result &= rfid.cardPageWrite(page++, pageData);
 
     // Get actual time and date
     DS3231_get(&t);
@@ -1299,7 +1340,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     pageData[1] = t.unixtime >> 16;
     pageData[2] = t.unixtime >> 8;
     pageData[3] = t.unixtime & 0xFF;
-    result &= rfidCardPageWrite(page++, pageData);
+    result &= rfid.cardPageWrite(page++, pageData);
 
     // Write wake-up time
     memset(&t, 0, sizeof(t));
@@ -1314,7 +1355,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     pageData[1] = t.unixtime >> 16;
     pageData[2] = t.unixtime >> 8;
     pageData[3] = t.unixtime & 0xFF;
-    result &= rfidCardPageWrite(page++, pageData);
+    result &= rfid.cardPageWrite(page++, pageData);
     
     Watchdog.reset();
     delay(250);
@@ -1329,14 +1370,14 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
 void processParticipantCard(uint16_t cardNum) {
     uint8_t lastNum = 0;
     uint8_t newPage = 0;
-    uint8_t maxPage = rfidGetCardMaxPage();
+    uint8_t maxPage = rfid.getCardMaxPage();
     byte pageData[4] = {0,0,0,0};
     bool checkOk = false;
 
     if(cardNum) {
         // Find the empty page to write new mark
         if(config.fastMark) {
-            if(rfidCardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
+            if(rfid.cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
                 lastNum = pageData[0];
                 newPage = pageData[1] + 1;
 
@@ -1392,7 +1433,7 @@ void processParticipantCard(uint16_t cardNum) {
 
 void findNewPage(uint8_t *newPage, uint8_t *lastNum) {
     uint8_t startPage = CARD_PAGE_START;
-    uint8_t endPage = rfidGetCardMaxPage();
+    uint8_t endPage = rfid.getCardMaxPage();
     uint8_t page = startPage;
     byte pageData[4] = {0,0,0,0};
     byte num = 0;
@@ -1403,7 +1444,7 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum) {
     while(startPage < endPage) {   
         page = (startPage + endPage)/2;
 
-        if(!rfidCardPageRead(page, pageData)) {
+        if(!rfid.cardPageRead(page, pageData)) {
             return;
         }
 
@@ -1435,14 +1476,14 @@ bool writeMarkToParticipantCard(uint8_t newPage) {
     pageData[2] = (t.unixtime & 0x0000FF00)>>8;
     pageData[3] = (t.unixtime & 0x000000FF);
             
-    bool result = rfidCardPageWrite(newPage, pageData);
+    bool result = rfid.cardPageWrite(newPage, pageData);
 
     if(config.fastMark && result) {
         pageData[0] = config.stationNumber;
         pageData[1] = newPage;
         pageData[2] = 0;
         pageData[3] = 0;
-        result &= rfidCardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData);
+        result &= rfid.cardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData);
     }
 
     return result;
@@ -1450,7 +1491,7 @@ bool writeMarkToParticipantCard(uint8_t newPage) {
 
 void clearParticipantCard() {
     byte pageData[4] = {0,0,0,0};
-    uint8_t maxPage = rfidGetCardMaxPage();
+    uint8_t maxPage = rfid.getCardMaxPage();
     bool result = true;
 
     for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++) {
@@ -1459,7 +1500,7 @@ void clearParticipantCard() {
         
         digitalWrite(LED,HIGH);
         
-        result &= rfidCardPageWrite(page, pageData);
+        result &= rfid.cardPageWrite(page, pageData);
         
         digitalWrite(LED,LOW);
 
@@ -1476,7 +1517,7 @@ void clearParticipantCard() {
         pageData[2] = (t.unixtime&0x0000FF00)>>8;
         pageData[3] = (t.unixtime&0x000000FF);
 
-        result &= rfidCardPageWrite(CARD_PAGE_INIT_TIME, pageData);
+        result &= rfid.cardPageWrite(CARD_PAGE_INIT_TIME, pageData);
     }
 
     if(result) {
@@ -1493,7 +1534,7 @@ void checkParticipantCard() {
     uint8_t lastNum = 0;
     bool result = false;
     
-    if(rfidCardPageRead(CARD_PAGE_INIT, pageData)) {
+    if(rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
         // Check card number
         cardNum = (((uint16_t)pageData[0])<<8) + pageData[1];
         if(cardNum > 0 && pageData[2] != 0xFF) {
@@ -1518,15 +1559,11 @@ void checkParticipantCard() {
 
 bool doesCardExpire() {
     byte pageData[4] = {0,0,0,0};
-    uint32_t cardTime = 0;
 
-    if(rfidCardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
+    if(rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
         DS3231_get(&t);
 
-        cardTime = (((uint32_t)pageData[0]) & 0xFF000000)<<24;
-        cardTime |= (((uint32_t)pageData[1]) & 0x00FF0000)<<16;
-        cardTime |= (((uint32_t)pageData[2]) & 0x0000FF00)<<8;
-        cardTime |= (((uint32_t)pageData[3]) & 0x000000FF);
+        uint32_t cardTime = byteArrayToUint32(pageData);
 
         if(t.unixtime - cardTime < CARD_EXPIRE_TIME) {
             return false;

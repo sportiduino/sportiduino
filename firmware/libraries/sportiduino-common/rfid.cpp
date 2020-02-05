@@ -12,7 +12,10 @@ void Rfid::setAntennaGain(uint8_t newAntennaGain) {
     antennaGain = constrain(newAntennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
 }
 
-void Rfid::begin() {
+void Rfid::begin(uint8_t newAntennaGain) {
+    if(newAntennaGain) {
+        antennaGain = newAntennaGain;
+    }
     cardType = CardType::UNKNOWN;
     
     memset(&key, 0xFF, sizeof(key));
@@ -63,6 +66,9 @@ void Rfid::begin() {
                 }
             }
         }
+        default:
+            cardType = CardType::UNKNOWN;
+            return;
     }
 }
 
@@ -190,8 +196,10 @@ uint8_t Rfid::getCardMaxPage() {
             return 129;
         case CardType::NTAG213:
             return 39;
+        default:
+            return 0;
     }
-    
+
     return 0;
 }
 

@@ -32,7 +32,7 @@ uint8_t majEepromRead(uint16_t adr);
  */
 void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t ms, uint8_t n);
 
-bool uint32ToByteArray(uint32_t value, uint8_t *byteArray);
-uint32_t byteArrayToUint32(uint8_t *byteArray);
+bool uint32ToByteArray(uint32_t value, byte *byteArray);
+uint32_t byteArrayToUint32(byte *byteArray);
 
 #endif

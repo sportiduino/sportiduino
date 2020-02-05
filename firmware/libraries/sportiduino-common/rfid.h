@@ -45,7 +45,7 @@ public:
      * Begins to work with RFID module
      * Turn on RC522, detect a card and return the card type if a new one has presented else return 0 if the same card has presented or 0xFF if no any card
      */
-    void begin();
+    void begin(uint8_t newAntennaGain = 0);
 
     /**
      * Stops to work with RFID module

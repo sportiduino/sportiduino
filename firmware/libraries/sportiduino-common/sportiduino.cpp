@@ -51,7 +51,7 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
     }
 }
 
-bool uint32ToByteArray(uint32_t value, uint8_t *byteArray) {
+bool uint32ToByteArray(uint32_t value, byte *byteArray) {
     for(uint8_t i = 0; i < 4; ++i) {
         byteArray[3 - i] = value & 0xff;
         value >>= 8;
@@ -59,7 +59,7 @@ bool uint32ToByteArray(uint32_t value, uint8_t *byteArray) {
     return true;
 }
 
-uint32_t byteArrayToUint32(uint8_t *byteArray) {
+uint32_t byteArrayToUint32(byte *byteArray) {
     uint32_t value = 0;
     for(uint8_t i = 0; i < 4; ++i) {
         value |= byteArray[i];

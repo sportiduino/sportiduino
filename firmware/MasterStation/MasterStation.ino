@@ -48,6 +48,7 @@ inline void beepTimeCardOk() { beep(500, 3); }
 inline void beepError() { beep(100, 3); }
 inline void beepOk() { beep(500, 1); }
 
+// Declatarions for building by Arduino-Makefile
 uint8_t serialCheckSum(uint8_t *buffer, uint8_t dataSize);
 void signalError(uint8_t error);
 void handleCmd(uint8_t cmdCode);
@@ -252,7 +253,7 @@ void funcInitPaticipantCard() {
 
     CardType cardType = rfid.getCardType();
 
-    uint8_t ntagType = 0; // for old BS firmware?
+    uint8_t ntagType; // for old BS firmware?
     switch(cardType) {
         case CardType::NTAG213:
             ntagType = 3;
@@ -262,6 +263,9 @@ void funcInitPaticipantCard() {
             break;
         case CardType::NTAG216:
             ntagType = 6;
+            break;
+        default:
+            ntagType = 0;
             break;
     }
 
@@ -392,7 +396,7 @@ void funcReadLog() {
                 currentTimeHigh12bits += 0x10;
             }
             serialAdd(currentTimeHigh12bits >> 8);
-            serialAdd(currentTimeHigh12bits&0xf0 | pageData[1]&0x0f);
+            serialAdd((currentTimeHigh12bits&0xf0) | (pageData[1]&0x0f));
             serialAdd(pageData[2]);
             serialAdd(pageData[3]);
         }
