@@ -274,7 +274,7 @@ bool Rfid::cardWrite(uint8_t startPageAdr, byte *data, uint16_t size) {
 
     uint8_t tailSize = size%4;
     if(tailSize > 0) {
-        if(!cardPageWrite(pageAddr, data + size/4, tailSize)) {
+        if(!cardPageWrite(pageAddr, data + size - tailSize, tailSize)) {
             return false;
         }
     }
