@@ -1,4 +1,5 @@
 EESchema Schematic File Version 4
+LIBS:sportduino-base-cache
 EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
@@ -85,7 +86,7 @@ U 1 1 5BE583D9
 P 9350 3600
 F 0 "D3" H 9700 3950 50  0000 C CNN
 F 1 "DS3231SN" H 9600 3200 50  0000 C CNN
-F 2 "Package_SO:SOIC-16W_7.5x10.3mm_P1.27mm" H 9350 3000 50  0001 C CNN
+F 2 "Sportiduino:SOIC-16W_7.5x10.3mm_P1.27mm" H 9350 3000 50  0001 C CNN
 F 3 "http://datasheets.maximintegrated.com/en/ds/DS3231.pdf" H 9620 3650 50  0001 C CNN
 	1    9350 3600
 	1    0    0    -1  
@@ -1271,10 +1272,6 @@ Wire Wire Line
 	2050 1300 2050 1500
 Wire Wire Line
 	1450 1000 1450 1100
-Wire Bus Line
-	9850 650  9850 1500
-Wire Bus Line
-	8000 650  8000 2600
 Wire Wire Line
 	7050 3000 7200 3000
 Wire Wire Line
@@ -1291,4 +1288,8 @@ F 3 "~" H 7050 2850 50  0001 C CNN
 	1    7050 2850
 	-1   0    0    -1  
 $EndComp
+Wire Bus Line
+	9850 650  9850 1500
+Wire Bus Line
+	8000 650  8000 2600
 $EndSCHEMATC

@@ -944,10 +944,10 @@ uint32_t measureBatteryVoltage() {
     digitalWrite(LED, LOW);
     pinMode(ADC_ENABLE, INPUT);
 
-    const uint32_t R_HIGH = 100000; // Ohm
-    const uint32_t R_LOW = 33000; // Ohm
+    const uint32_t R_HIGH = 270000; // Ohm
+    const uint32_t R_LOW = 68000; // Ohm
     const uint32_t DIODE_VOLTAGE_DROP = 847; // mV
-    return value*1100/1023*(R_HIGH + R_LOW)/R_LOW + DIODE_VOLTAGE_DROP;
+    return value*1100/1023*(R_HIGH + R_LOW)/R_LOW; // + DIODE_VOLTAGE_DROP;
 }
 
 uint8_t batteryVoltageToByte(uint32_t voltage) {
