@@ -355,8 +355,8 @@ void setup() {
     // Read settings from EEPROM
     readConfig(&config);
 
-    if(config.stationNumber == 0
-       || config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
+    if(config.stationNumber == 0 || config.stationNumber == 0xff ||
+       config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
         config.stationNumber = DEFAULT_STATION_NUM;
         config.antennaGain = DEFAULT_ANTENNA_GAIN;
         config.activeModeDuration = DEFAULT_ACTIVE_MODE_DURATION;
@@ -933,6 +933,9 @@ uint32_t measureBatteryVoltage() {
     Watchdog.reset();
     delay(2000);
 
+    // Drop first measure, it's wrong
+    analogRead(ADC_IN);
+
     uint32_t value = 0;
     for(uint8_t i = 0; i < 10; ++i) {
         Watchdog.reset();
@@ -943,11 +946,9 @@ uint32_t measureBatteryVoltage() {
 
     digitalWrite(LED, LOW);
     pinMode(ADC_ENABLE, INPUT);
-
     const uint32_t R_HIGH = 270000; // Ohm
     const uint32_t R_LOW = 68000; // Ohm
-    const uint32_t DIODE_VOLTAGE_DROP = 847; // mV
-    return value*1100/1023*(R_HIGH + R_LOW)/R_LOW; // + DIODE_VOLTAGE_DROP;
+    return value*1100/1023*(R_HIGH + R_LOW)/R_LOW;
 }
 
 uint8_t batteryVoltageToByte(uint32_t voltage) {
@@ -1309,6 +1310,14 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
         return;
     }  
 
+#if defined(ADC_IN) && defined(ADC_ENABLE)
+    // Disable RFID to prevent bad impact on measurements
+    rfid.end();
+    byte batteryByte = batteryVoltageToByte(measureBatteryVoltage());
+    rfid.begin();
+#else
+    byte batteryByte = checkBattery();
+#endif
     uint8_t page = CARD_PAGE_START;
     byte pageData[4] = {0,0,0,0};
 
@@ -1323,11 +1332,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     result &= rfid.cardPageWrite(page++, (byte*)&config);
 
     // Write station state
-#if defined(ADC_IN) && defined(ADC_ENABLE)
-    pageData[0] = batteryVoltageToByte(measureBatteryVoltage());
-#else
-    pageData[0] = checkBattery();
-#endif
+    pageData[0] = batteryByte;
     pageData[1] = mode;
     pageData[2] = 0;
     pageData[3] = 0;
