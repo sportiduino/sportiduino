@@ -357,6 +357,8 @@ void setup() {
 
     if(config.stationNumber == 0 || config.stationNumber == 0xff ||
        config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
+        memset(&config, 0, sizeof(Configuration));
+
         config.stationNumber = DEFAULT_STATION_NUM;
         config.antennaGain = DEFAULT_ANTENNA_GAIN;
         config.activeModeDuration = DEFAULT_ACTIVE_MODE_DURATION;
