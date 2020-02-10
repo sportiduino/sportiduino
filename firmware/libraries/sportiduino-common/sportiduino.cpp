@@ -3,6 +3,9 @@
 #include <string.h>
 #include "sportiduino.h"
 
+#define SERIAL_DATA_MAX_SIZE    28
+#define SERIAL_TIMEOUT          10
+
 void majEepromWrite(uint16_t adr, uint8_t val) {
     uint8_t oldVal = majEepromRead(adr);
     if(val != oldVal) {
@@ -67,5 +70,85 @@ uint32_t byteArrayToUint32(byte *byteArray) {
     }
 
     return value;
+}
+
+void SerialProtocol::init(uint8_t _startByte) {
+    startByte = _startByte;
+    Serial.begin(9600);
+    Serial.setTimeout(SERIAL_TIMEOUT);
+}
+
+void SerialProtocol::start(uint8_t code) {
+    serialDataPos = 3;
+    serialPacketCount = 0;
+    memset(serialBuffer, 0, SERIAL_PACKET_SIZE);
+
+    serialBuffer[0] = startByte;
+    serialBuffer[1] = code;
+}
+
+void SerialProtocol::send() {
+    uint8_t dataSize = serialDataPos - 3; // minus start, resp code, datalen
+    
+    if(dataSize > SERIAL_DATA_MAX_SIZE) {
+        dataSize = serialPacketCount + 0x1E;
+        serialDataPos = SERIAL_PACKET_SIZE - 1;
+        serialPacketCount++;
+    }
+
+    serialBuffer[2] = dataSize;
+    serialBuffer[serialDataPos] = checkSum(serialBuffer, dataSize);
+
+    for(uint8_t i = 0; i <= serialDataPos; i++) {
+        Serial.write(serialBuffer[i]);
+    }
+
+    serialDataPos = 3;
+}
+
+void SerialProtocol::add(uint8_t dataByte) {
+    if(serialDataPos >= SERIAL_PACKET_SIZE - 1) {
+        serialDataPos++;  // to indicate that we going to send packet count
+        send();
+    }
+
+    serialBuffer[serialDataPos] = dataByte;
+    serialDataPos++;
+}
+
+uint8_t SerialProtocol::checkSum(uint8_t *buffer, uint8_t dataSize) {
+    // if at dataSize position we have packet count
+    if(dataSize > SERIAL_DATA_MAX_SIZE) {
+        dataSize = SERIAL_DATA_MAX_SIZE;
+    }
+
+    uint8_t len = dataSize + 2;  // + cmd/resp byte + length byte
+    uint8_t sum = 0;
+    for (uint8_t i = 1; i <= len; ++i) {
+        sum += buffer[i];
+    }
+    
+    return sum;
+}
+
+int8_t SerialProtocol::read(uint8_t *code, uint8_t *buffer, uint8_t *dataSize) {
+    if(Serial.available() > 0) {
+        Serial.readBytes(serialBuffer, SERIAL_PACKET_SIZE);
+
+        *dataSize = serialBuffer[2];
+
+        // if at dataSize position we have packet count
+        if(*dataSize > SERIAL_DATA_MAX_SIZE) {
+            *dataSize = SERIAL_DATA_MAX_SIZE;  
+        }
+
+        if(serialBuffer[0] != startByte || serialBuffer[*dataSize + 3] != checkSum(serialBuffer, *dataSize)) {
+            return -1;
+        }
+        *code = serialBuffer[1];
+        buffer = serialBuffer[3];
+        return 1;
+    }
+    return 0;
 }
 
