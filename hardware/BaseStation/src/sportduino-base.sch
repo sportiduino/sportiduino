@@ -6,8 +6,8 @@ $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title "Sportiduino Base Station"
-Date "2019-12-10"
-Rev "3m"
+Date "2020-02-10"
+Rev "3"
 Comp "Sportiduino"
 Comment1 "I2C EEPROM"
 Comment2 "Reed switch"
@@ -530,7 +530,7 @@ L Device:R R9
 U 1 1 5DE0AEEA
 P 2300 6350
 F 0 "R9" H 2230 6304 50  0000 R CNN
-F 1 "100K" H 2230 6395 50  0000 R CNN
+F 1 "270K" H 2230 6395 50  0000 R CNN
 F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 2230 6350 50  0001 C CNN
 F 3 "~" H 2300 6350 50  0001 C CNN
 	1    2300 6350
@@ -541,7 +541,7 @@ L Device:R R10
 U 1 1 5DE0AF80
 P 2300 6750
 F 0 "R10" H 2230 6704 50  0000 R CNN
-F 1 "30K" H 2230 6795 50  0000 R CNN
+F 1 "68K" H 2230 6795 50  0000 R CNN
 F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 2230 6750 50  0001 C CNN
 F 3 "~" H 2300 6750 50  0001 C CNN
 	1    2300 6750
@@ -567,10 +567,10 @@ ADCIN
 Text GLabel 6200 3100 2    50   Input ~ 0
 ADCEN
 $Comp
-L Device:C C11
+L Device:C C7
 U 1 1 5DE748CD
 P 1850 6750
-F 0 "C11" H 1965 6796 50  0000 L CNN
+F 0 "C7" H 1965 6796 50  0000 L CNN
 F 1 "100 nF" H 1900 6650 50  0000 L CNN
 F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 1888 6600 50  0001 C CNN
 F 3 "~" H 1850 6750 50  0001 C CNN
@@ -1239,31 +1239,13 @@ Wire Wire Line
 	6150 2100 7900 2100
 Text Label 7700 2100 0    50   ~ 0
 PB0
-$Comp
-L Connector:TestPoint TP3
-U 1 1 5DF38C79
-P 8250 2450
-F 0 "TP3" V 8250 2638 50  0000 L CNN
-F 1 "TestPoint" H 8295 2638 50  0001 L CNN
-F 2 "TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm" H 8450 2450 50  0001 C CNN
-F 3 "~" H 8450 2450 50  0001 C CNN
-	1    8250 2450
-	0    1    1    0   
-$EndComp
 Wire Wire Line
 	8150 2050 8950 2050
 Text GLabel 8250 2700 2    50   Input ~ 0
 PC3
 Wire Wire Line
 	8150 2700 8250 2700
-Wire Wire Line
-	8150 2050 8150 2450
 Connection ~ 8150 2700
-Wire Wire Line
-	8150 2450 8250 2450
-Connection ~ 8150 2450
-Wire Wire Line
-	8150 2450 8150 2700
 Wire Wire Line
 	7500 3600 7700 3600
 Wire Wire Line
@@ -1292,4 +1274,6 @@ Wire Bus Line
 	9850 650  9850 1500
 Wire Bus Line
 	8000 650  8000 2600
+Wire Wire Line
+	8150 2050 8150 2700
 $EndSCHEMATC
