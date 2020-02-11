@@ -43,7 +43,7 @@ public:
     void start(uint8_t code);
     void add(uint8_t dataByte);
     void send();
-    int8_t read(uint8_t *code, uint8_t *buffer, uint8_t *dataSize);
+    uint8_t *read(bool *error, uint8_t *code, uint8_t *dataSize);
 
 private:
     uint8_t checkSum(uint8_t *buffer, uint8_t dataSize);

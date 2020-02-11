@@ -71,14 +71,16 @@ void setup() {
 }
 
 void loop() { 
-    uint8_t cmdCode;
-    uint8_t *data = NULL;
+    bool error = false;
+    uint8_t cmdCode = 0;
     uint8_t dataSize = 0;
 
-    int8_t status = serialProto.read(&cmdCode, data, &dataSize);
-    if(status < 0) {
+    uint8_t *data = serialProto.read(&error, &cmdCode, &dataSize);
+    if(error) {
         signalError(ERROR_SERIAL);
-    } else if(status > 0) {
+        return;
+    }
+    if(data) {
         handleCmd(cmdCode, data, dataSize);
     }
 }
@@ -199,11 +201,10 @@ void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
             break;
     }
 
-
     byte data[] = {
-        serialData[0], serialData[1], ntagType, FW_MAJOR_VERS,              // card num, card type, version
+        serialData[0], serialData[1], ntagType, FW_MAJOR_VERS,          // card num, card type, version
         serialData[2], serialData[3], serialData[4], serialData[5],     // unixtime
-        serialData[6], serialData[7], serialData[8], serialData[9],  // page6
+        serialData[6], serialData[7], serialData[8], serialData[9],     // page6
         serialData[10], serialData[11], serialData[12], serialData[13]  // page7
     };
 

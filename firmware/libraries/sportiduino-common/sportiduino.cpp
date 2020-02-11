@@ -131,7 +131,8 @@ uint8_t SerialProtocol::checkSum(uint8_t *buffer, uint8_t dataSize) {
     return sum;
 }
 
-int8_t SerialProtocol::read(uint8_t *code, uint8_t *buffer, uint8_t *dataSize) {
+uint8_t *SerialProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize) {
+    *error = false;
     if(Serial.available() > 0) {
         Serial.readBytes(serialBuffer, SERIAL_PACKET_SIZE);
 
@@ -143,12 +144,12 @@ int8_t SerialProtocol::read(uint8_t *code, uint8_t *buffer, uint8_t *dataSize) {
         }
 
         if(serialBuffer[0] != startByte || serialBuffer[*dataSize + 3] != checkSum(serialBuffer, *dataSize)) {
-            return -1;
+            *error = true;
+            return nullptr;
         }
         *code = serialBuffer[1];
-        buffer = serialBuffer[3];
-        return 1;
+        return &serialBuffer[3];
     }
-    return 0;
+    return nullptr;
 }
 
