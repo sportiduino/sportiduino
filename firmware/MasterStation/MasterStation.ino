@@ -41,7 +41,7 @@
 // FUNCTIONS
 
 inline void beep(uint16_t ms, uint8_t n) { beep_w(LED_PIN, BUZZ_PIN, BUZZER_FREQUENCY, ms, n); }
-inline void beepTimeCardOk() { beep(500, 3); }
+inline void beepTimeCardOk() { beep(500, 3); delay(500); beep(1000, 1); }
 inline void beepError() { beep(100, 3); }
 inline void beepOk() { beep(500, 1); }
 

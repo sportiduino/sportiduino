@@ -224,7 +224,7 @@ uint8_t serialWakeupFlag = 0;
 #define BEEP_MASTER_CARD_PASS_OK            beep(500,2)
 #define BEEP_MASTER_CARD_PASS_ERROR
 
-#define BEEP_MASTER_CARD_TIME_OK            beep(500,3)
+#define BEEP_MASTER_CARD_TIME_OK            beep(1000,1)
 #define BEEP_MASTER_CARD_TIME_ERROR
 
 #define BEEP_MASTER_CARD_SLEEP_OK           beep(500,4)
@@ -1115,9 +1115,6 @@ void processTimeMasterCard(byte *data, byte dataSize) {
 
     // Note: time is UTC
     setTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
-
-    memset(&t, 0, sizeof(t));
-    DS3231_get(&t);
 
     if(t.year < 2017) {
         BEEP_TIME_ERROR;
