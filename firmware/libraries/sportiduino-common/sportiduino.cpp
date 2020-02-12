@@ -74,8 +74,16 @@ uint32_t byteArrayToUint32(byte *byteArray) {
 
 void SerialProtocol::init(uint8_t _startByte) {
     startByte = _startByte;
-    Serial.begin(9600);
     Serial.setTimeout(SERIAL_TIMEOUT);
+    begin();
+}
+
+void SerialProtocol::begin() {
+    Serial.begin(9600);
+}
+
+void SerialProtocol::end() {
+    Serial.end();
 }
 
 void SerialProtocol::start(uint8_t code) {
@@ -116,6 +124,12 @@ void SerialProtocol::add(uint8_t dataByte) {
     serialDataPos++;
 }
 
+void SerialProtocol::add(const uint8_t *data, uint8_t size) {
+    for(uint8_t i = 0; i < size; ++i) {
+        add(data[i]);
+    }
+}
+
 uint8_t SerialProtocol::checkSum(uint8_t *buffer, uint8_t dataSize) {
     // if at dataSize position we have packet count
     if(dataSize > SERIAL_DATA_MAX_SIZE) {
@@ -133,22 +147,27 @@ uint8_t SerialProtocol::checkSum(uint8_t *buffer, uint8_t dataSize) {
 
 uint8_t *SerialProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize) {
     *error = false;
-    if(Serial.available() > 0) {
-        Serial.readBytes(serialBuffer, SERIAL_PACKET_SIZE);
+    memset(serialBuffer, 0, SERIAL_PACKET_SIZE);
+    // Drop bytes before msg start
+    while(Serial.available() > 0) {
+        serialBuffer[0] = Serial.read();
+        if(serialBuffer[0] == startByte) {
+            Serial.readBytes(serialBuffer + 1, SERIAL_PACKET_SIZE);
 
-        *dataSize = serialBuffer[2];
+            *dataSize = serialBuffer[2];
 
-        // if at dataSize position we have packet count
-        if(*dataSize > SERIAL_DATA_MAX_SIZE) {
-            *dataSize = SERIAL_DATA_MAX_SIZE;  
+            // if at dataSize position we have packet count
+            if(*dataSize > SERIAL_DATA_MAX_SIZE) {
+                *dataSize = SERIAL_DATA_MAX_SIZE;  
+            }
+
+            if(serialBuffer[*dataSize + 3] != checkSum(serialBuffer, *dataSize)) {
+                *error = true;
+                return nullptr;
+            }
+            *code = serialBuffer[1];
+            return &serialBuffer[3];
         }
-
-        if(serialBuffer[0] != startByte || serialBuffer[*dataSize + 3] != checkSum(serialBuffer, *dataSize)) {
-            *error = true;
-            return nullptr;
-        }
-        *code = serialBuffer[1];
-        return &serialBuffer[3];
     }
     return nullptr;
 }

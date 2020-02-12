@@ -16,6 +16,8 @@
 
 //-------------------------------------------------------------------
 // HARDWARE
+
+#define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
     
 #define BUZ           3
 #define LED           4
@@ -61,42 +63,7 @@
     #define REED_SWITCH    7
 #endif
 
-#ifdef REED_SWITCH
-    #define USE_REED_SWITCH
-#endif
-
-#ifdef I2C_EEPROM_VCC
-    #define USE_I2C_EEPROM
-    #define I2C_EEPROM_ADDRESS  0x50
-#endif
-
-#define UNKNOWN_PIN 0xFF
-
-#define SERIAL_BAUDRATE   9600
-
 //-------------------------------------------------------------------
-
-
-// 31 days = 2678400 (seconds)
-#define CARD_EXPIRE_TIME 2678400L
-
-#define MAX_CARD_NUM_TO_LOG 4000
-
-#define DEFAULT_STATION_NUM       CHECK_STATION_NUM
-
-//--------------------------------------------------------------------
-
-// Poll time in active mode (milliseconds)
-#define MODE_ACTIVE_CARD_CHECK_PERIOD     250
-// Poll time in wait mode (milliseconds)
-#define MODE_WAIT_CARD_CHECK_PERIOD       1000
-// Poll time in sleep mode (milliseconds)
-#define MODE_SLEEP_CARD_CHECK_PERIOD      25000
-
-//--------------------------------------------------------------------
-// VARIABLES  
-
-#define EEPROM_CONFIG_ADDR  0x3EE
 
 // Configuration
 // Bits 0-2 - Active mode duration:
@@ -126,22 +93,31 @@ typedef struct __attribute__((packed)) {
 } Configuration;
 
 
-#define SETTINGS_ALWAYS_ACTIVE          0x06
-#define SETTINGS_ALWAYS_WAIT            0x07
 
-//#define SETTINGS_CHECK_START_FINISH     0x08
-//#define SETTINGS_CHECK_CARD_TIME        0x10
-//#define SETTINGS_CLEAR_IN_SLEEP         0x20
-//#define SETTINGS_FAST_MARK              0x40
+#ifdef REED_SWITCH
+    #define USE_REED_SWITCH
+#endif
 
-#define DEFAULT_ACTIVE_MODE_DURATION 1 // 2 hours
+#ifdef I2C_EEPROM_VCC
+    #define USE_I2C_EEPROM
+    #define I2C_EEPROM_ADDRESS  0x50
+#endif
 
+#define UNKNOWN_PIN 0xFF
 
-// work time in milliseconds
-uint32_t workTimer;
-Configuration config;
-uint8_t mode;
-Rfid rfid;
+// 31 days = 2678400 (seconds)
+#define CARD_EXPIRE_TIME 2678400L
+
+#define EEPROM_CONFIG_ADDR  0x3EE
+
+#define MAX_CARD_NUM_TO_LOG 4000
+
+// Poll time in active mode (milliseconds)
+#define MODE_ACTIVE_CARD_CHECK_PERIOD     250
+// Poll time in wait mode (milliseconds)
+#define MODE_WAIT_CARD_CHECK_PERIOD       1000
+// Poll time in sleep mode (milliseconds)
+#define MODE_SLEEP_CARD_CHECK_PERIOD      25000
 
 #define MODE_ACTIVE   0
 #define MODE_WAIT     1
@@ -151,105 +127,87 @@ Rfid rfid;
 // If station resets on competition and default 
 // mode is SLEEP in this case the participant can't
 // do mark fast
-#define DEFAULT_MODE MODE_WAIT
+#define DEFAULT_MODE                    MODE_WAIT
+#define DEFAULT_STATION_NUM             CHECK_STATION_NUM
+#define DEFAULT_ACTIVE_MODE_DURATION    1 // 2 hours
 
+#define SETTINGS_ALWAYS_ACTIVE          0x06
+#define SETTINGS_ALWAYS_WAIT            0x07
+
+#define SERIAL_MSG_START            0xFA
+
+#define SERIAL_FUNC_READ_INFO       0xF0
+#define SERIAL_FUNC_WRITE_SETTINGS  0xF1
+
+#define SERIAL_RESP_STATUS          0x01
+#define SERIAL_RESP_INFO            0x02
+
+#define SERIAL_OK                   0x00
+#define SERIAL_ERROR_CRC            0x01
+#define SERIAL_ERROR_UNKNOWN_FUNC   0x02
+#define SERIAL_ERROR_SIZE           0x03
+#define SERIAL_ERROR_PWD            0x04
+
+//--------------------------------------------------------------------
+// VARIABLES  
+
+// work time in milliseconds
+uint32_t workTimer = 0;
+Configuration config;
+uint8_t mode = DEFAULT_MODE;
+Rfid rfid;
+SerialProtocol serialProto;
 // date/time
 ts t;
 // We need this variable because DS321 doesn't have Year for Alarms
-int16_t alarmYear;
+int16_t alarmYear = 2017;
 // We need this variable because DS321 doesn't have Month for Alarms
-uint8_t alarmMonth;
+uint8_t alarmMonth = 1;
 // To support wakeup on hw v1
 uint32_t alarmTimestamp = 0;
 // This flag is true when it's DS3231 interrupt
 uint8_t rtcAlarmFlag = 0;
 uint8_t reedSwitchFlag = 0;
-// UART data buffer
-#define SERIAL_DATA_LENGTH  32
-byte serialData[SERIAL_DATA_LENGTH];
-// Index of last received byte by UART
-uint8_t serialRxPos;
 // It's true if there are data from UART in sleep mode
 uint8_t serialWakeupFlag = 0;
-
-// UART incoming message: 0xEE, 0xEF, <func>, <func data>, CRC8 (XOR of <func> and <func data>), 0xFD, 0xDF
-// UART outcoming message: 0xEE, 0xEF, <resp>, <resp_data>, CRC8 (XOR of <resp> and <resp_data>), 0xFD, 0xDF
-// UART message length can't be more 32 bytes
-
-#define SERIAL_MSG_START1           0xFE
-#define SERIAL_MSG_START2           0xEF
-
-#define SERIAL_MSG_END1             0xFD
-#define SERIAL_MSG_END2             0xDF
-
-#define SERIAL_FUNC_READ_INFO       0xF0
-#define SERIAL_FUNC_WRITE_SETTINGS  0xF1
-
-#define SERIAL_RESP_STATUS          0x1
-#define SERIAL_RESP_INFO            0x2
-
-#define SERIAL_OK                   0x0
-#define SERIAL_ERROR_CRC            0x1
-#define SERIAL_ERROR_FUNC           0x2
-#define SERIAL_ERROR_SIZE           0x3
-#define SERIAL_ERROR_PWD            0x4
 
 //--------------------------------------------------------------------
 // FUNCTIONS
 
 // the third parameter should be the frequency of your buzzer if you solded the buzzer without a generator else 0
-#define beep(ms,n) beep_w(LED,BUZ,0,ms,n)
+inline void beep(uint16_t ms, uint8_t n) { beep_w(LED, BUZ, BUZZER_FREQUENCY, ms, n); }
 
-#define BEEP_SYSTEM_STARTUP     beep(1000, 1)
-#define BEEP_OK                 beep(500, 1)
+inline void beepSystemStartup()         { beep(1000, 1); }
+inline void beepOk()                    { beep(500, 1); }
 
-#define BEEP_EEPROM_ERROR       beep(100,2)
-#define BEEP_TIME_ERROR         beep(100,3)
-#define BEEP_PASS_ERROR         beep(100,4)
+inline void beepTimeError()             { beep(100, 3); }
+inline void beepPassError()             { beep(100, 4); }
 
-#define BEEP_LOW_BATTERY        beep(100,5)
-#define BEEP_BATTERY_OK         BEEP_OK
-#define BEEP_MASTER_CARD_READ_ERROR beep(50,4)
+inline void beepLowBattery()            { beep(100, 5); }
+inline void beepBatteryOk()             { beepOk(); }
 
-#define BEEP_CARD_CHECK_ERROR   //beep(200,3)
-#define BEEP_CARD_CHECK_OK      BEEP_OK
+inline void beepCardCheckOk()           { beepOk(); }
 
-#define BEEP_CARD_MARK_WRITTEN  BEEP_OK
-#define BEEP_CARD_MARK_OK       beep(250,2)
-#define BEEP_CARD_MARK_ERROR
+inline void beepCardMarkWritten()       { beepOk(); }
+inline void beepCardMarkOk()            { beep(250, 2); }
 
-#define BEEP_CARD_CLEAR_OK      BEEP_OK
-#define BEEP_CARD_CLEAR_ERROR
+inline void beepCardClearOk()           { beepOk(); }
 
-#define BEEP_MASTER_CARD_PASS_OK            beep(500,2)
-#define BEEP_MASTER_CARD_PASS_ERROR
+inline void beepMasterCardOk()          { beep(250, 1); }
+inline void beepMasterCardError()       { beep(250, 2); }
+inline void beepMasterCardReadError()   { beep(50, 4); }
+inline void beepMasterCardTimeOk()      { beep(1000, 1); }
+inline void beepMasterCardSleepOk()     { beep(500, 4); }
 
-#define BEEP_MASTER_CARD_TIME_OK            beep(1000,1)
-#define BEEP_MASTER_CARD_TIME_ERROR
-
-#define BEEP_MASTER_CARD_SLEEP_OK           beep(500,4)
-#define BEEP_MASTER_CARD_SLEEP_ERROR
-
-#define BEEP_MASTER_CARD_STATION_WRITTEN    beep(500,5)
-#define BEEP_MASTER_CARD_STATION_OK         BEEP_OK
-#define BEEP_MASTER_CARD_STATION_ERROR      beep(50,6)
-
-#define BEEP_MASTER_CARD_DUMP_OK            BEEP_OK
-#define BEEP_MASTER_CARD_DUMP_ERROR
-
-#define BEEP_MASTER_CARD_GET_INFO_OK        beep(250,1)
-#define BEEP_MASTER_CARD_GET_INFO_ERROR     beep(250,2)
-
-#define BEEP_SERIAL_OK                      beep(250,1)
-#define BEEP_SERIAL_ERROR                   beep(250,2)
-
+inline void beepSerialOk()              { beep(250, 1); }
+inline void beepSerialError()           { beep(250, 2); }
 
 #ifdef USE_REED_SWITCH
-    #define enableInterruptReedSwitch() { enablePCINT(digitalPinToPCINT(REED_SWITCH)); }
-    #define disableInterruptReedSwitch() { disablePCINT(digitalPinToPCINT(REED_SWITCH)); }
+    inline void enableInterruptReedSwitch() { enablePCINT(digitalPinToPCINT(REED_SWITCH)); }
+    inline void disableInterruptReedSwitch() { disablePCINT(digitalPinToPCINT(REED_SWITCH)); }
 #else
-    #define enableInterruptReedSwitch()
-    #define disableInterruptReedSwitch()
+    inline void enableInterruptReedSwitch() {}
+    inline void disableInterruptReedSwitch() {}
 #endif
 
 
@@ -260,11 +218,10 @@ void reedSwitchIrq();
 void rtcAlarmIrq();
 bool doesCardExpire();
 void checkParticipantCard();
-void serialEvent();
+void processSerial();
 void serialFuncReadInfo(byte *data, byte dataSize);
 void serialFuncWriteSettings(byte *data, byte dataSize);
 void serialRespStatus(uint8_t code);
-byte serialCrc(byte *data, uint8_t from, uint8_t to);
 void wakeupByUartRx();
 uint8_t getPinMode(uint8_t pin);
 void setStationNum(uint8_t num);
@@ -335,13 +292,11 @@ void setup() {
     // Reset all interrupts and disable 32 kHz output
     DS3231_set_addr(DS3231_STATUS_ADDR, 0);
     DS3231_init(DS3231_INTCN | DS3231_A1IE);
-    alarmYear = 2017;
-    alarmMonth = 1;
     memset(&t, 0, sizeof(t));
     // Check current time
     DS3231_get(&t);
     if(t.year < 2017) {
-        BEEP_TIME_ERROR;
+        beepTimeError();
     }
 
     // Config DS3231 interrupts
@@ -369,17 +324,14 @@ void setup() {
 
     setMode(DEFAULT_MODE);
   
-    // Config UART
-    Serial.begin(SERIAL_BAUDRATE);
-    serialRxPos = 0;
+    serialProto.init(SERIAL_MSG_START);
+    rfid.init(RC522_SS, RC522_RST, config.antennaGain);
 
     delay(1000);
     
-    BEEP_SYSTEM_STARTUP;
+    beepSystemStartup();
 
-    workTimer = 0;
     Watchdog.enable(8000);
-    rfid.init(RC522_SS, RC522_RST, config.antennaGain);
 }
 
 void loop() {
@@ -448,6 +400,7 @@ void loop() {
             }
             break;
         case MODE_SLEEP:
+        default:
             enableInterruptReedSwitch();
             sleep(MODE_SLEEP_CARD_CHECK_PERIOD);
             disableInterruptReedSwitch();
@@ -459,186 +412,7 @@ void loop() {
             break;
     }
 
-    // process serial
-    if(Serial.available() > 0) {
-        serialEvent();
-    }
-}
-
-void serialEvent() {
-    while(Serial.available()) {
-        serialData[serialRxPos] = Serial.read();
-        serialRxPos++;
-
-        if(serialRxPos > 1 &&
-           serialData[serialRxPos - 1] == SERIAL_MSG_START2 &&
-           serialData[serialRxPos - 2] == SERIAL_MSG_START1) {
-            serialData[0] = SERIAL_MSG_START1;
-            serialData[1] = SERIAL_MSG_START2;
-            serialRxPos = 2;
-        }
-
-        if(serialRxPos > 1 && 
-           serialData[serialRxPos - 1] == SERIAL_MSG_END2 &&
-           serialData[serialRxPos - 2] == SERIAL_MSG_END1) {
-            byte func = serialData[2];
-            byte crc8 = serialCrc(serialData, 2, serialRxPos - 3);
-
-            if(crc8 == serialData[serialRxPos - 3]) {
-                switch(func) {
-                    case SERIAL_FUNC_READ_INFO:
-                        serialFuncReadInfo(serialData, serialRxPos);
-                        break;
-                    case SERIAL_FUNC_WRITE_SETTINGS:
-                        serialFuncWriteSettings(serialData, serialRxPos);
-                        break;
-                    default:
-                        serialRespStatus(SERIAL_ERROR_FUNC);
-                        break;
-                }
-            } else {
-                serialRespStatus(SERIAL_ERROR_CRC);
-            }
-
-            serialRxPos = 0;      
-        }
-
-        if(serialRxPos >= SERIAL_DATA_LENGTH) {
-            serialRxPos = 0;
-            serialRespStatus(SERIAL_ERROR_SIZE);
-        }
-    }
-}
-
-void serialFuncReadInfo(byte *data, byte dataSize) {
-    if(dataSize < 5) {
-        serialRespStatus(SERIAL_ERROR_SIZE);
-        return;
-    }
-
-    if(data[3] != config.password[0] ||
-       data[4] != config.password[1] ||
-       data[5] != config.password[2] ) {
-        serialRespStatus(SERIAL_ERROR_PWD);
-        return;
-    }
-
-    uint8_t pos = 0;
-    byte *sendData = serialData;
-    
-    // Get actual date and time
-    DS3231_get(&t);
-    // Write message start
-    sendData[pos++] = SERIAL_MSG_START1;
-    sendData[pos++] = SERIAL_MSG_START2;
-    // Write func
-    sendData[pos++] = SERIAL_RESP_INFO;
-    // Write version
-    sendData[pos++] = HW_VERS;
-    sendData[pos++] = FW_MAJOR_VERS;
-    sendData[pos++] = FW_MINOR_VERS;
-    // Write station config
-    for(uint8_t i = 0; i < sizeof(Configuration); ++i) {
-        sendData[pos++] = *(byte*)(&config + i);
-    }
-#if defined(ADC_IN) && defined(ADC_ENABLE)
-    sendData[pos++] = batteryVoltageToByte(measureBatteryVoltage());
-#else
-    sendData[pos++] = checkBattery();
-#endif
-    sendData[pos++] = mode;
-    // Write current time
-    sendData[pos++] = (t.unixtime & 0xFF000000)>>24;
-    sendData[pos++] = (t.unixtime & 0x00FF0000)>>16;
-    sendData[pos++] = (t.unixtime & 0x0000FF00)>>8;
-    sendData[pos++] = (t.unixtime & 0x000000FF);
-    // Write wake-up time
-    t.sec = bcdtodec(DS3231_get_addr(0x07));
-    t.min = bcdtodec(DS3231_get_addr(0x08));
-    t.hour = bcdtodec(DS3231_get_addr(0x09));
-    t.mday = bcdtodec(DS3231_get_addr(0x0A));
-    t.mon = alarmMonth;
-    t.year = alarmYear;
-    t.unixtime = get_unixtime(t);
-    sendData[pos++] = (t.unixtime & 0xFF000000)>>24;
-    sendData[pos++] = (t.unixtime & 0x00FF0000)>>16;
-    sendData[pos++] = (t.unixtime & 0x0000FF00)>>8;
-    sendData[pos++] = (t.unixtime & 0x000000FF);
-    // Write message end
-    sendData[pos] = serialCrc(sendData, 2, pos);
-    pos++;
-    sendData[pos++] = SERIAL_MSG_END1;
-    sendData[pos++] = SERIAL_MSG_END2;
-
-    Serial.write(sendData, pos);
-    
-    BEEP_SERIAL_OK;
-}
-
-void serialFuncWriteSettings(byte *data, byte dataSize) {
-    if(dataSize < 23) {
-        serialRespStatus(SERIAL_ERROR_SIZE);
-        return;
-    }
-    
-    if(data[3] != config.password[0] ||
-       data[4] != config.password[1] ||
-       data[5] != config.password[2] ) {
-        serialRespStatus(SERIAL_ERROR_PWD);
-        return;
-    }
-
-    setTime(data[6] + 2000, data[7], data[8], data[9], data[10], data[11]);
-    memcpy(config.password, &data[12], 3);  
-    setStationNum(data[15]);
-    //setSettings(data[16]);
-    setWakeupTime(data[17] + 2000, data[18], data[19], data[20], data[21], data[22]);
-    setAntennaGain(data[23]);
-    writeConfig(&config);
-
-    mode = MODE_SLEEP;
-
-    serialRespStatus(SERIAL_OK);
-}
-
-void serialRespStatus(uint8_t code) {
-    uint8_t pos = 0;
-    byte *sendData = &serialData[0];
-    
-    // Write message start
-    sendData[pos++] = SERIAL_MSG_START1;
-    sendData[pos++] = SERIAL_MSG_START2;
-    // Write func
-    sendData[pos++] = SERIAL_RESP_STATUS;
-    // Write version
-    sendData[pos++] = code;
-    // Write message end
-    sendData[pos] = serialCrc(sendData, 2, pos);
-    pos++;
-    sendData[pos++] = SERIAL_MSG_END1;
-    sendData[pos++] = SERIAL_MSG_END2;
-
-    Serial.write(sendData, pos);
-
-    if(code) {
-        BEEP_SERIAL_ERROR;
-    } else {
-        BEEP_SERIAL_OK;
-    }
-}
-
-byte serialCrc(byte *data, uint8_t from, uint8_t to) {
-    byte crc8 = 0;
-    
-    for(uint8_t i = from; i < to; i++) {
-        crc8 ^= data[i];
-    }
-        
-    return crc8;
-}
-
-void wakeupByUartRx() {
-    serialWakeupFlag = 1;
+    processSerial();
 }
 
 uint8_t getPinMode(uint8_t pin) {
@@ -665,6 +439,18 @@ uint8_t getPinMode(uint8_t pin) {
     } else {
         return INPUT;
     }
+}
+
+void setNewConfig(Configuration *newConfig) {
+    if(newConfig->stationNumber == 0) {
+        newConfig->stationNumber = config.stationNumber;
+    }
+    if(newConfig->antennaGain > MAX_ANTENNA_GAIN || newConfig->antennaGain < MIN_ANTENNA_GAIN) {
+        newConfig->antennaGain = DEFAULT_ANTENNA_GAIN;
+    }
+
+    memcpy(&config, newConfig, sizeof(Configuration));
+    writeConfig(&config);
 }
 
 void setStationNum(uint8_t num) {
@@ -725,7 +511,7 @@ void sleep(uint16_t ms) {
     digitalWrite(BUZ,LOW);
     digitalWrite(DS3231_VCC,LOW);
     Wire.end();
-    Serial.end();
+    serialProto.end();
 
     pinMode(SDA, INPUT);  // it is pulled up by hardware
     pinMode(SCL, INPUT);  // it is pulled up by hardware
@@ -768,8 +554,7 @@ void sleep(uint16_t ms) {
     // Resolve issue #61
     digitalWrite(DS3231_VCC, HIGH);
     serialWakeupFlag = 0;
-    serialRxPos = 0;
-    Serial.begin(SERIAL_BAUDRATE);
+    serialProto.begin();
     Wire.begin();
 }
 
@@ -787,7 +572,6 @@ void setMode(uint8_t md) {
 
 void writeCardNumToLog(uint16_t num) {
     if(num > MAX_CARD_NUM_TO_LOG) {
-        // BEEP_EEPROM_ERROR;
         return;
     }
     
@@ -1001,13 +785,13 @@ bool checkBattery(bool beepEnabled = false) {
 
     if(value > 3100) {
         if(beepEnabled) {
-            BEEP_BATTERY_OK;
+            beepBatteryOk();
         }
         return true;
     }
 
     if(beepEnabled) {
-        BEEP_LOW_BATTERY;
+        beepLowBattery();
     }
     return false;
 }
@@ -1074,7 +858,7 @@ void processMasterCard(uint8_t *pageInitData) {
     if( (config.password[0] != masterCardData[4]) ||
             (config.password[1] != masterCardData[5]) ||
             (config.password[2] != masterCardData[6]) ) {
-        BEEP_PASS_ERROR;
+        beepPassError();
         return;
     }
 
@@ -1102,14 +886,13 @@ void processMasterCard(uint8_t *pageInitData) {
             processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
             break;
         default:
-            BEEP_MASTER_CARD_READ_ERROR;
+            beepMasterCardReadError();
             break;
     }
 }
 
 void processTimeMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
-        BEEP_MASTER_CARD_TIME_ERROR;
         return;
     }
 
@@ -1117,15 +900,15 @@ void processTimeMasterCard(byte *data, byte dataSize) {
     setTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
 
     if(t.year < 2017) {
-        BEEP_TIME_ERROR;
+        beepTimeError();
     } else {
-        BEEP_MASTER_CARD_TIME_OK;
+        beepMasterCardTimeOk();
     }
 }
 
 void processStationMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
-        BEEP_MASTER_CARD_STATION_ERROR;
+        beepMasterCardError();
         return;
     }
 
@@ -1135,18 +918,15 @@ void processStationMasterCard(byte *data, byte dataSize) {
         if(config.stationNumber != newNum) {
             setStationNum(newNum);
             writeConfig(&config);
-            BEEP_MASTER_CARD_STATION_WRITTEN;
-        } else {
-            BEEP_MASTER_CARD_STATION_OK;
         }
+        beepMasterCardOk();
     } else {
-        BEEP_MASTER_CARD_STATION_ERROR;
+        beepMasterCardError();
     }
 }
 
 void processSleepMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
-        BEEP_MASTER_CARD_SLEEP_ERROR;
         return;
     }
 
@@ -1161,12 +941,12 @@ void processSleepMasterCard(byte *data, byte dataSize) {
     clearMarkLog();
 #endif
 
-    BEEP_MASTER_CARD_SLEEP_OK;
+    beepMasterCardSleepOk();
 }
 
 void processDumpMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
-        BEEP_MASTER_CARD_DUMP_ERROR;
+        beepMasterCardError();
         return;
     }
 
@@ -1208,15 +988,15 @@ void processDumpMasterCard(byte *data, byte dataSize) {
     }
 
     if(result) {
-        BEEP_MASTER_CARD_DUMP_OK;
+        beepMasterCardOk();
     } else {
-        BEEP_MASTER_CARD_DUMP_ERROR;
+        beepMasterCardError();
     }
 }
 
 void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
     if(dataSize < 16) {
-        BEEP_MASTER_CARD_DUMP_ERROR;
+        beepMasterCardError();
         return;
     }
 
@@ -1277,35 +1057,25 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
     delay(250);
 
     if(result) {
-        BEEP_MASTER_CARD_DUMP_OK;
+        beepMasterCardOk();
     } else {
-        BEEP_MASTER_CARD_DUMP_ERROR;
+        beepMasterCardError();
     }
 }
 
 void processSettingsMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
-        BEEP_MASTER_CARD_PASS_ERROR;
         return;
     }
 
-    Configuration *newConfig = (Configuration*)&data[8];
-    if(newConfig->stationNumber == 0) {
-        newConfig->stationNumber = config.stationNumber;
-    }
-    if(newConfig->antennaGain > MAX_ANTENNA_GAIN || newConfig->antennaGain < MIN_ANTENNA_GAIN) {
-        newConfig->antennaGain = DEFAULT_ANTENNA_GAIN;
-    }
+    setNewConfig((Configuration*)&data[8]);
 
-    memcpy(&config, newConfig, sizeof(Configuration));
-    writeConfig(&config);
-
-    BEEP_MASTER_CARD_PASS_OK;
+    beepMasterCardOk();
 }
 
 void processGetInfoMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
-        BEEP_MASTER_CARD_GET_INFO_ERROR;
+        beepMasterCardError();
         return;
     }  
 
@@ -1365,9 +1135,9 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     delay(250);
 
     if(result) {
-        BEEP_MASTER_CARD_GET_INFO_OK;
+        beepMasterCardOk();
     } else {
-        BEEP_MASTER_CARD_GET_INFO_ERROR;
+        beepMasterCardError();
     }
 }
 
@@ -1419,19 +1189,15 @@ void processParticipantCard(uint16_t cardNum) {
                     if(writeMarkToParticipantCard(newPage)) {
                         writeCardNumToLog(cardNum);
                             
-                        BEEP_CARD_MARK_WRITTEN;
+                        beepCardMarkWritten();
                     }
                 }
             }
             else {
                 checkOk = true;
-                BEEP_CARD_MARK_OK;
+                beepCardMarkOk();
             }
         }
-    }
-
-    if(!checkOk) {
-        BEEP_CARD_MARK_ERROR;
     }
 }
 
@@ -1525,9 +1291,7 @@ void clearParticipantCard() {
     }
 
     if(result) {
-        BEEP_CARD_CLEAR_OK;
-    } else {
-        BEEP_CARD_CLEAR_ERROR;
+        beepCardClearOk();
     }
 }
 
@@ -1555,9 +1319,7 @@ void checkParticipantCard() {
     }
 
     if(result) {
-        BEEP_CARD_CHECK_OK;
-    } else {
-        BEEP_CARD_CHECK_ERROR;
+        beepCardCheckOk();
     }
 }
 
@@ -1575,6 +1337,10 @@ bool doesCardExpire() {
     }
 
     return true;
+}
+
+void wakeupByUartRx() {
+    serialWakeupFlag = 1;
 }
 
 void rtcAlarmIrq() {
@@ -1606,5 +1372,120 @@ bool writeConfig(Configuration *newConfig) {
     }
 
     return true;
+}
+
+void processSerial() {
+    bool error = false;
+    uint8_t cmdCode = 0;
+    uint8_t dataSize = 0;
+
+    uint8_t *data = serialProto.read(&error, &cmdCode, &dataSize);
+    if(error) {
+        serialRespStatus(SERIAL_ERROR_CRC);
+        return;
+    }
+    if(data) {
+        switch(cmdCode) {
+            case SERIAL_FUNC_READ_INFO:
+                serialFuncReadInfo(data, dataSize);
+                break;
+            case SERIAL_FUNC_WRITE_SETTINGS:
+                serialFuncWriteSettings(data, dataSize);
+                break;
+            default:
+                serialRespStatus(SERIAL_ERROR_UNKNOWN_FUNC);
+                break;
+        }
+    }
+}
+
+void serialFuncReadInfo(byte *data, byte dataSize) {
+    if(dataSize < 3) {
+        serialRespStatus(SERIAL_ERROR_SIZE);
+        return;
+    }
+
+    if(data[0] != config.password[0] ||
+       data[1] != config.password[1] ||
+       data[2] != config.password[2] ) {
+        serialRespStatus(SERIAL_ERROR_PWD);
+        return;
+    }
+
+    serialProto.start(SERIAL_RESP_INFO);
+    serialProto.add(HW_VERS);
+    serialProto.add(FW_MAJOR_VERS);
+    serialProto.add(FW_MINOR_VERS);
+    serialProto.add((uint8_t*)&config, sizeof(Configuration));
+
+#if defined(ADC_IN) && defined(ADC_ENABLE)
+    serialProto.add(batteryVoltageToByte(measureBatteryVoltage()));
+#else
+    serialProto.add(checkBattery());
+#endif
+    serialProto.add(mode);
+ 
+    // Get actual date and time
+    DS3231_get(&t);
+
+    // Write current time
+    serialProto.add(t.unixtime >> 24);
+    serialProto.add(t.unixtime >> 16);
+    serialProto.add(t.unixtime >> 8);
+    serialProto.add(t.unixtime & 0xFF);
+
+    // Write wake-up time
+    t.sec = bcdtodec(DS3231_get_addr(0x07));
+    t.min = bcdtodec(DS3231_get_addr(0x08));
+    t.hour = bcdtodec(DS3231_get_addr(0x09));
+    t.mday = bcdtodec(DS3231_get_addr(0x0A));
+    t.mon = alarmMonth;
+    t.year = alarmYear;
+    t.unixtime = get_unixtime(t);
+
+    // Write current time
+    serialProto.add(t.unixtime >> 24);
+    serialProto.add(t.unixtime >> 16);
+    serialProto.add(t.unixtime >> 8);
+    serialProto.add(t.unixtime & 0xFF);
+
+    serialProto.send();
+
+    beepSerialOk();
+}
+
+void serialFuncWriteSettings(byte *data, byte dataSize) {
+    if(dataSize < 22) {
+        serialRespStatus(SERIAL_ERROR_SIZE);
+        return;
+    }
+    
+    if(data[0] != config.password[0] ||
+       data[1] != config.password[1] ||
+       data[2] != config.password[2] ) {
+        serialRespStatus(SERIAL_ERROR_PWD);
+        return;
+    }
+
+    setNewConfig((Configuration*)&data[3]);
+
+    setTime(data[9] + 2000, data[10], data[11], data[12], data[13], data[14]);
+    setWakeupTime(data[15] + 2000, data[16], data[17], data[18], data[19], data[20]);
+
+    mode = data[21];
+
+    beepSerialOk();
+}
+
+void serialRespStatus(uint8_t code) {
+    serialProto.start(SERIAL_RESP_STATUS);
+    serialProto.add(code);
+    serialProto.send();
+
+    if(code) {
+        beepSerialError();
+    } else {
+        beepSerialOk();
+    }
 }
 

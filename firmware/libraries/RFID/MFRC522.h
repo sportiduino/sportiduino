@@ -405,7 +405,7 @@ public:
     void PICC_DumpMifareUltralightToSerial3();
     void PICC_DumpMifareUltralightToSerial5(byte *b1, byte *b2, byte *b3, byte *b4);
     void PICC_DumpMifareUltralightToSerial6(byte page, byte *b);
-    void MFRC522::MIFARE_Ultralight_Key (byte *arr);
+    void MIFARE_Ultralight_Key (byte *arr);
     void PICC_DumpMifareUID();
     void MIFARE_Ultralight_readpage (byte *buffer, byte page);
 	

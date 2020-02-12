@@ -40,8 +40,11 @@ uint32_t byteArrayToUint32(byte *byteArray);
 class SerialProtocol {
 public:
     void init(uint8_t _startByte);
+    void begin();
+    void end();
     void start(uint8_t code);
     void add(uint8_t dataByte);
+    void add(const uint8_t *data, uint8_t size);
     void send();
     uint8_t *read(bool *error, uint8_t *code, uint8_t *dataSize);
 
