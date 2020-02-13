@@ -522,6 +522,8 @@ void sleep(uint16_t ms) {
            pin == RC522_RST ||
            pin == LED ||
            pin == BUZ ||
+           pin == UART_TX ||
+           pin == UART_RX ||
 #if defined(ADC_IN) && defined(ADC_ENABLE)
            pin == ADC_IN ||
            pin == ADC_ENABLE ||
@@ -1222,8 +1224,7 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum) {
           
         if(num == 0) {
             endPage = page;
-        }
-        else {
+        } else {
             startPage = (startPage != page)? page : page + 1;
         }
     }
@@ -1474,7 +1475,7 @@ void serialFuncWriteSettings(byte *data, byte dataSize) {
 
     mode = data[21];
 
-    beepSerialOk();
+    serialRespStatus(SERIAL_OK);
 }
 
 void serialRespStatus(uint8_t code) {
