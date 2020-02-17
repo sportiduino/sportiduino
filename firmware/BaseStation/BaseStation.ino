@@ -177,14 +177,13 @@ uint8_t serialWakeupFlag = 0;
 // the third parameter should be the frequency of your buzzer if you solded the buzzer without a generator else 0
 inline void beep(uint16_t ms, uint8_t n) { beep_w(LED, BUZ, BUZZER_FREQUENCY, ms, n); }
 
-inline void beepSystemStartup()         { beep(1000, 1); }
 inline void beepOk()                    { beep(500, 1); }
 
 inline void beepTimeError()             { beep(100, 3); }
 inline void beepPassError()             { beep(100, 4); }
 
 inline void beepLowBattery()            { beep(100, 5); }
-inline void beepBatteryOk()             { beepOk(); }
+inline void beepBatteryOk()             { beep(1000, 1); }
 
 inline void beepCardCheckOk()           { beepOk(); }
 
@@ -238,6 +237,7 @@ uint32_t i2cEepromReadPunch(uint16_t cardNum);
 void processRfid();
 uint32_t measureBatteryVoltage();
 uint8_t batteryVoltageToByte(uint32_t voltage);
+bool checkBattery(bool beepEnabled = false);
 void processCard();
 void processMasterCard(uint8_t *pageInitData);
 void processTimeMasterCard(byte *data, byte dataSize);
@@ -327,9 +327,9 @@ void setup() {
     serialProto.init(SERIAL_MSG_START);
     rfid.init(RC522_SS, RC522_RST, config.antennaGain);
 
-    delay(1000);
+    delay(500);
     
-    beepSystemStartup();
+    checkBattery(true);
 
     Watchdog.enable(8000);
 }
@@ -739,15 +739,7 @@ uint32_t measureBatteryVoltage() {
     return value*1100/1023*(R_HIGH + R_LOW)/R_LOW;
 }
 
-uint8_t batteryVoltageToByte(uint32_t voltage) {
-    const uint32_t maxVoltage = 0xff*20; // mV
-    if(voltage > maxVoltage) {
-        voltage = maxVoltage;
-    }
-    return voltage/20;
-}
-
-bool checkBattery(bool beepEnabled = false) {
+uint32_t measureVcc() {
     Watchdog.reset();
     // Turn on ADC
     ADCSRA |=  bit(ADEN);
@@ -781,11 +773,29 @@ bool checkBattery(bool beepEnabled = false) {
     ADCSRA = 0;
 
     digitalWrite(LED, LOW);
-    delay(250);
     
-    Watchdog.reset();
+    return value;
+}
 
-    if(value > 3100) {
+uint8_t batteryVoltageToByte(uint32_t voltage) {
+    const uint32_t maxVoltage = 0xff*20; // mV
+    if(voltage > maxVoltage) {
+        voltage = maxVoltage;
+    }
+    return voltage/20;
+}
+
+bool checkBattery(bool beepEnabled) {
+#if defined(ADC_IN) && defined(ADC_ENABLE)
+    uint32_t voltage = measureBatteryVoltage();
+#else
+    uint32_t voltage = measureVcc();
+#endif
+
+    Watchdog.reset();
+    delay(250);
+
+    if(voltage > 3100) {
         if(beepEnabled) {
             beepBatteryOk();
         }
