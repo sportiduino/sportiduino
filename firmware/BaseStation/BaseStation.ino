@@ -234,6 +234,7 @@ void clearMarkLog();
 uint16_t getMarkLogEnd();
 void i2cEepromWritePunch(uint16_t cardNum);
 uint32_t i2cEepromReadPunch(uint16_t cardNum);
+void i2cEepromErase();
 void processRfid();
 uint32_t measureBatteryVoltage();
 uint8_t batteryVoltageToByte(uint32_t voltage);
@@ -319,7 +320,11 @@ void setup() {
         config.activeModeDuration = DEFAULT_ACTIVE_MODE_DURATION;
         config.password[0] = config.password[1] = config.password[2] = 0;
         writeConfig(&config);
+#ifdef USE_I2C_EEPROM
+        i2cEepromErase();
+#else
         clearMarkLog();
+#endif
     }
 
     setMode(DEFAULT_MODE);
@@ -655,49 +660,26 @@ uint32_t i2cEepromReadPunch(uint16_t cardNum) {
     return timestamp;
 }
 
-//void i2cEepromErase() {
-//    pinMode(I2C_EEPROM_VCC, OUTPUT);
-//    digitalWrite(I2C_EEPROM_VCC, HIGH);
-//    delay(1);
-//
-//    const uint16_t lastAddress = MAX_CARD_NUM_TO_LOG*4/64;
-//    for(uint16_t i = 0; i < lastAddress; ++i) {
-//        digitalWrite(LED, HIGH);
-//
-//        Wire.beginTransmission(I2C_EEPROM_ADDRESS);
-//        uint16_t pageAddress = i*64;
-//        Wire.write(pageAddress >> 8);
-//        Wire.write(pageAddress & 0xff);
-//        const uint8_t pageSize = 64;
-//        for(uint8_t j = 0; j < pageSize; ++j) {
-//            Wire.write(0);
-//            Watchdog.reset();
-//        }
-//        Wire.endTransmission();
-//
-//        digitalWrite(LED, LOW);
-//
-//        delay(5);
-//    }
-//
-//    digitalWrite(I2C_EEPROM_VCC, LOW);
-//}
-
 void i2cEepromErase() {
     pinMode(I2C_EEPROM_VCC, OUTPUT);
     digitalWrite(I2C_EEPROM_VCC, HIGH);
     delay(1);
 
-    const uint16_t lastAddress = MAX_CARD_NUM_TO_LOG*4;
+    const uint8_t pageSize = 32;
+    const uint16_t lastAddress = (uint16_t)MAX_CARD_NUM_TO_LOG*4/pageSize;
     for(uint16_t i = 0; i < lastAddress; ++i) {
         digitalWrite(LED, HIGH);
 
         Watchdog.reset();
 
         Wire.beginTransmission(I2C_EEPROM_ADDRESS);
-        Wire.write(i >> 8);
-        Wire.write(i & 0xff);
-        Wire.write(0);
+        uint16_t pageAddress = i*pageSize;
+        Wire.write(pageAddress >> 8);
+        Wire.write(pageAddress & 0xff);
+        for(uint8_t j = 0; j < pageSize; ++j) {
+            Wire.write(0);
+            Watchdog.reset();
+        }
         Wire.endTransmission();
 
         digitalWrite(LED, LOW);
@@ -719,7 +701,7 @@ uint32_t measureBatteryVoltage() {
     digitalWrite(LED, HIGH);
 
     Watchdog.reset();
-    delay(2000);
+    delay(3000);
 
     // Drop first measure, it's wrong
     analogRead(ADC_IN);
