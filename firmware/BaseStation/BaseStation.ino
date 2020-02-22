@@ -546,6 +546,7 @@ void sleep(uint16_t ms) {
     }
     // Turn off ADC
     ADCSRA = 0;
+    pinMode(UART_RX, INPUT_PULLUP);
     // Attach PCINT to wake-up CPU when data will arrive by UART in sleep mode
     attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
     // Reset watchdog
