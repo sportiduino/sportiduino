@@ -228,7 +228,7 @@ void setAntennaGain(uint8_t gain);
 void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void sleep(uint16_t ms);
-void setMode(uint8_t md);
+void setMode(uint8_t newMode);
 void writeCardNumToLog(uint16_t num);
 void clearMarkLog();
 uint16_t getMarkLogEnd();
@@ -566,8 +566,11 @@ void sleep(uint16_t ms) {
     Wire.begin();
 }
 
-void setMode(uint8_t md) {
-    mode = md;
+void setMode(uint8_t newMode) {
+    if(mode == MODE_SLEEP && newMode) {
+        checkBattery(true);
+    }
+    mode = newMode;
     workTimer = 0;
 
     // Check mode with settings
