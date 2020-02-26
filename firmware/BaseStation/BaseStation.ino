@@ -188,7 +188,7 @@ inline void beepBatteryOk()             { beep(1000, 1); }
 inline void beepCardCheckOk()           { beepOk(); }
 
 inline void beepCardMarkWritten()       { beepOk(); }
-inline void beepCardMarkOk()            { beep(250, 2); }
+inline void beepCardMarkAlreadyWritten(){ beep(250, 2); }
 
 inline void beepCardClearOk()           { beepOk(); }
 
@@ -229,7 +229,7 @@ void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, u
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void sleep(uint16_t ms);
 void setMode(uint8_t newMode);
-void writeCardNumToLog(uint16_t num);
+void writeMarkToLog(uint16_t num);
 void clearMarkLog();
 uint16_t getMarkLogEnd();
 void i2cEepromWritePunch(uint16_t cardNum);
@@ -581,7 +581,7 @@ void setMode(uint8_t newMode) {
     }
 }
 
-void writeCardNumToLog(uint16_t num) {
+void writeMarkToLog(uint16_t num) {
     if(num > MAX_CARD_NUM_TO_LOG) {
         return;
     }
@@ -1140,68 +1140,66 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
 }
 
 void processParticipantCard(uint16_t cardNum) {
+    if(!cardNum) {
+        return;
+    }
+
     uint8_t lastNum = 0;
     uint8_t newPage = 0;
     uint8_t maxPage = rfid.getCardMaxPage();
-    byte pageData[4] = {0,0,0,0};
-    bool checkOk = false;
 
-    if(cardNum) {
-        // Find the empty page to write new mark
-        if(config.fastMark) {
-            if(rfid.cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
-                lastNum = pageData[0];
-                newPage = pageData[1] + 1;
+    // Find the empty page to write new mark
+    if(config.fastMark) {
+        byte pageData[4] = {0,0,0,0};
+        if(rfid.cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
+            lastNum = pageData[0];
+            newPage = pageData[1] + 1;
 
-                if(newPage < CARD_PAGE_START || newPage > maxPage) {
-                    newPage = CARD_PAGE_START;
-                }
-            }
-        } else {
-            findNewPage(&newPage, &lastNum);
-        }
-    
-        if(newPage >= CARD_PAGE_START && newPage <= maxPage) {
-            if(lastNum != config.stationNumber) {
-                // Check Start/Finish marks on a card
-                checkOk = true;
-                if(config.checkStartFinish) {
-                    if(newPage == CARD_PAGE_START && config.stationNumber != START_STATION_NUM) {
-                        checkOk = false;
-                    } else if(config.stationNumber == START_STATION_NUM && newPage != CARD_PAGE_START) {
-                        checkOk = false;
-                    } else if(lastNum == FINISH_STATION_NUM) {
-                        checkOk = false;
-                    }
-                    else if(config.stationNumber == FINISH_STATION_NUM && newPage == CARD_PAGE_START) {
-                        checkOk = false;
-                    }
-                }
-
-                if(config.checkCardInitTime) {
-                    checkOk = !doesCardExpire();
-                }
-
-                // Записываем отметку
-                if(checkOk) {
-                    if(writeMarkToParticipantCard(newPage)) {
-                        writeCardNumToLog(cardNum);
-                            
-                        beepCardMarkWritten();
-                    }
-                }
-            }
-            else {
-                checkOk = true;
-                beepCardMarkOk();
+            if(newPage < CARD_PAGE_START || newPage > maxPage) {
+                newPage = CARD_PAGE_START;
             }
         }
+    } else {
+        findNewPage(&newPage, &lastNum);
+    }
+
+    if(newPage < CARD_PAGE_START || newPage > maxPage) {
+        return;
+    }
+
+    if(lastNum != config.stationNumber) {
+        // Check Start/Finish marks on a card
+        if(config.checkStartFinish) {
+            if(newPage == CARD_PAGE_START) {
+                if(config.stationNumber != START_STATION_NUM) {
+                    return;
+                }
+            } else {
+                if(config.stationNumber == START_STATION_NUM) {
+                    return;
+                }
+            }
+            if(lastNum == FINISH_STATION_NUM) {
+                return;
+            }
+        }
+
+        if(config.checkCardInitTime && !doesCardExpire()) {
+            return;
+        }
+
+        if(writeMarkToParticipantCard(newPage)) {
+            writeMarkToLog(cardNum);
+            beepCardMarkWritten();
+        }
+    } else {
+        beepCardMarkAlreadyWritten();
     }
 }
 
 void findNewPage(uint8_t *newPage, uint8_t *lastNum) {
     uint8_t startPage = CARD_PAGE_START;
-    uint8_t endPage = rfid.getCardMaxPage();
+    uint8_t endPage = rfid.getCardMaxPage() + 1; // page after last page
     uint8_t page = startPage;
     byte pageData[4] = {0,0,0,0};
     byte num = 0;
@@ -1226,7 +1224,7 @@ void findNewPage(uint8_t *newPage, uint8_t *lastNum) {
     }
 
     if(num > 0) {
-        page++;
+        ++page;
     }
 
     *newPage = page;
@@ -1295,8 +1293,6 @@ void clearParticipantCard() {
 void checkParticipantCard() {
     byte pageData[4] = {0,0,0,0};
     uint16_t cardNum = 0;
-    uint8_t newPage = 0;
-    uint8_t lastNum = 0;
     bool result = false;
     
     if(rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
@@ -1304,6 +1300,8 @@ void checkParticipantCard() {
         cardNum = (((uint16_t)pageData[0])<<8) + pageData[1];
         if(cardNum > 0 && pageData[2] != 0xFF) {
             // It shouldn't be marks on a card
+            uint8_t newPage = 0;
+            uint8_t lastNum = 0;
             findNewPage(&newPage, &lastNum);
             if(newPage == CARD_PAGE_START && lastNum == 0) {
                 result = true;
