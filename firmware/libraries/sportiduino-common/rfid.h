@@ -59,9 +59,11 @@ public:
 
     bool isNewCardDetected();
 
-    bool cardWrite(uint8_t startPageAdr, byte *data, uint16_t size);
+    bool cardWrite(uint8_t startPageAdr, const byte *data, uint16_t size);
 
     bool cardErase(uint8_t beginPageAddr, uint8_t endPageAddr);
+
+    bool cardPageErase(uint8_t pageAddr);
 
     /**
      * Reads data from a card page. Buffer size should be 4 bytes!
@@ -71,7 +73,7 @@ public:
     /**
      * Writes data to a card page. Buffer size should be 4 bytes!
      */
-    bool cardPageWrite(uint8_t pageAdr, byte *data, uint8_t size = 4);
+    bool cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size = 4);
 
     /**
      * Returns max page address of the presented card

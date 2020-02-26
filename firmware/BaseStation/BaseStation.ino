@@ -889,6 +889,10 @@ void processMasterCard(uint8_t *pageInitData) {
     }
 }
 
+void deinitCard() {
+    rfid.cardPageErase(CARD_PAGE_INIT);
+}
+
 void processTimeMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
         return;
@@ -896,6 +900,8 @@ void processTimeMasterCard(byte *data, byte dataSize) {
 
     // Note: time is UTC
     setTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
+
+    deinitCard();
 
     if(t.year < 2017) {
         beepTimeError();
@@ -917,6 +923,7 @@ void processStationMasterCard(byte *data, byte dataSize) {
             setStationNum(newNum);
             writeConfig(&config);
         }
+        deinitCard();
         beepMasterCardOk();
     } else {
         beepMasterCardError();

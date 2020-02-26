@@ -239,7 +239,7 @@ bool Rfid::cardPageRead(uint8_t pageAdr, byte *data, uint8_t size) {
     return result;
 }
 
-bool Rfid::cardPageWrite(uint8_t pageAdr, byte *data, uint8_t size) {
+bool Rfid::cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size) {
     uint8_t maxPage = getCardMaxPage();
 
     if(pageAdr > maxPage) {
@@ -264,7 +264,7 @@ bool Rfid::cardPageWrite(uint8_t pageAdr, byte *data, uint8_t size) {
     }
 }
 
-bool Rfid::cardWrite(uint8_t startPageAdr, byte *data, uint16_t size) {
+bool Rfid::cardWrite(uint8_t startPageAdr, const byte *data, uint16_t size) {
     uint8_t pageAddr = startPageAdr;
     for(uint8_t i = 0; i < size/4; ++i) {
         if(!cardPageWrite(pageAddr++, data + i*4)) {
@@ -282,12 +282,16 @@ bool Rfid::cardWrite(uint8_t startPageAdr, byte *data, uint16_t size) {
 }
 
 bool Rfid::cardErase(uint8_t beginPageAddr, uint8_t endPageAddr) {
-    byte emptyBlock[] = {0,0,0,0};
     for(uint8_t pageAddr = beginPageAddr; pageAddr <= endPageAddr; ++pageAddr) {
-        if(!cardPageWrite(pageAddr, emptyBlock)) {
+        if(!cardPageErase(pageAddr)) {
             return false;
         }
     }
     return true;
+}
+
+bool Rfid::cardPageErase(uint8_t pageAddr) {
+    const byte emptyBlock[] = {0,0,0,0};
+    return cardPageWrite(pageAddr, emptyBlock);
 }
 
