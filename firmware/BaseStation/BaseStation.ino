@@ -1088,7 +1088,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     // Disable RFID to prevent bad impact on measurements
     rfid.end();
     byte batteryByte = batteryVoltageToByte(measureBatteryVoltage());
-    rfid.begin();
+    rfid.begin(config.antennaGain);
 #else
     byte batteryByte = checkBattery();
 #endif

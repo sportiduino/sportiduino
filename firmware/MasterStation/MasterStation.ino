@@ -19,23 +19,29 @@
 
 #define SERIAL_START_BYTE       0xFE
 
-#define NO_ERRORS               0x00
-#define ERROR_SERIAL            0x01
-#define ERROR_CARD_WRITE        0x02
-#define ERROR_CARD_READ         0x03
-#define ERROR_EEPROM_READ       0x04
-#define ERROR_CARD_NOT_FOUND    0x05
-#define ERROR_UNKNOWN_CMD       0x06
-#define ERROR_BAD_DATASIZE      0x07
+enum Error {
+    ERROR_SERIAL          = 0x01,
+    ERROR_CARD_WRITE      = 0x02,
+    ERROR_CARD_READ       = 0x03,
+    ERROR_EEPROM_READ     = 0x04,
+    ERROR_CARD_NOT_FOUND  = 0x05,
+    ERROR_UNKNOWN_CMD     = 0x06,
+    ERROR_BAD_DATASIZE    = 0x07,
+    ERROR_BAD_SETTINGS    = 0x08
+};
 
-#define RESP_FUNC_LOG           0x61
-#define RESP_FUNC_MARKS         0x63
-#define RESP_FUNC_RAW_DATA      0x65
-#define RESP_FUNC_VERSION       0x66
-#define RESP_FUNC_MODE          0x69
-#define RESP_FUNC_CARD_TYPE     0x70
-#define RESP_FUNC_ERROR         0x78
-#define RESP_FUNC_OK            0x79
+enum Resp {
+    RESP_FUNC_LOG         = 0x61,
+    RESP_FUNC_MARKS       = 0x63,
+    RESP_FUNC_RAW_DATA    = 0x65,
+    RESP_FUNC_VERSION     = 0x66,
+    RESP_FUNC_MODE        = 0x69,
+    RESP_FUNC_CARD_TYPE   = 0x70,
+    RESP_FUNC_ERROR       = 0x78,
+    RESP_FUNC_OK          = 0x79
+};
+
+#define EEPROM_ANTENNA_GAIN_ADDR 0x3EE
 
 //-----------------------------------------------------------
 // FUNCTIONS
@@ -55,6 +61,7 @@ uint8_t getPwd(uint8_t i);
 // VARIABLES
 static Rfid rfid;
 static SerialProtocol serialProto;
+static uint8_t antennaGain = DEFAULT_ANTENNA_GAIN;
 
 void setup() {
     pinMode(LED_PIN, OUTPUT);
@@ -65,8 +72,13 @@ void setup() {
     digitalWrite(LED_PIN, LOW);
     digitalWrite(BUZZ_PIN, LOW);
     digitalWrite(RC522_RST_PIN, LOW);
-    
-    rfid.init(RC522_SS_PIN, RC522_RST_PIN, DEFAULT_ANTENNA_GAIN);
+
+    antennaGain = majEepromRead(EEPROM_ANTENNA_GAIN_ADDR);
+    if(antennaGain > MAX_ANTENNA_GAIN || antennaGain < MIN_ANTENNA_GAIN) {
+        antennaGain = DEFAULT_ANTENNA_GAIN;
+    }
+
+    rfid.init(RC522_SS_PIN, RC522_RST_PIN, antennaGain);
     serialProto.init(SERIAL_START_BYTE);
 }
 
@@ -173,7 +185,21 @@ void funcWriteMasterConfig(uint8_t *serialData, uint8_t dataSize) {
 
 void funcApplyPassword(uint8_t *serialData, uint8_t dataSize) {
     setPwd(serialData);
-    
+    signalOK();
+}
+
+void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize != 1) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
+    uint8_t newAntennaGain = serialData[0];
+    if(newAntennaGain < MIN_ANTENNA_GAIN || newAntennaGain > MAX_ANTENNA_GAIN) {
+        signalError(ERROR_BAD_SETTINGS);
+        return;
+    }
+    antennaGain = newAntennaGain;
+    majEepromWrite(EEPROM_ANTENNA_GAIN_ADDR, antennaGain);
     signalOK();
 }
 
@@ -484,7 +510,7 @@ void funcGetVersion(uint8_t*, uint8_t) {
 }
 
 void callRfidFunction(void (*func)(uint8_t*, uint8_t), uint8_t *data, uint8_t dataSize) {
-    rfid.begin();
+    rfid.begin(antennaGain);
     func(data, dataSize);
     rfid.end();
 }
@@ -514,6 +540,9 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             break;
         case 0x48:
             callRfidFunction(funcReadLog, data, dataSize);
+            break;
+        case 0x4A:
+            funcWriteSettings(data, dataSize);
             break;
         case 0x4B:
             callRfidFunction(funcReadCard, data, dataSize);
