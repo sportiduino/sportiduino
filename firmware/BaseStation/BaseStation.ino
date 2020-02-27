@@ -9,6 +9,7 @@
 
 // Remove a comment from a line below to compile in DEBUG mode
 //#define DEBUG
+// You can also set debug mode by running "make debug=1"
 
 #define HW_VERS         3
 #define FW_MAJOR_VERS   7
@@ -17,8 +18,11 @@
 //-------------------------------------------------------------------
 // HARDWARE
 
-#define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
-    
+// Set BUZZER_FREQUENCY by running "make buzzfreq=2500"
+#ifndef BUZZER_FREQUENCY
+    #define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
+#endif
+
 #define BUZ           3
 #define LED           4
 

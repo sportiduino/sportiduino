@@ -14,5 +14,13 @@ ifdef port
 	MONITOR_PORT    = $(port)
 endif
 
+ifdef debug
+	CXXFLAGS += -DDEBUG
+endif
+
+ifdef buzzfreq
+	CXXFLAGS += -DBUZZER_FREQUENCY=$(buzzfreq)
+endif
+
 include $(ARDMK_DIR)/Arduino.mk
 
