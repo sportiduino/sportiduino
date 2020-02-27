@@ -567,7 +567,7 @@ void sleep(uint16_t ms) {
 }
 
 void setMode(uint8_t newMode) {
-    if(mode == MODE_SLEEP && newMode) {
+    if(mode == MODE_SLEEP && newMode != MODE_SLEEP) {
         checkBattery(true);
     }
     mode = newMode;
