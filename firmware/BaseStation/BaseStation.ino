@@ -778,14 +778,16 @@ uint8_t batteryVoltageToByte(uint32_t voltage) {
 bool checkBattery(bool beepEnabled) {
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     uint32_t voltage = measureBatteryVoltage();
+    const uint32_t minVoltage = 3400;
 #else
     uint32_t voltage = measureVcc();
+    const uint32_t minVoltage = 3100;
 #endif
 
     Watchdog.reset();
     delay(250);
 
-    if(voltage > 3100) {
+    if(voltage > minVoltage) {
         if(beepEnabled) {
             beepBatteryOk();
         }
