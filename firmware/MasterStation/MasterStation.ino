@@ -35,6 +35,7 @@ enum Resp {
     RESP_FUNC_MARKS       = 0x63,
     RESP_FUNC_RAW_DATA    = 0x65,
     RESP_FUNC_VERSION     = 0x66,
+    RESP_FUNC_SETTINGS    = 0x67,
     RESP_FUNC_MODE        = 0x69,
     RESP_FUNC_CARD_TYPE   = 0x70,
     RESP_FUNC_ERROR       = 0x78,
@@ -186,6 +187,12 @@ void funcWriteMasterConfig(uint8_t *serialData, uint8_t dataSize) {
 void funcApplyPassword(uint8_t *serialData, uint8_t dataSize) {
     setPwd(serialData);
     signalOK();
+}
+
+void funcReadSettings(uint8_t *serialData, uint8_t dataSize) {
+    serialProto.start(RESP_FUNC_SETTINGS);
+    serialProto.add(antennaGain);
+    serialProto.send();
 }
 
 void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
@@ -549,6 +556,9 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             break;
         case 0x4C:
             callRfidFunction(funcReadRawCard, data, dataSize);
+            break;
+        case 0x4D:
+            funcReadSettings(data, dataSize);
             break;
         case 0x4E:
             callRfidFunction(funcWriteMasterSleep, data, dataSize);
