@@ -11,7 +11,11 @@
 //#define DEBUG
 // You can also set debug mode by running "make debug=1"
 
-#define HW_VERS         3
+// Set PCB version by running "make pcbv=3"
+#ifndef HW_VERS
+    // or change here
+    #define HW_VERS     3
+#endif
 #define FW_MAJOR_VERS   7
 #define FW_MINOR_VERS   99
 
@@ -20,6 +24,7 @@
 
 // Set BUZZER_FREQUENCY by running "make buzzfreq=2500"
 #ifndef BUZZER_FREQUENCY
+    // or change here
     #define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
 #endif
 
@@ -52,7 +57,7 @@
 
     #define ADC_IN         A0
     #define ADC_ENABLE     A1
-#else
+#elif HW_VERS == 3
     #define DS3231_VCC     A3
     #define DS3231_IRQ     A2
     #define DS3231_32K     5 // not used, reserved for future
@@ -65,6 +70,8 @@
 
     #define I2C_EEPROM_VCC 6
     #define REED_SWITCH    7
+#else
+    #error Unknown HW_VERS
 #endif
 
 //-------------------------------------------------------------------

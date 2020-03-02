@@ -12,7 +12,11 @@
 #define RC522_RST_PIN   9
 #define RC522_SS_PIN    10
 
-#define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
+// Set BUZZER_FREQUENCY by running "make buzzfreq=2500"
+#ifndef BUZZER_FREQUENCY
+    // or change here
+    #define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
+#endif
 
 //-----------------------------------------------------------
 // CONST

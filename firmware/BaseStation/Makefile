@@ -10,6 +10,7 @@ endif
 BOARD_TAG           = sportiduino
 ARDUINO_SKETCHBOOK  = ../
 ARDUINO_LIBS        = sportiduino-common SPI EEPROM RFID Adafruit_SleepyDog_Library ds3231-master Wire PinChangeInterrupt
+
 ifdef port
 	MONITOR_PORT    = $(port)
 endif
@@ -22,5 +23,10 @@ ifdef buzzfreq
 	CXXFLAGS += -DBUZZER_FREQUENCY=$(buzzfreq)
 endif
 
-include $(ARDMK_DIR)/Arduino.mk
+ifdef pcbv
+	CXXFLAGS += -DHW_VERS=$(pcbv)
+endif
 
+$(info CXXFLAGS = $(CXXFLAGS))
+
+include $(ARDMK_DIR)/Arduino.mk
