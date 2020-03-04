@@ -279,7 +279,9 @@ void setup() {
     pinMode(RC522_IRQ, INPUT_PULLUP);
     pinMode(DS3231_IRQ, INPUT_PULLUP);
     pinMode(DS3231_32K, INPUT_PULLUP);
+#ifdef USE_REED_SWITCH
     pinMode(REED_SWITCH, INPUT_PULLUP);
+#endif
     pinMode(DS3231_VCC, OUTPUT);
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     pinMode(ADC_IN, INPUT);
@@ -544,11 +546,13 @@ void sleep(uint16_t ms) {
            pin == ADC_IN ||
            pin == ADC_ENABLE ||
 #endif
+#ifdef USE_REED_SWITCH
+           pin == REED_SWITCH ||
+#endif
            pin == DS3231_VCC ||
            pin == DS3231_IRQ ||
            pin == DS3231_32K ||
-           pin == DS3231_RST ||
-           pin == REED_SWITCH) {
+           pin == DS3231_RST) {
             continue;
         }
 
@@ -628,6 +632,7 @@ uint16_t getMarkLogEnd() {
     return endAdr;
 }
 
+#ifdef USE_I2C_EEPROM
 void i2cEepromWritePunch(uint16_t cardNum) {
     pinMode(I2C_EEPROM_VCC, OUTPUT);
     // Power on I2C EEPROM
@@ -704,7 +709,9 @@ void i2cEepromErase() {
 
     digitalWrite(I2C_EEPROM_VCC, LOW);
 }
+#endif
 
+#if defined(ADC_IN) && defined(ADC_ENABLE)
 uint32_t measureBatteryVoltage() {
     analogReference(INTERNAL);
     pinMode(ADC_ENABLE, OUTPUT);
@@ -735,6 +742,7 @@ uint32_t measureBatteryVoltage() {
     const uint32_t R_LOW = 68000; // Ohm
     return value*1100/1023*(R_HIGH + R_LOW)/R_LOW;
 }
+#endif
 
 uint32_t measureVcc() {
     Watchdog.reset();
@@ -1012,6 +1020,7 @@ void processDumpMasterCard(byte *data, byte dataSize) {
     }
 }
 
+#ifdef USE_I2C_EEPROM
 void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
     if(dataSize < 16) {
         beepMasterCardError();
@@ -1080,6 +1089,7 @@ void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
         beepMasterCardError();
     }
 }
+#endif
 
 void processSettingsMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
