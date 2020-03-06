@@ -255,8 +255,8 @@ void processMasterCard(uint8_t *pageInitData);
 void processTimeMasterCard(byte *data, byte dataSize);
 void processStationMasterCard(byte *data, byte dataSize);
 void processSleepMasterCard(byte *data, byte dataSize);
-void processDumpMasterCard(byte *data, byte dataSize);
-void processDumpMasterCardWithTimestamps(byte *data, byte dataSize);
+void processBackupMasterCard(byte *data, byte dataSize);
+void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
 void processSettingsMasterCard(byte *data, byte dataSize);
 void processGetInfoMasterCard(byte *data, byte dataSize);
 void processParticipantCard(uint16_t cardNum);
@@ -891,11 +891,11 @@ void processMasterCard(uint8_t *pageInitData) {
         case MASTER_CARD_SLEEP:
             processSleepMasterCard(masterCardData, sizeof(masterCardData));
             break;
-        case MASTER_CARD_READ_DUMP:
+        case MASTER_CARD_READ_BACKUP:
 #ifdef USE_I2C_EEPROM
-            processDumpMasterCardWithTimestamps(masterCardData, sizeof(masterCardData));
+            processBackupMasterCardWithTimestamps(masterCardData, sizeof(masterCardData));
 #else
-            processDumpMasterCard(masterCardData, sizeof(masterCardData));
+            processBackupMasterCard(masterCardData, sizeof(masterCardData));
 #endif
             break;
         case MASTER_CARD_CONFIG:
@@ -970,26 +970,26 @@ void processSleepMasterCard(byte *data, byte dataSize) {
     beepMasterCardSleepOk();
 }
 
-void processDumpMasterCard(byte *data, byte dataSize) {
+void processBackupMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
         beepMasterCardError();
         return;
     }
 
-    byte pageData[4] = {0,0,0,0};
-    // Write station num
-    pageData[0] = config.stationNumber;
-    bool result = rfid.cardPageWrite(CARD_PAGE_INIT, pageData);
+    data[0] = config.stationNumber;
+    data[3] = 0;
+    bool result = rfid.cardPageWrite(CARD_PAGE_INIT, data);
 
     uint16_t eepromAdr = 0;
     uint16_t eepromEnd = getMarkLogEnd();
     uint8_t maxPage = rfid.getCardMaxPage();
-    for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++) {
+    for(uint8_t page = CARD_PAGE_BACKUP_START; page <= maxPage; page++) {
         Watchdog.reset();
         delay(50);
         
         digitalWrite(LED, HIGH);
         
+        byte pageData[4] = {0,0,0,0};
         for(uint8_t m = 0; m < 4; m++) {
             pageData[m] = EEPROM.read(eepromAdr);
             eepromAdr++;
@@ -1021,7 +1021,7 @@ void processDumpMasterCard(byte *data, byte dataSize) {
 }
 
 #ifdef USE_I2C_EEPROM
-void processDumpMasterCardWithTimestamps(byte *data, byte dataSize) {
+void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
     if(dataSize < 16) {
         beepMasterCardError();
         return;

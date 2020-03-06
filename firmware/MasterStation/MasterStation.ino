@@ -35,7 +35,7 @@ enum Error {
 };
 
 enum Resp {
-    RESP_FUNC_LOG         = 0x61,
+    RESP_FUNC_BACKUP      = 0x61,
     RESP_FUNC_MARKS       = 0x63,
     RESP_FUNC_RAW_DATA    = 0x65,
     RESP_FUNC_VERSION     = 0x66,
@@ -279,8 +279,8 @@ void funcWriteInfo(uint8_t *serialData, uint8_t dataSize) {
     signalOK();
 }
 
-void funcWriteMasterLog(uint8_t*, uint8_t) {
-    uint8_t error = writeMasterCard(MASTER_CARD_READ_DUMP);
+void funcWriteMasterBackup(uint8_t*, uint8_t) {
+    uint8_t error = writeMasterCard(MASTER_CARD_READ_BACKUP);
 
     if(error) {
         signalError(error);
@@ -315,7 +315,7 @@ void funcWriteMasterSleep(uint8_t *serialData, uint8_t dataSize) {
     }
 }
 
-void funcReadLog(uint8_t*, uint8_t) {
+void funcReadBackup(uint8_t*, uint8_t) {
     if(!rfid.isCardDetected()) {
         signalError(ERROR_CARD_NOT_FOUND);
         return;
@@ -327,12 +327,12 @@ void funcReadLog(uint8_t*, uint8_t) {
         return;
     }
 
-    serialProto.start(RESP_FUNC_LOG);
+    serialProto.start(RESP_FUNC_BACKUP);
     serialProto.add(pageData[0]);   // add station number
 
     uint8_t maxPage = rfid.getCardMaxPage();
     if(pageData[3] > 0) { // have timestamps
-        serialProto.add(0); // flag: have timestamps
+        serialProto.add(0xff); // flag: have timestamps
         uint16_t timeHigh12bits = 0;
         uint32_t initTime = 0;
         for(uint8_t page = CARD_PAGE_INFO1; page <= maxPage; ++page) {
@@ -372,7 +372,7 @@ void funcReadLog(uint8_t*, uint8_t) {
             serialProto.add(pageData[3]);
         }
     } else {
-        for(uint8_t page = CARD_PAGE_DUMP_START; page <= maxPage; ++page) {
+        for(uint8_t page = CARD_PAGE_BACKUP_START; page <= maxPage; ++page) {
             if(!rfid.cardPageRead(page, pageData)) {
                 signalError(ERROR_CARD_READ);
                 return;
@@ -381,11 +381,9 @@ void funcReadLog(uint8_t*, uint8_t) {
             for(uint8_t i = 0; i < 4; i++) {
                 for(uint8_t y = 0; y < 8; y++) {
                     if(pageData[i] & (1 << y)) {
-                        uint16_t num = (page - CARD_PAGE_DUMP_START)*32 + i*8 + y;
-                        uint8_t first = (num&0xFF00)>>8;
-                        uint8_t second = num&0x00FF; 
-                        serialProto.add(first);
-                        serialProto.add(second);
+                        uint16_t num = (page - CARD_PAGE_BACKUP_START)*32 + i*8 + y;
+                        serialProto.add(num >> 8);
+                        serialProto.add(num & 0xFF);
                     }
                 }
             }
@@ -547,10 +545,10 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             funcGetVersion(data, dataSize);
             break;
         case 0x47:
-            callRfidFunction(funcWriteMasterLog, data, dataSize);
+            callRfidFunction(funcWriteMasterBackup, data, dataSize);
             break;
         case 0x48:
-            callRfidFunction(funcReadLog, data, dataSize);
+            callRfidFunction(funcReadBackup, data, dataSize);
             break;
         case 0x4A:
             funcWriteSettings(data, dataSize);

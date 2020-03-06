@@ -13,7 +13,7 @@
 #define MASTER_CARD_SET_TIME        250
 #define MASTER_CARD_SET_NUMBER      251
 #define MASTER_CARD_SLEEP           252
-#define MASTER_CARD_READ_DUMP       253
+#define MASTER_CARD_READ_BACKUP     253
 #define MASTER_CARD_CONFIG          254
 
 #define SERIAL_PACKET_SIZE        32

@@ -19,7 +19,7 @@
 #define CARD_PAGE_DATE				6
 #define CARD_PAGE_TIME				7
 #define CARD_PAGE_STATION_NUM		6
-#define CARD_PAGE_DUMP_START		5
+#define CARD_PAGE_BACKUP_START		6
 
 enum class CardType : byte {
     UNKNOWN	    = 0,
