@@ -16,7 +16,9 @@
 #define MASTER_CARD_READ_BACKUP     253
 #define MASTER_CARD_CONFIG          254
 
-#define SERIAL_PACKET_SIZE        32
+#define SERIAL_PACKET_SIZE          32
+
+#define MAX_FW_MINOR_VERS           239
 
 /**
  * Writes data with a majority backup in three cells of EEPROM
