@@ -986,7 +986,7 @@ void processBackupMasterCard(byte *data, byte dataSize) {
     uint16_t eepromAdr = 0;
     uint16_t eepromEnd = getMarkLogEnd();
     uint8_t maxPage = rfid.getCardMaxPage();
-    for(uint8_t page = CARD_PAGE_BACKUP_START; page <= maxPage; page++) {
+    for(uint8_t page = CARD_PAGE_BACKUP_START; page <= maxPage; ++page) {
         Watchdog.reset();
         delay(50);
         
@@ -1015,6 +1015,8 @@ void processBackupMasterCard(byte *data, byte dataSize) {
             break;
         }
     }
+
+    delay(250);
 
     if(result) {
         beepMasterCardOk();
@@ -1045,7 +1047,6 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
     uint32ToByteArray(from, pageData);
     result &= rfid.cardPageWrite(page++, pageData);
 
-    digitalWrite(LED, HIGH);
 
     uint8_t maxPage = rfid.getCardMaxPage();
     digitalWrite(I2C_EEPROM_VCC, HIGH);
@@ -1063,6 +1064,9 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
             break;
         }
 
+        delay(50);
+        digitalWrite(LED, HIGH);
+
         byte timeData[4];
         uint32ToByteArray(timestamp, timeData);
 
@@ -1073,6 +1077,8 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
         pageData[3] = timeData[3];
         result &= rfid.cardPageWrite(page++, pageData);
 
+        digitalWrite(LED, LOW);
+
         if(page > maxPage) {
             break;
         }
@@ -1081,8 +1087,6 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
     result &= rfid.cardErase(page, maxPage);
 
     digitalWrite(I2C_EEPROM_VCC, LOW);
-
-    digitalWrite(LED, LOW);
 
     delay(250);
 
