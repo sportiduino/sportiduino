@@ -48,8 +48,7 @@
     #define RC522_SS      10
     #define RC522_IRQ     6
 
-    // It is not used anymore. Just the free pin acts as output
-    #define DS3231_VCC    8
+    #define DS3231_VCC    A1
     #define DS3231_IRQ    A3
     // PD5 (9) This pin is not used. It is reserved for future
     #define DS3231_32K    5
