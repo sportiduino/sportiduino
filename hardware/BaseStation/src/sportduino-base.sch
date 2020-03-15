@@ -1,13 +1,12 @@
 EESchema Schematic File Version 4
-LIBS:sportduino-base-cache
 EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title "Sportiduino Base Station"
-Date "2018-12-16"
-Rev ""
+Date "2020-03-15"
+Rev "2a"
 Comp ""
 Comment1 ""
 Comment2 ""
@@ -30,7 +29,7 @@ L Device:C C1
 U 1 1 5BE42D9E
 P 1450 2350
 F 0 "C1" H 1565 2396 50  0000 L CNN
-F 1 "1 uF" H 1500 2250 50  0000 L CNN
+F 1 "4.7 uF" H 1500 2250 50  0000 L CNN
 F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 1488 2200 50  0001 C CNN
 F 3 "~" H 1450 2350 50  0001 C CNN
 	1    1450 2350
@@ -41,7 +40,7 @@ L Device:C C2
 U 1 1 5BE42E09
 P 2650 2350
 F 0 "C2" H 2765 2396 50  0000 L CNN
-F 1 "1 uF" H 2700 2250 50  0000 L CNN
+F 1 "4.7 uF" H 2700 2250 50  0000 L CNN
 F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 2688 2200 50  0001 C CNN
 F 3 "~" H 2650 2350 50  0001 C CNN
 	1    2650 2350
@@ -435,7 +434,6 @@ Entry Wire Line
 	7900 2300 8000 2200
 Entry Wire Line
 	7900 2200 8000 2100
-NoConn ~ 6400 2100
 Wire Wire Line
 	6400 2200 7900 2200
 Entry Wire Line
@@ -496,7 +494,7 @@ Wire Wire Line
 	2350 1700 2650 1700
 Connection ~ 2650 1700
 NoConn ~ 6400 3000
-NoConn ~ 6400 3100
+NoConn ~ 6400 2100
 NoConn ~ 6400 4500
 $Comp
 L power:GNDD #PWR019
@@ -711,14 +709,14 @@ Wire Wire Line
 Text Label 9950 2350 0    50   ~ 0
 PD6
 $Comp
-L Device:C C6
+L Device:C C7
 U 1 1 5C2396EF
-P 8900 2850
-F 0 "C6" H 9015 2896 50  0000 L CNN
-F 1 "100 nF" H 8950 2750 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 8938 2700 50  0001 C CNN
-F 3 "~" H 8900 2850 50  0001 C CNN
-	1    8900 2850
+P 8900 2900
+F 0 "C7" H 9015 2946 50  0000 L CNN
+F 1 "100 nF" H 8950 2800 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 8938 2750 50  0001 C CNN
+F 3 "~" H 8900 2900 50  0001 C CNN
+	1    8900 2900
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
@@ -743,34 +741,18 @@ Wire Wire Line
 $Comp
 L power:+3V3 #PWR012
 U 1 1 5C27F227
-P 8600 2500
-F 0 "#PWR012" H 8600 2350 50  0001 C CNN
-F 1 "+3V3" H 8600 2650 50  0000 C CNN
-F 2 "" H 8600 2500 50  0001 C CNN
-F 3 "" H 8600 2500 50  0001 C CNN
-	1    8600 2500
+P 8700 2550
+F 0 "#PWR012" H 8700 2400 50  0001 C CNN
+F 1 "+3V3" H 8700 2700 50  0000 C CNN
+F 2 "" H 8700 2550 50  0001 C CNN
+F 3 "" H 8700 2550 50  0001 C CNN
+	1    8700 2550
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
 	8700 4100 8700 4000
 Wire Wire Line
-	8600 2500 8600 2600
-Wire Wire Line
-	8900 2700 8900 2600
-Wire Wire Line
-	8900 2600 8600 2600
-Connection ~ 8600 2600
-Wire Wire Line
-	8600 2600 8600 3200
-Wire Wire Line
-	8900 3000 8900 3050
-Wire Wire Line
-	8700 3200 8700 3050
-Wire Wire Line
-	8700 3050 8900 3050
-Connection ~ 8900 3050
-Wire Wire Line
-	8900 3050 8900 3100
+	8900 2750 8900 2700
 Wire Wire Line
 	9900 2050 10750 2050
 Wire Wire Line
@@ -789,21 +771,20 @@ PD6
 $Comp
 L Device:R R7
 U 1 1 5C1F151D
-P 9350 2850
-F 0 "R7" H 9420 2896 50  0000 L CNN
-F 1 "3K3" H 9420 2805 50  0000 L CNN
-F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 9280 2850 50  0001 C CNN
-F 3 "~" H 9350 2850 50  0001 C CNN
-	1    9350 2850
+P 9350 2900
+F 0 "R7" H 9420 2946 50  0000 L CNN
+F 1 "3K3" H 9420 2855 50  0000 L CNN
+F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 9280 2900 50  0001 C CNN
+F 3 "~" H 9350 2900 50  0001 C CNN
+	1    9350 2900
 	1    0    0    -1  
 $EndComp
 Wire Wire Line
-	9350 2700 9350 2600
+	9350 2750 9350 2700
 Wire Wire Line
-	9350 2600 8900 2600
-Connection ~ 8900 2600
+	9350 2700 8900 2700
 Wire Wire Line
-	9350 3000 9350 3400
+	9350 3050 9350 3400
 Wire Wire Line
 	6400 4000 7200 4000
 Wire Wire Line
@@ -858,6 +839,53 @@ Wire Wire Line
 	10200 4950 10750 4950
 Wire Wire Line
 	10200 4850 10750 4850
+Wire Wire Line
+	8700 2550 8700 2700
+Connection ~ 8900 2700
+Wire Wire Line
+	8900 2700 8700 2700
+Wire Wire Line
+	8700 2700 8700 3200
+Connection ~ 8700 2700
+$Comp
+L Device:C C6
+U 1 1 5E6F5E4E
+P 8200 2900
+F 0 "C6" H 8315 2946 50  0000 L CNN
+F 1 "100 nF" H 8250 2800 50  0000 L CNN
+F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 8238 2750 50  0001 C CNN
+F 3 "~" H 8200 2900 50  0001 C CNN
+	1    8200 2900
+	1    0    0    -1  
+$EndComp
+$Comp
+L power:GNDD #PWR?
+U 1 1 5E6FD437
+P 8200 3100
+F 0 "#PWR?" H 8200 2850 50  0001 C CNN
+F 1 "GNDD" H 8204 2945 50  0001 C CNN
+F 2 "" H 8200 3100 50  0001 C CNN
+F 3 "" H 8200 3100 50  0001 C CNN
+	1    8200 3100
+	1    0    0    -1  
+$EndComp
+Wire Wire Line
+	8200 2750 8200 2700
+Wire Wire Line
+	8200 2700 8600 2700
+Wire Wire Line
+	8600 2700 8600 3200
+Wire Wire Line
+	6750 3100 6750 2700
+Wire Wire Line
+	6400 3100 6750 3100
+Connection ~ 8200 2700
+Wire Wire Line
+	6750 2700 8200 2700
+Wire Wire Line
+	8200 3050 8200 3100
+Wire Wire Line
+	8900 3050 8900 3100
 Wire Bus Line
 	8000 1700 8000 2600
 Wire Bus Line
