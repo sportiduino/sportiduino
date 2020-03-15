@@ -3,11 +3,11 @@
 The main components of the station: microcontroller - Atmega328p-au, RFID module RC522, clock DS3231. Powered by 3 x AA batteries via the MCP1700T-33 linear regulator. Scheme and pcb drawing are available at [Upvertet](https://upverter.com/AlexanderVolikov/a6d775cd45a22968/Sportiduino-MarkStantion/)
 One can view them in KiCad program.
 
-![](/hardware/BaseStation/prod/sportiduino-base-scheme.jpg?raw=true "Scheme")
+![](/hardware/BaseStation/prod/v2/sportiduino-base-v2-scheme.jpg?raw=true "Scheme")
 
 The components are mounted on a printed circuit board. Connection with an RFID card is via soldered connection with a pin connector. You can order the manufacture of pcb in China, it will cost around 0.9-1 $ per piece with delivery. Gerber files are in the folder 'base station'.
 
-![](/hardware/BaseStation/prod/sportiduino-base-assembly.jpg?raw=true "PCB")
+![](/hardware/BaseStation/prod/v2/sportiduino-base-v2-assembly.jpg?raw=true "PCB")
 
 To upload firmware to the station one needs another Arduino with ArduinoAsIsp firmware or any 
 AVR microcontroller programming device such as Pickit2.

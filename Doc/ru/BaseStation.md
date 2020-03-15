@@ -4,11 +4,11 @@
 
 Основные компоненты станции отметки: микроконтроллер - Atmega328p-au, RFID-модуль RC522, часы DS3231SN. Питание от 3х батареек АА через линейный стабилизатор MCP1700T-33. Схема и плата выполнены в программе KiCad.
 
-![](/hardware/BaseStation/prod/sportiduino-base-scheme.jpg?raw=true "Принципиальная схема")
+![](/hardware/BaseStation/prod/v2/sportiduino-base-v2-scheme.jpg?raw=true "Принципиальная схема")
 
 Монтаж компонентов проходит на печатной плате, с платой RFID соединение пайкой через штырьковый разъём. Можно заказать изготовление плат в Китае, за партию в 30 плат это обойдётся порядка 50 рублей за штуку с доставкой.
 
-![](/hardware/BaseStation/prod/sportiduino-base-assembly.jpg?raw=true "Расположение компонентов")
+![](/hardware/BaseStation/prod/v2/sportiduino-base-v2-assembly.jpg?raw=true "Расположение компонентов")
 
 Для прошивки микроконтроллера потребуется другой Arduino с установленной прошивкой ArduinoAsIsp или любой программатор для микроконтроллеров AVR, например, Pickit2.
 
