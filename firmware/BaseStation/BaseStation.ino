@@ -21,6 +21,9 @@
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
 #define FW_MINOR_VERS     ((MAX_FW_MINOR_VERS) + 1)
 
+// If PCB has reed switch and you don't want RC522 powered every 25 secs comment option bellow 
+#define POLL_CARDS_IN_SLEEP_MODE
+
 
 //-------------------------------------------------------------------
 // HARDWARE
@@ -45,8 +48,6 @@
 
 #if HW_VERS == 1
     #define DS3231_VCC     5
-    #define DS3231_IRQ     A3
-    #define DS3231_32K     A1 // not used, reserved for future
     #define DS3231_RST     A0
 
     #define RC522_IRQ      6
@@ -106,11 +107,6 @@ typedef struct __attribute__((packed)) {
     uint8_t password[3];
 } Configuration;
 
-
-
-#ifdef REED_SWITCH
-    #define USE_REED_SWITCH
-#endif
 
 #ifdef I2C_EEPROM_VCC
     #define USE_I2C_EEPROM
@@ -215,7 +211,7 @@ inline void beepMasterCardSleepOk()     { beep(500, 4); }
 inline void beepSerialOk()              { beep(250, 1); }
 inline void beepSerialError()           { beep(250, 2); }
 
-#ifdef USE_REED_SWITCH
+#ifdef REED_SWITCH
     inline void enableInterruptReedSwitch() { enablePCINT(digitalPinToPCINT(REED_SWITCH)); }
     inline void disableInterruptReedSwitch() { disablePCINT(digitalPinToPCINT(REED_SWITCH)); }
 #else
@@ -280,9 +276,13 @@ void setup() {
     pinMode(RC522_RST, OUTPUT);
     pinMode(RC522_SS, OUTPUT);
     pinMode(RC522_IRQ, INPUT_PULLUP);
-    pinMode(DS3231_IRQ, INPUT_PULLUP);
+#ifdef DS3231_IRQ
+    pinMode(DS3231_IRQ, INPUT);
+#endif
+#ifdef DS3231_32K
     pinMode(DS3231_32K, INPUT_PULLUP);
-#ifdef USE_REED_SWITCH
+#endif
+#ifdef REED_SWITCH
     pinMode(REED_SWITCH, INPUT_PULLUP);
 #endif
     pinMode(DS3231_VCC, OUTPUT);
@@ -316,10 +316,12 @@ void setup() {
         beepTimeError();
     }
 
+#ifdef DS3231_IRQ
     // Config DS3231 interrupts
     attachPCINT(digitalPinToPCINT(DS3231_IRQ), rtcAlarmIrq, FALLING);
+#endif
     
-#ifdef USE_REED_SWITCH
+#ifdef REED_SWITCH
     attachPCINT(digitalPinToPCINT(REED_SWITCH), reedSwitchIrq, FALLING);
     disablePCINT(digitalPinToPCINT(REED_SWITCH));
 #endif
@@ -380,7 +382,7 @@ void loop() {
     }
 #endif
 
-#ifdef USE_REED_SWITCH
+#if defined(REED_SWITCH) && defined(POLL_CARDS_IN_SLEEP_MODE)
     if(mode == MODE_SLEEP) {
         if(reedSwitchFlag) {
             reedSwitchFlag = 0;
@@ -549,12 +551,16 @@ void sleep(uint16_t ms) {
            pin == ADC_IN ||
            pin == ADC_ENABLE ||
 #endif
-#ifdef USE_REED_SWITCH
+#ifdef REED_SWITCH
            pin == REED_SWITCH ||
 #endif
            pin == DS3231_VCC ||
+#ifdef DS3231_IRQ
            pin == DS3231_IRQ ||
+#endif
+#ifdef DS3231_32K
            pin == DS3231_32K ||
+#endif
            pin == DS3231_RST) {
             continue;
         }
