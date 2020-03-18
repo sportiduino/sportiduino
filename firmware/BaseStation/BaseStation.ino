@@ -7,11 +7,11 @@
 #include <PinChangeInterrupt.h>
 #include <sportiduino.h>
 
-// Remove a comment from a line below to compile in DEBUG mode
+// Uncomment line below to compile in DEBUG mode
 //#define DEBUG
-// You can also set debug mode by running "make debug=1"
+// You can also set debug mode by running "make debug=1 ..."
 
-// Set PCB version by running "make pcbv=3"
+// Set PCB version by running "make pcbv=3 ..."
 #ifndef HW_VERS
     // or change here
     #define HW_VERS     3
@@ -19,16 +19,17 @@
 #define FW_MAJOR_VERS   7
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     ((MAX_FW_MINOR_VERS) + 1)
+#define FW_MINOR_VERS     ((MAX_FW_MINOR_VERS) + 2)
 
-// If PCB has reed switch and you don't want RC522 powered every 25 secs comment option bellow 
-#define POLL_CARDS_IN_SLEEP_MODE
+// If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
+//#define NO_POLL_CARDS_IN_SLEEP_MODE
+// You can also run "make nopoll=1 ..."
 
 
 //-------------------------------------------------------------------
 // HARDWARE
 
-// Set BUZZER_FREQUENCY by running "make buzzfreq=2500"
+// Set BUZZER_FREQUENCY by running "make buzzfreq=2500 ..."
 #ifndef BUZZER_FREQUENCY
     // or change here
     #define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
@@ -46,13 +47,21 @@
 #define SDA           A4
 #define SCL           A5
 
+// If you added battery voltage measurement circuite, reed switch or I2C EEPROM to your PCB v1 or v2
+// you only need define appropriate pins like for PCB v3
+
 #if HW_VERS == 1
     #define DS3231_VCC     5
     #define DS3231_RST     A0
-
     #define RC522_IRQ      6
+
+    //#define ADC_IN         pin_number
+    //#define ADC_ENABLE     pin_number
+
+    //#define I2C_EEPROM_VCC pin_number
+    //#define REED_SWITCH    pin_number
 #elif HW_VERS == 2
-    #define DS3231_VCC     8 // not used
+    #define DS3231_VCC     A1
     #define DS3231_IRQ     A3
     #define DS3231_32K     5 // not used, reserved for future
     #define DS3231_RST     2
@@ -61,6 +70,12 @@
 
     #define ADC_IN         A0
     #define ADC_ENABLE     A1
+
+    //#define ADC_IN         pin_number
+    //#define ADC_ENABLE     pin_number
+
+    //#define I2C_EEPROM_VCC pin_number
+    //#define REED_SWITCH    pin_number
 #elif HW_VERS == 3
     #define DS3231_VCC     A3
     #define DS3231_IRQ     A2
@@ -276,6 +291,7 @@ void setup() {
     pinMode(RC522_RST, OUTPUT);
     pinMode(RC522_SS, OUTPUT);
     pinMode(RC522_IRQ, INPUT_PULLUP);
+    pinMode(DS3231_VCC, OUTPUT);
 #ifdef DS3231_IRQ
     pinMode(DS3231_IRQ, INPUT);
 #endif
@@ -285,7 +301,6 @@ void setup() {
 #ifdef REED_SWITCH
     pinMode(REED_SWITCH, INPUT_PULLUP);
 #endif
-    pinMode(DS3231_VCC, OUTPUT);
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     pinMode(ADC_IN, INPUT);
     pinMode(ADC_ENABLE, INPUT);
@@ -382,19 +397,7 @@ void loop() {
     }
 #endif
 
-#if defined(REED_SWITCH) && defined(POLL_CARDS_IN_SLEEP_MODE)
-    if(mode == MODE_SLEEP) {
-        if(reedSwitchFlag) {
-            reedSwitchFlag = 0;
-            processRfid();
-        }
-    } else {
-        processRfid();
-    }
-#else
-    // process cards
     processRfid();
-#endif
 
     // process mode
     switch(mode) {
@@ -825,6 +828,13 @@ bool checkBattery(bool beepEnabled) {
 }
 
 void processRfid() {
+#if defined(REED_SWITCH) && defined(NO_POLL_CARDS_IN_SLEEP_MODE)
+    if(mode == MODE_SLEEP && !reedSwitchFlag) {
+        return;
+    }
+#endif
+    reedSwitchFlag = 0;
+
     rfid.begin(config.antennaGain);
     processCard();
     rfid.end();

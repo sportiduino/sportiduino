@@ -27,6 +27,10 @@ ifdef pcbv
 	CXXFLAGS += -DHW_VERS=$(pcbv)
 endif
 
+ifdef nopoll
+	CXXFLAGS += -DNO_POLL_CARDS_IN_SLEEP_MODE
+endif
+
 $(info CXXFLAGS = $(CXXFLAGS))
 
 include $(ARDMK_DIR)/Arduino.mk
