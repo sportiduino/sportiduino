@@ -46,7 +46,8 @@ Build the firmware of the base station with `#define HW_VERS 1` to install the f
 
 Issues and suggested improvements can be posted on [Issues](https://github.com/sportiduino/sportiduino/issues) page.
 Please make sure you provide all relevant information about your problem or idea.
-We also have our [Telegram chat](https://t.me/Sportiduino). There you can ask any questions about the system.
+
+We also have our [Telegram chat](https://t.me/Sportiduino) where you can ask any questions about the system.
 
 ## Contributing
 
@@ -55,7 +56,7 @@ We welcome software for working with the system on a PC via USB and on Android v
 The data transfer protocol and commands are described in the [Manual](/Doc/en/MasterStation.md).
 With pleasure we will add a link to your developments working with Sportiduino.
 
-Pull requests, Creation of forks, developing any new ideas are also welcome.
+Pull requests, creation of forks, developing any new ideas are welcome.
 
 You can also help by improving documentation and its translation.
 
