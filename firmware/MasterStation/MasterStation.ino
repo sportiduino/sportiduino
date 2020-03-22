@@ -4,7 +4,7 @@
 #define FW_MAJOR_VERS     7
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     ((MAX_FW_MINOR_VERS) + 1)
+#define FW_MINOR_VERS     ((MAX_FW_MINOR_VERS) + 2)
 
 
 //-----------------------------------------------------------
@@ -405,6 +405,10 @@ void funcReadCard(uint8_t*, uint8_t) {
 
     byte pageData[] = {0,0,0,0};
     if(!rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
+        signalError(ERROR_CARD_READ);
+        return;
+    }
+    if(pageData[2] == 0xff) {
         return;
     }
     serialProto.start(RESP_FUNC_MARKS);
@@ -413,6 +417,7 @@ void funcReadCard(uint8_t*, uint8_t) {
     serialProto.add(pageData[1]);
 
     if(!rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
+        signalError(ERROR_CARD_READ);
         return;
     }
     uint8_t timeHighByte = pageData[0];
@@ -423,6 +428,7 @@ void funcReadCard(uint8_t*, uint8_t) {
     initTime |= pageData[3];
 
     if(!rfid.cardPageRead(CARD_PAGE_INFO1, pageData)) {
+        signalError(ERROR_CARD_READ);
         return;
     }
     // Output page 6
@@ -431,6 +437,7 @@ void funcReadCard(uint8_t*, uint8_t) {
     }
 
     if(!rfid.cardPageRead(CARD_PAGE_INFO2, pageData)) {
+        signalError(ERROR_CARD_READ);
         return;
     }
     // Output page 7
@@ -442,11 +449,12 @@ void funcReadCard(uint8_t*, uint8_t) {
 
     for(uint8_t page = CARD_PAGE_START; page <= maxPage; ++page) {
         if(!rfid.cardPageRead(page, pageData)) {
+            signalError(ERROR_CARD_READ);
             return;
         }
 
         if(pageData[0] == 0) { // no new punches
-            return;
+            break;
         }
         // Output station number
         serialProto.add(pageData[0]);
