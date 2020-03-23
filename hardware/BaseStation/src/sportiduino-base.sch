@@ -1,12 +1,11 @@
 EESchema Schematic File Version 4
-LIBS:sportduino-base-cache
 EELAYER 26 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
 Sheet 1 1
 Title "Sportiduino Base Station"
-Date "2020-02-10"
+Date "2020-03-23"
 Rev "3"
 Comp "Sportiduino"
 Comment1 "I2C EEPROM"
@@ -550,12 +549,12 @@ $EndComp
 $Comp
 L power:+BATT #PWR021
 U 1 1 5DE0B722
-P 2300 5300
-F 0 "#PWR021" H 2300 5150 50  0001 C CNN
-F 1 "+BATT" H 2450 5350 50  0000 C CNN
-F 2 "" H 2300 5300 50  0001 C CNN
-F 3 "" H 2300 5300 50  0001 C CNN
-	1    2300 5300
+P 2300 6050
+F 0 "#PWR021" H 2300 5900 50  0001 C CNN
+F 1 "+BATT" H 2450 6100 50  0000 C CNN
+F 2 "" H 2300 6050 50  0001 C CNN
+F 3 "" H 2300 6050 50  0001 C CNN
+	1    2300 6050
 	1    0    0    -1  
 $EndComp
 Text GLabel 2900 6550 2    50   Input ~ 0
@@ -707,39 +706,6 @@ F 2 "Resistor_SMD:R_0805_2012Metric_Pad1.15x1.40mm_HandSolder" V 10380 2900 50  
 F 3 "~" H 10450 2900 50  0001 C CNN
 	1    10450 2900
 	1    0    0    -1  
-$EndComp
-$Comp
-L Diode:BAV99 VD2
-U 1 1 5DE5A603
-P 2300 5600
-F 0 "VD2" V 2346 5512 50  0000 R CNN
-F 1 "BAV99" V 2255 5512 50  0000 R CNN
-F 2 "Package_TO_SOT_SMD:SOT-23_Handsoldering" H 2300 5450 50  0001 C CNN
-F 3 "www.nxp.com/documents/data_sheet/BAV99_SER.pdf" H 2300 5700 50  0001 C CNN
-	1    2300 5600
-	0    -1   -1   0   
-$EndComp
-$Comp
-L Diode:BAV99 VD2
-U 2 1 5DE5A6AC
-P 2300 5950
-F 0 "VD2" V 2346 5862 50  0000 R CNN
-F 1 "BAV99" V 2255 5862 50  0000 R CNN
-F 2 "Package_TO_SOT_SMD:SOT-23_Handsoldering" H 2300 5800 50  0001 C CNN
-F 3 "www.nxp.com/documents/data_sheet/BAV99_SER.pdf" H 2300 6050 50  0001 C CNN
-	2    2300 5950
-	0    -1   -1   0   
-$EndComp
-$Comp
-L Jumper:SolderJumper_2_Open JP3
-U 1 1 5DE87FFD
-P 2750 5750
-F 0 "JP3" V 2750 5818 50  0000 L CNN
-F 1 "SolderJumper_2_Open" H 2795 5818 50  0001 L CNN
-F 2 "Jumper:SolderJumper-2_P1.3mm_Open_RoundedPad1.0x1.5mm" H 2750 5750 50  0001 C CNN
-F 3 "~" H 2750 5750 50  0001 C CNN
-	1    2750 5750
-	0    1    1    0   
 $EndComp
 $Comp
 L Connector:TestPoint TP1
@@ -1004,12 +970,6 @@ Wire Wire Line
 Wire Wire Line
 	6600 2700 6600 2850
 Wire Wire Line
-	2300 5300 2300 5350
-Wire Wire Line
-	2300 5750 2300 5800
-Wire Wire Line
-	2300 6100 2300 6150
-Wire Wire Line
 	2300 6500 2300 6550
 Wire Wire Line
 	2900 6550 2300 6550
@@ -1086,7 +1046,7 @@ Wire Wire Line
 Wire Wire Line
 	8950 2050 8950 2100
 Wire Wire Line
-	6600 2700 8150 2700
+	6600 2700 8400 2700
 Wire Wire Line
 	2300 3700 2800 3700
 Wire Wire Line
@@ -1107,20 +1067,6 @@ Wire Wire Line
 Connection ~ 10450 3700
 Wire Wire Line
 	10450 3700 10600 3700
-Connection ~ 2300 5350
-Wire Wire Line
-	2300 6150 2750 6150
-Wire Wire Line
-	2750 6150 2750 5900
-Wire Wire Line
-	2300 6150 2300 6200
-Connection ~ 2300 6150
-Wire Wire Line
-	2300 5350 2750 5350
-Wire Wire Line
-	2300 5350 2300 5450
-Wire Wire Line
-	2750 5350 2750 5600
 Wire Wire Line
 	6150 3200 6200 3200
 Wire Wire Line
@@ -1240,12 +1186,12 @@ Wire Wire Line
 Text Label 7700 2100 0    50   ~ 0
 PB0
 Wire Wire Line
-	8150 2050 8950 2050
-Text GLabel 8250 2700 2    50   Input ~ 0
+	8400 2050 8950 2050
+Text GLabel 8500 2700 2    50   Input ~ 0
 PC3
 Wire Wire Line
-	8150 2700 8250 2700
-Connection ~ 8150 2700
+	8400 2700 8500 2700
+Connection ~ 8400 2700
 Wire Wire Line
 	7500 3600 7700 3600
 Wire Wire Line
@@ -1270,10 +1216,34 @@ F 3 "~" H 7050 2850 50  0001 C CNN
 	1    7050 2850
 	-1   0    0    -1  
 $EndComp
-Wire Bus Line
-	9850 650  9850 1500
+Wire Wire Line
+	8400 2050 8400 2700
+Wire Wire Line
+	2300 6050 2300 6200
+Entry Wire Line
+	9850 1000 9950 1100
+Entry Wire Line
+	9850 1000 9950 1100
+Entry Wire Line
+	8000 2300 8100 2400
+Text GLabel 8150 2400 2    50   Input ~ 0
+PB3
+Wire Wire Line
+	8100 2400 8150 2400
+Entry Wire Line
+	8000 2400 8100 2500
+Entry Wire Line
+	8000 2500 8100 2600
+Text GLabel 8150 2500 2    50   Input ~ 0
+PB4
+Text GLabel 8150 2600 2    50   Input ~ 0
+PB5
+Wire Wire Line
+	8100 2500 8150 2500
+Wire Wire Line
+	8100 2600 8150 2600
 Wire Bus Line
 	8000 650  8000 2600
-Wire Wire Line
-	8150 2050 8150 2700
+Wire Bus Line
+	9850 650  9850 1500
 $EndSCHEMATC
