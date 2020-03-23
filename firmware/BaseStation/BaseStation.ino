@@ -95,27 +95,17 @@
 
 //-------------------------------------------------------------------
 
-// Configuration
-// Bits 0-2 - Active mode duration:
-// Bit 3 - Check start/finish station marks on a participant card (0 - no, 1 - yes)
-// Bit 4 - Check init time of a participant card (0 - no, 1 - yes)
-// Bit 5 - Reserved
-// Bit 6 - Fast mark mode (0 - no, 1 - yes)
-// Bit 7 - Reserved
-// Bits 8-10 - Antenna gain
-// Bits 11-15 - Reserved
-
 typedef struct __attribute__((packed)) {
     uint8_t stationNumber;
-// activeModeDuration
+// Active mode duration
 //    (xxx) - 2^(bit2:bit0) hours in active mode (1 - 32 hours)
 //    (110) - always be in active mode (check card in 0.25 second period)
 //    (111) - always be in wait mode (check card in 1 second period)
     uint8_t activeModeDuration: 3;
-    uint8_t checkStartFinish: 1;
-    uint8_t checkCardInitTime: 1;
+    uint8_t checkStartFinish: 1; // Check start/finish station marks on a participant card
+    uint8_t checkCardInitTime: 1; // Check init time of a participant card
     uint8_t _reserved0: 1;
-    uint8_t fastMark: 1;
+    uint8_t fastMark: 1; // Fast mark mode
     uint8_t _reserved1: 1;
     uint8_t antennaGain: 3;
     uint8_t _reserved2: 5;
@@ -249,7 +239,6 @@ void serialRespStatus(uint8_t code);
 void wakeupByUartRx();
 uint8_t getPinMode(uint8_t pin);
 void setStationNum(uint8_t num);
-void setAntennaGain(uint8_t gain);
 void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void sleep(uint16_t ms);
@@ -485,14 +474,6 @@ void setStationNum(uint8_t num) {
     }
 
     config.stationNumber = num;
-}
-
-void setAntennaGain(uint8_t gain) {
-    if(gain > MAX_ANTENNA_GAIN || gain < MIN_ANTENNA_GAIN) {
-        return;
-    }
-
-    config.antennaGain = gain;
 }
 
 void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
