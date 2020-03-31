@@ -1,13 +1,13 @@
 ### SportiduinoPQ
 
-Настройка чипов и станций производится в программе [SportiduinoPQ](https://github.com/alexandervolikov/SportiduinoPQ)
+Настройка чипов и станций производится в программе [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ)
 
-Программа основана на [модуле на python](https://github.com/alexandervolikov/sportiduinoPython) а также на пакете PyQt для создания оконных приложений
+Программа написана на Python3 с использованием PyQt5 и [модуля SportiduinoPython](https://github.com/sportiduino/sportiduinoPython).
 
 Программа может выдавать распечатки, сохранять сырые данные в формате JSON для дальнейшей их обработки.
 
 ### SportOrg
 
-Чтение чипов реализовано в программе [SportOrg ](https://github.com/sportorg/pysport)
+Чтение чипов реализовано в программе [SportOrg](https://github.com/sportorg/pysport)
 
-[Сайт с руководством](http://sportorg.o-ural.ru/)
+[Сайт с руководством](https://sportorg.readthedocs.io/ru/latest/)
