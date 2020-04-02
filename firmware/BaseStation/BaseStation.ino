@@ -1417,6 +1417,15 @@ void processSerial() {
         serialRespStatus(SERIAL_ERROR_CRC);
         return;
     }
+    
+    // Now we don't check password at serial
+    //if(data[0] != config.password[0] ||
+    //   data[1] != config.password[1] ||
+    //   data[2] != config.password[2] ) {
+    //    serialRespStatus(SERIAL_ERROR_PWD);
+    //    return;
+    //}
+
     if(data) {
         switch(cmdCode) {
             case SERIAL_FUNC_READ_INFO:
@@ -1435,13 +1444,6 @@ void processSerial() {
 void serialFuncReadInfo(byte *data, byte dataSize) {
     if(dataSize < 3) {
         serialRespStatus(SERIAL_ERROR_SIZE);
-        return;
-    }
-
-    if(data[0] != config.password[0] ||
-       data[1] != config.password[1] ||
-       data[2] != config.password[2] ) {
-        serialRespStatus(SERIAL_ERROR_PWD);
         return;
     }
 
@@ -1490,13 +1492,6 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
 void serialFuncWriteSettings(byte *data, byte dataSize) {
     if(dataSize < 22) {
         serialRespStatus(SERIAL_ERROR_SIZE);
-        return;
-    }
-    
-    if(data[0] != config.password[0] ||
-       data[1] != config.password[1] ||
-       data[2] != config.password[2] ) {
-        serialRespStatus(SERIAL_ERROR_PWD);
         return;
     }
 
