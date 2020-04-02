@@ -1,9 +1,27 @@
+## [3.7.0]
+New base station PCB:
+- Added battery voltage measurement circuit (GH-63)
+- Added EEPROM IC for backuping punches (GH-69)
+- Added reed switch for wake up (GH-75)
+- New 10-pin slot for programming (GH-68)
+- Fixed increased power consumption by DS3231 (GH-61)
+
+Firmware bug fixes and improvements:
+- Decreased power consumption (GH-61)
+- Fix overwriting last mark in full card (GH-84)
+- Signal battery state at wake-up (GH-81)
+- New 3-bytes version format
+- Deinitialize time and station number master cards by BS
+- Simplified signal system
+- Added makefiles for building
+- Refactoring
+
 ## [2.6.3] - 2020-01-20
-- Fix NTAG cards detection (Issue #73)
-- Fix increased power consumption in sleep mode for PCB v2 (Issue #61)
+- Fix NTAG cards detection (GH-73)
+- Fix increased power consumption in sleep mode for PCB v2 (GH-61)
 
 ## [2.6.2] - 2019-12-12
-- Fix increased power consumption in sleep mode for PCB v1 (Issue #61)
+- Fix increased power consumption in sleep mode for PCB v1 (GH-61)
 - Changed default antenna gain to 33 dB
 
 ## [2.6.1] - 2019-08-26
@@ -31,13 +49,13 @@
 - Designed a box for a master station to print on 3d-printer
 
 ## [1.4.2] - 2018-10-23
-### delete antena gain from setting-byte
+Delete antenna gain from setting-byte
 
 ## [1.4.1] - 2018-10-17
-### mark beep change, reduce power for master station
+Mark beep change, reduce power for master station
 
 ## [1.4.0] - 2018-10-03
-### Added the ability to reduce the power of the antenna to choose the optimal range of the station
+Added the ability to reduce the power of the antenna to choose the optimal range of the station
 
 ## [1.3.8] - 2018-06-25
 ### Added the program for work with the system
@@ -56,11 +74,11 @@ based on [a python module](https://github.com/sportiduino/sportiduinoPython) and
 ### Bug fixes
 - The Check station signals the master chips
 - The Clear station can clear a repeatedly non-empty chip with the same number
-- Resetting the station settings with enterening to sleep mode is configurable
+- Resetting the station settings with entering to sleep mode is configurable
 
 ## [1.3.4] - 2018-06-13
 ### Some changes
-- reset stantion config with sleep entering
+- reset station config with sleep entering
 - fix sounds
 - remove auto reading mode at master station
 
@@ -80,7 +98,7 @@ based on [a python module](https://github.com/sportiduino/sportiduinoPython) and
 
 ## [1.3.0] - 2018-04-11
 ### Bug fix and new features
-- Bug fix with set settings to statioin
+- Bug fix with set settings to station
 - Add clear station mode
 - Sound of the station is amplified by adding transistor to scheme
 - Firmware for working with Mifare Classic S50 cards moved to the main repository
@@ -92,10 +110,10 @@ based on [a python module](https://github.com/sportiduino/sportiduinoPython) and
 - Added the function of transferring the station to automatic regime of cards reading
 
 ## [1.1.0] - 2018-02-13
-### Delete regime stantion-page, bug fix
+### Delete regime station-page, bug fix
 - To unify the work with the system, the mode in which the label was written to the page equal to the station number was deleted. A sequential mode is left with the search for the last blank page.
 - Fixed the bug that occurs when initializing ntag 213 card
-- Fixed the bug thst occurs with transmitting log from base stantion
+- Fixed the bug that occurs with transmitting log from base station
 
 ## [1.0.0] - 2018-02-11
 ### First stable version

@@ -27,7 +27,7 @@ The structure of the records is presented below. Page numbers start from 0. Page
 
 Master tags which set up the stations have a different structure. The station recognizes them by the number 255, recorded in the third byte of the 4th page. There are 5 different master tags: time, numbers, sleep, settings and dump. Their structure is below. After reading any of them, the station performs the requested function and erases the tag to prevent its accidental reuse.
 
-![](/Images/Master-Ntag2.JPG)
+![](/Images/master-card.png?raw=true)
 
 A tag with a station dump has the following structure.
 

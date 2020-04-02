@@ -3,11 +3,11 @@
 The main components of the station: microcontroller - Atmega328p-au, RFID module RC522, clock DS3231. Powered by 3 x AA batteries via the MCP1700T-33 linear regulator. Scheme and pcb drawing are available at [Upvertet](https://upverter.com/AlexanderVolikov/a6d775cd45a22968/Sportiduino-MarkStantion/)
 One can view them in KiCad program.
 
-![](/hardware/BaseStation/prod/v2/sportiduino-base-v2-scheme.jpg?raw=true "Scheme")
+![](/hardware/BaseStation/prod/v3/sportiduino-base-v3-scheme.png?raw=true "Scheme")
 
 The components are mounted on a printed circuit board. Connection with an RFID card is via soldered connection with a pin connector. You can order the manufacture of pcb in China, it will cost around 0.9-1 $ per piece with delivery. Gerber files are in the folder 'base station'.
 
-![](/hardware/BaseStation/prod/v2/sportiduino-base-v2-assembly.jpg?raw=true "PCB")
+![](/hardware/BaseStation/prod/v3/sportiduino-base-v3-pcb.png?raw=true "PCB")
 
 To upload firmware to the station one needs another Arduino with ArduinoAsIsp firmware or any 
 AVR microcontroller programming device such as Pickit2.
@@ -15,7 +15,7 @@ AVR microcontroller programming device such as Pickit2.
 The outer shell is G1020BF. A hole is drilled in the box for the LED and the excess plastic is cut off so that the battery compartment fits in.
 Moisture protection is achieved by covering all the PCB electronics with a liquid silicone compound.
 
-[More details about the assembly and the initial setting of the station](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/BaseStationAssembly.md)
+About the assembly and the initial setting of the station written in [the assembly manual](/Doc/en/BaseStationAssembly.md)
 
 ### Consumption
 

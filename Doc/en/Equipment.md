@@ -1,4 +1,4 @@
-![](/Images/equip.jpg)
+![](/Images/equip.jpg?raw=true)
 
 1. The multimeter. Not necessarily, but can be very useful.
 
@@ -35,7 +35,7 @@ To upload boatloder, you will additionally need another Arduino, it is convenien
 
 To upload the firmware you need USB-UART (USB-TTL, USB-SERIAL, etc.). I'm using the scheme CH340. It is important that the DTR pin (RST) is working, read the reviews before purchasing.
 
-![](/Images/TTL-UART.JPG)
+![](/Images/UsbToTtl.jpg?raw=true)
 
 To connect the boards to each other you need wires, for example Dupont
 

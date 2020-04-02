@@ -44,7 +44,7 @@ d. Beeper TR1205Y or HC0903A.
 
 7. The case is Gainta G1020BF. A good body made of ABS plastic, can be doped well for your purposes. You can find another one.
 
-Equipment that is useful for assembly is given [on a separate page](https://github.com/alexandervolikov/sportiduino/blob/master/Doc/en/Equipment.md)
+Equipment, which is useful for assembly, is given [on a separate page](/Doc/en/Equipment.md)
 
 (Translation below was not updated.)
 
