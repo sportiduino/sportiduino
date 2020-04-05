@@ -1,12 +1,10 @@
 ### SportiduinoPQ
 
-Cards and stations are tuned in the program [SportiduinoPQ](https://github.com/alexandervolikov/SportiduinoPQ).
+Cards and stations are configured by the program [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ).
 
-The program is based on [a python module](https://github.com/alexandervolikov/sportiduinoPython) and also on the PyQt package for creating window applications.
-
-There is also a [similar program on Processing](https://github.com/alexandervolikov/sportiduinoProcessing), the support of which is stopped.
+The program is written on Python3 using PyQt5 and [SportiduinoPython](https://github.com/sportiduino/sportiduinoPython).
 
 ### SportOrg
 
-Reading cards is implemented in the program [SportOrg](https://github.com/sportorg/pysport)
+Reading cards is implemented in the program [SportOrg](https://github.com/sportorg/pysport).
 

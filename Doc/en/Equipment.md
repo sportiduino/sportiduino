@@ -1,47 +1,42 @@
+# Equipment and materials
+
 ![](/Images/equip.jpg?raw=true)
 
-1. The multimeter. Not necessarily, but can be very useful.
+1. The multimeter. Optional.
 
-2. Soldering iron. Needed with temperature regulators
+2. Soldering iron with temperature regulator or soldering station (e.g. 8586).
 
-3. Stand for soldering iron, optional
+3. Stand for soldering iron.
 
-4. "The Third Hand". It is necessary to solder SMD Elements
+4. "The Third Hand" tool. It is necessary to solder SMD elements.
 
-5. Flux, better good. Toothpick for application.
+5. Flux and brush. It is recommended fluxes for SMD (RMA-218, NC-559).
 
-6. Tweezers, is required when soldering small parts. The cut off needle from under a syringe for cleaning the hammered holes, a knife.
+6. Tweezers (is required for soldering small parts), the cut off needle from under a syringe for cleaning the hammered holes, a knife.
 
-7. Solder, it's also better to take a good one.
+7. Solder Sn63Pb37.
 
-8. Braid to remove the solder, very helps to remove the fillings, excess solder, as well as for stripping the board in case of resoldering individual elements
+8. Braid to remove excess solder, as well as to strip the board in case of resoldering individual elements.
 
-9. Drill, 3 mm for the hole for the LED
+9. Drill, 3 mm for the hole for the LED.
 
-10. Stationery knife for cutting the box
+10. Stationery knife for cutting the box.
 
-11. Phillips screwdriver for twisting the case (better to take a good one)
+11. Phillips screwdriver for twisting the box.
 
-12. Vaseline to smear contacts in the battery compartment against corrosion. Optional.
+12. Vaseline to smear contacts in the battery box against corrosion. Optional.
 
-13. Epoxy adhesive for gluing the LED
+13. Epoxy adhesive for gluing the LED.
 
-14. Compound. Optional.
+14. Silicon compound. Optional.
 
 
-To upload boatloder, you will additionally need another Arduino, it is convenient to take arduino UNO.
+To upload bootloader, you will additionally need another Arduino (Nano) or programmer Pickit2.
 
-![](/Images/UNO.JPG)
+![](/Images/nano.jpg?raw=true "Arduino Nano")
 
-To upload the firmware you need USB-UART (USB-TTL, USB-SERIAL, etc.). I'm using the scheme CH340. It is important that the DTR pin (RST) is working, read the reviews before purchasing.
+To upload the firmware you need USB-UART converter (USB-to-TTL, USB-SERIAL, etc.).
+It is important that one has connected DTR pin (USB-UART with ICs CH340 or CP2102).
 
 ![](/Images/UsbToTtl.jpg?raw=true)
-
-To connect the boards to each other you need wires, for example Dupont
-
-![](/Images/Wire.JPG)
-
-Not necessary, but you may also need a breadboard for any purpose
-
-![](/Images/Breadboard.JPG)
 

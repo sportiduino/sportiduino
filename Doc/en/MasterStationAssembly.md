@@ -1,39 +1,70 @@
-Mark station components
+# Master Station Assembly
 
-![](/Images/w01.jpg)
+### Master station components
 
-1. RFID module RC522. Pretty common.
+![](/Images/w01.jpg?raw=true)
 
-2. Arduino nano. You can connect directly to the computer. There are variations on which chip is implemented Serial-USB port, more expensive FT232RL and cheaper CHG340, to connect the second you need to install the driver on the computer. I used a cheaper option
-
-3. The pcp for soldering. The cost depends on the lot, the minimum number is 5. It is advisable to order boards for the gateway station simultaneously with the pcb for the mark stations.
-
+1. RFID module RC522.
+2. Arduino Nano.
+You can connect directly to the computer.
+There are variations on which chip USB-Serial is implemented: more expensive FT232RL or cheaper CHG340.
+To connect the second you need to install the driver on Windows.
+3. The PCB for soldering ([variant 1](https://upverter.com/AlexanderVolikov/3fc0efdb2586988d/Sportiduino-reading-stantion/) or
+[variant 2](https://upverter.com/design/syakimov/4f7ec0e2d3b9c4e9/sportiduino-master-station/)).
+You can order the manufacture of PCB in China (e.g. [JLCPCB](https://jlcpcb.com/)).
+The cost depends on the lot, the minimum number is 5.
+It is advisable to order boards for the master station simultaneously with the PCB for the base stations.
 4. Pins, LED and buzzer. 
+5. The case is Gainta 1020BF or 1015. Sold in Russia. 
+6. USB-lace.
+USB type depends on the port used in Arduino Nano (micro- or mini-USB).
 
-5. The case is Gainta 1020BF. A good body made of ABS plastic, can be doped well for your purposes. 
+### Station with PCB variant 1 and the G1020BF case
 
-6. USB-lace. Depends on the port used in Arduino Nano / I have a micro-usb.
+First solder Arduino Nano.
+Spread the legs and holes with flux, solder.
+ISP (2x3 connector) can not be soldered.
 
-First you need to solder arduino nano, although you can order with already soldered legs. Spread the legs and holes with flux, solder. ISP (2 * 3 connector) can not be soldered, but with it you can upload stations and do without an additional programmer in the form of Arduino Uno.
+![](/Images/w02.jpg?raw=true)
 
-![](/Images/w02.jpg )
+Further solder Arduino Nano in the main board.
+Also in the main board we solder a 1x8 connector, a angle-bent LED,
+a buzzer and resistors 0805 47 ohm (to the buzzer) and 150 ohm (to the LED).
 
-Further solder in the main board. Also in the main board we solder the 1 * 8 connector, the angle-bent LED, the buzzer and the resistors 0805 by 47 ohm (to the buzzer) and 150 ohms to the LED
+![](/Images/w03.jpg?raw=true)
 
-![](/Images/w03.jpg)
+Solder the RFID module.
+Then connect the master station via a USB wire to the computer.
  
+![](/Images/w04.jpg?raw=true)
 
-Then solder the RFID module. We connect it via a USB wire to the computer.
+Open the Arduino IDE program on the computer (see [Arduino IDE Setting](/Doc/en/BaseStationAssembly.md#Arduino-IDE-Setting)).
+In the settings specify the board type `Arduino Nano`, processor `ATmega328P (Old Bootloader)`,
+select the appropriate serial port and upload MasterStation sketch onto the board.
+
+For USB cable cut off a s small groove in the case.
+The LED is greased with epoxy glue.
  
-![](/Images/w04.jpg)
+![](/Images/w05.jpg?raw=true)
 
+After that close the case.
+The master station is ready for use.
 
-Open the Arduino program on the computer, in the settings we specify the board type (Arduino Nano), select the required COM port and upload the RFID_ReadSet firmware onto the board.
+![](/Images/w06.jpg?raw=true)
 
-We try on the case. The board I got a little unsuccessful, the cable barely damp, it would be nice to slightly shift the arduino nano and put it at an angle. But you can squeeze it. A small groove in the body is cut out for the wire. The LED is greased with epoxy.
- 
-![](/Images/w05.jpg)
+### Station without PCB
 
-After that the body is twisted and ready for use.
+The master station can be assembled without a PCB.
+The LED, buzzer and RFID module are soldered by wiring to the Arduino Nano according to the scheme.
 
-![](/Images/w06.jpg)
+![](/hardware/MasterStation/usb/Scheme.PNG?raw=true)
+
+The station case is designed for 3D-printing.
+Files for 3D-printer placed in the folder `hardware/MasterStation/3d/print`.
+
+![](/Images/MasterStationBoxTop.jpg?raw=true)
+
+![](/Images/MasterStationBoxBot.jpg?raw=true)
+
+![](/Images/MasterStationInBox.jpg?raw=true)
+

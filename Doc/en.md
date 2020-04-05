@@ -5,7 +5,7 @@ This project is devoted to building an electronic timing system for orienteering
 The English translation is rough, there may be some unclear moments. Create an Issue if you have any questions.
 
 * [User Manual](/Doc/en/UserManual.md)
-* [Card](/Doc/en/Card.md)
+* [Cards](/Doc/en/Card.md)
 * [Base Station](/Doc/en/BaseStation.md)
 * [Master Station](/Doc/en/MasterStation.md)
 * [Wireless Master Station](/Doc/en/WirelessMasterStation.md)
