@@ -4,17 +4,23 @@
 #include <Arduino.h>
 #include "rfid.h"
 
-#define START_STATION_NUM         240
-#define FINISH_STATION_NUM        245
-#define CHECK_STATION_NUM         248
-#define CLEAR_STATION_NUM         249
+enum StationNum {
+    START_STATION_NUM       = 240,
+    FINISH_STATION_NUM      = 245,
+    CHECK_STATION_NUM       = 248,
+    CLEAR_STATION_NUM       = 249
+};
 
-#define MASTER_CARD_GET_INFO        249
-#define MASTER_CARD_SET_TIME        250
-#define MASTER_CARD_SET_NUMBER      251
-#define MASTER_CARD_SLEEP           252
-#define MASTER_CARD_READ_BACKUP     253
-#define MASTER_CARD_CONFIG          254
+enum MasterCard {
+    MASTER_CARD_GET_INFO      = 249,
+    MASTER_CARD_SET_TIME      = 250,
+    MASTER_CARD_SET_NUMBER    = 251,
+    MASTER_CARD_SLEEP         = 252,
+    MASTER_CARD_READ_BACKUP   = 253,
+    MASTER_CARD_CONFIG        = 254
+};
+
+#define MASTER_CARD_SIGN            0xff
 
 #define SERIAL_PACKET_SIZE          32
 

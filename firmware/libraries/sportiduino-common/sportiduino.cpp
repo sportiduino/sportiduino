@@ -65,8 +65,8 @@ bool uint32ToByteArray(uint32_t value, byte *byteArray) {
 uint32_t byteArrayToUint32(byte *byteArray) {
     uint32_t value = 0;
     for(uint8_t i = 0; i < 4; ++i) {
-        value |= byteArray[i];
         value <<= 8;
+        value |= byteArray[i];
     }
 
     return value;

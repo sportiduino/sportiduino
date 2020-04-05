@@ -19,7 +19,7 @@
 #define FW_MAJOR_VERS   7
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     ((MAX_FW_MINOR_VERS) + 2)
+#define FW_MINOR_VERS     ((MAX_FW_MINOR_VERS) + 3)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -832,7 +832,7 @@ void processCard() {
         return;
     }
     // Check the card role
-    if(pageData[2] == 0xFF) {
+    if(pageData[2] == MASTER_CARD_SIGN) {
         // This is a master card
         processMasterCard(pageData);
     } else {
@@ -1222,7 +1222,7 @@ void processParticipantCard(uint16_t cardNum) {
             }
         }
 
-        if(config.checkCardInitTime && !doesCardExpire()) {
+        if(config.checkCardInitTime && doesCardExpire()) {
             return;
         }
 
@@ -1333,31 +1333,28 @@ void clearParticipantCard() {
 }
 
 void checkParticipantCard() {
-    byte pageData[4] = {0,0,0,0};
-    uint16_t cardNum = 0;
-    bool result = false;
-    
-    if(rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
-        // Check card number
-        cardNum = (((uint16_t)pageData[0])<<8) + pageData[1];
-        if(cardNum > 0 && pageData[2] != 0xFF) {
-            // It shouldn't be marks on a card
-            uint8_t newPage = 0;
-            uint8_t lastNum = 0;
-            findNewPage(&newPage, &lastNum);
-            if(newPage == CARD_PAGE_START && lastNum == 0) {
-                result = true;
-                // Check card init time
-                if(config.checkCardInitTime) {
-                    result = !doesCardExpire();
-                }
-            }
-        }
+    byte pageData[4];
+    if(!rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
+        return;
+    }
+    uint16_t cardNum = (((uint16_t)pageData[0])<<8) + pageData[1];
+    if(cardNum == 0 || pageData[2] == MASTER_CARD_SIGN) {
+        return;
     }
 
-    if(result) {
-        beepCardCheckOk();
+    // It shouldn't be marks on a card
+    uint8_t newPage = 0;
+    uint8_t lastNum = 0;
+    findNewPage(&newPage, &lastNum);
+    if(newPage != CARD_PAGE_START || lastNum != 0) {
+        return;
     }
+    // Check card init time
+    if(config.checkCardInitTime && doesCardExpire()) {
+        return;
+    }
+
+    beepCardCheckOk();
 }
 
 bool doesCardExpire() {
