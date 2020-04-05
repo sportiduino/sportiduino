@@ -1297,33 +1297,37 @@ void clearParticipantCard() {
     uint8_t maxPage = rfid.getCardMaxPage();
     bool result = true;
 
+    digitalWrite(LED, HIGH);
     for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++) {
         Watchdog.reset();
-        delay(50);
-        
-        digitalWrite(LED,HIGH);
+
+        if(page % 10 == 0) {
+            digitalWrite(LED, HIGH);
+        } else if(page % 5 == 0) {
+            digitalWrite(LED, LOW);
+        }
         
         result &= rfid.cardPageWrite(page, pageData);
         
-        digitalWrite(LED,LOW);
-
         if(!result) {
             break;
         }
     }
+    digitalWrite(LED, LOW);
 
     if(result) {
         DS3231_get(&t);
         
-        pageData[0] = (t.unixtime&0xFF000000)>>24;
-        pageData[1] = (t.unixtime&0x00FF0000)>>16;
-        pageData[2] = (t.unixtime&0x0000FF00)>>8;
-        pageData[3] = (t.unixtime&0x000000FF);
+        pageData[0] = t.unixtime >> 24;
+        pageData[1] = t.unixtime >> 16;
+        pageData[2] = t.unixtime >> 8;
+        pageData[3] = t.unixtime & 0xFF;
 
         result &= rfid.cardPageWrite(CARD_PAGE_INIT_TIME, pageData);
     }
 
     if(result) {
+        delay(50);
         beepCardClearOk();
     }
 }
