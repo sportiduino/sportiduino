@@ -7,12 +7,19 @@ ifndef ARDUINO_DIR
    $(error You should define ARDUINO_DIR as enviroment variable or command line argument. See https://github.com/sudar/Arduino-Makefile)
 endif
 
-BOARD_TAG           = sportiduino
-ARDUINO_SKETCHBOOK  = ../
+ARDUINO_SKETCHBOOK  = ..
 ARDUINO_LIBS        = sportiduino-common SPI EEPROM RFID Adafruit_SleepyDog_Library ds3231-master Wire PinChangeInterrupt
+BOARD_TAG           = sportiduino
+BOARDS_TXT          = ./boards.txt
+BOOTLOADER_PARENT   = ..
+BOOTLOADER_PATH     = Optiboot
+BOOTLOADER_FILE     = optiboot8_38400_sportiduino_led.hex
+ISP_PROG = stk500v1
+AVRDUDE_ISP_BAUDRATE = 19200
 
 ifdef port
-	MONITOR_PORT    = $(port)
+	MONITOR_PORT = $(port)
+	ISP_PORT = $(port)
 endif
 
 ifdef debug
