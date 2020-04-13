@@ -1,4 +1,4 @@
-## [3.7.0]
+## [3.7.0] - 2020-04-13
 New base station PCB:
 - Added battery voltage measurement circuit (GH-63)
 - Added EEPROM IC for backuping punches (GH-69)
@@ -10,10 +10,12 @@ Firmware bug fixes and improvements:
 - Decreased power consumption (GH-61)
 - Fix overwriting last mark in full card (GH-84)
 - Signal battery state at wake-up (GH-81)
+- Card clearing accelerated
 - New 3-bytes version format
 - Deinitialize time and station number master cards by BS
 - Simplified signal system
-- Added makefiles for building
+- Don't check password at serial BS communication
+- Added makefiles for building and firmware uploading
 - Refactoring
 
 ## [2.6.3] - 2020-01-20
