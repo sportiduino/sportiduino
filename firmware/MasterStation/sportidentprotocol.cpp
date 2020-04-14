@@ -1,10 +1,5 @@
 #include "sportidentprotocol.h"
 
-#define STX 0x02
-#define ETX 0x03
-#define ACK 0x06
-#define NAK 0x15
-
 static uint16_t crc16(uint8_t *data, uint16_t len)
 {
     if(len < 2) {
@@ -52,6 +47,47 @@ static uint16_t crc16(uint8_t *data, uint16_t len)
     return crc;
 } 
 
+void SportidentProtocol::start(uint8_t code) {
+    serialDataPos = 3;
+
+    serialBuffer[0] = STX;
+    serialBuffer[1] = code;
+    const uint16_t station_code = 0x0001;
+    add(station_code >> 8);
+    add(station_code & 0xff);
+}
+
+void SportidentProtocol::add(uint8_t dataByte) {
+    if(serialDataPos < SPORTIDENT_MAX_PACKET_SIZE - 1) {
+        serialBuffer[serialDataPos++] = dataByte;
+    }
+}
+
+void SportidentProtocol::add(const uint8_t *data, uint8_t size) {
+    for(uint8_t i = 0; i < size; ++i) {
+        add(data[i]);
+    }
+}
+
+void SportidentProtocol::send() {
+    uint8_t dataSize = serialDataPos - 3; // minus start, resp code, datalen
+    
+    serialBuffer[2] = dataSize;
+
+    crc.value = crc16(&serialBuffer[1], 2 + dataSize);
+    serialBuffer[serialDataPos++] = crc.b[1];
+    serialBuffer[serialDataPos++] = crc.b[0];
+    serialBuffer[serialDataPos++] = ETX;
+
+    for(uint8_t i = 0; i < serialDataPos; i++) {
+        Serial.write(serialBuffer[i]);
+    }
+}
+
+void SportidentProtocol::error() {
+    Serial.write(NAK);
+}
+
 uint8_t *SportidentProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize) {
     *error = false;
     if(Serial.available() > 0) {
@@ -63,7 +99,6 @@ uint8_t *SportidentProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize)
 
             if(length > SPORTIDENT_MAX_PACKET_SIZE - 6) {
                 *error = true;
-                Serial.write(NAK);
                 return nullptr;
             }
             Serial.readBytes(&serialBuffer[3], length + 3);
@@ -72,7 +107,6 @@ uint8_t *SportidentProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize)
 
             if(crc.value != crc16(&serialBuffer[1], 2 + length)) {
                 *error = true;
-                Serial.write(NAK);
                 return nullptr;
             }
             *code = serialBuffer[1];

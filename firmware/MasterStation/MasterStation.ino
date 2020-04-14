@@ -64,15 +64,22 @@ inline void beepOk() { beep(500, 1); }
 void signalError(uint8_t error);
 void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
 void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
+void sieDetectCard();
+void sieSendDataBlock(uint8_t blockNumber);
+void sieSendAllDataBlocks();
 void setPwd(uint8_t newPwd[]);
 uint8_t getPwd(uint8_t i);
+
+
+using SiProto = SportidentProtocol;
 
 //-----------------------------------------------------------
 // VARIABLES
 static Rfid rfid;
 static SerialProtocol serialProto;
-static SportidentProtocol siProto;
+static SiProto siProto;
 static uint8_t antennaGain = DEFAULT_ANTENNA_GAIN;
+static bool sieMode = false; // Sportident emulation mode (continuos readout)
 
 void setup() {
     pinMode(LED_PIN, OUTPUT);
@@ -94,7 +101,15 @@ void setup() {
 }
 
 void loop() { 
-    digitalWrite(LED_PIN, HIGH);
+    if(sieMode) {
+        rfid.begin(antennaGain);
+        sieDetectCard();
+        rfid.end();
+        delay(50);
+    }
+}
+
+void serialEvent() {
     bool error = false;
     uint8_t cmdCode = 0;
     uint8_t dataSize = 0;
@@ -105,14 +120,19 @@ void loop() {
         return;
     }
     if(data) {
+        sieMode = false;
         handleCmd(cmdCode, data, dataSize);
     }
     data = siProto.read(&error, &cmdCode, &dataSize);
+    if(error) {
+        siProto.error();
+        return;
+    }
     if(data) {
+        sieMode = true;
         handleSiCmd(cmdCode, data, dataSize);
     }
 }
-
 
 void signalError(uint8_t error) { 
     serialProto.start(RESP_FUNC_ERROR);
@@ -606,7 +626,97 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
 }
 
 void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
-    Serial.write('o');
+    switch(cmdCode) {
+        case SportidentProtocol::BCMD_SET_MS:
+            {
+                uint8_t msg[] = {STX, cmdCode, 0x10, 0x02, 0x4d, ETX};
+                Serial.write(msg, sizeof(msg));
+            }
+            break;
+        case SportidentProtocol::BCMD_GET_SYS_VAL:
+            {
+                uint8_t msg[] = {
+                    STX, cmdCode, 0x10, 0x02, 0x10, 0x00, 0x10, 0x00, 0x10, 0x01,
+                    0xFE, 0x10, 0x11, 0xF7, 0x36, 0x32, 0x33, 0x10, 0x0A, 0x10,
+                    0x01, 0x10, 0x19, 0x91, 0x97, 0x80, ETX
+                };
+
+                Serial.write(msg, sizeof(msg));
+            }
+            break;
+        case SportidentProtocol::CMD_SET_MS:
+            {
+                siProto.start(cmdCode);
+                siProto.add(0x4d);
+                siProto.send();
+            }
+            break;
+        case SportidentProtocol::CMD_GET_SYS_VAL:
+            {
+                uint8_t offset = data[0];
+                if(offset == SportidentProtocol::O_PROTO) {
+                    siProto.start(cmdCode);
+                    siProto.add(offset);
+                    siProto.add(0x05); // extended protocol with handshake
+                    siProto.send();
+                } else if(offset == SportidentProtocol::O_MODE) {
+                    siProto.start(cmdCode);
+                    //siProto.add(data[0]);
+                    siProto.add(offset);
+                    siProto.add(0x05); // readout mode
+                    siProto.send();
+                }
+            }
+            break;
+        case SportidentProtocol::CMD_READ_SI6:
+            {
+                uint8_t blockNumber = data[0];
+                if(blockNumber == 0x08) {
+                    sieSendAllDataBlocks();
+                } else {
+                    sieSendDataBlock(blockNumber);
+                }
+            }
+            break;
+        default:
+            siProto.error();
+            break;
+    }
+}
+
+void sieDetectCard() {
+    if(!rfid.isNewCardDetected()) {
+        return;
+    }
+    digitalWrite(LED_PIN, HIGH);
+
+    byte pageData[] = {0,0,0,0};
+
+    if(!rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
+        return;
+    }
+
+    if(pageData[2] == MASTER_CARD_SIGN) {
+        return;
+    }
+
+    siProto.start(SportidentProtocol::CMD_SI6_DETECTED);
+    // Output the card number
+    siProto.add(0);
+    siProto.add(0);
+    siProto.add(pageData[0]);
+    siProto.add(pageData[1]);
+    siProto.send();
+}
+
+void sieSendDataBlock(uint8_t blockNumber) {
+    // WiP
+}
+
+void sieSendAllDataBlocks() {
+    for(uint8_t i = 0; i < 8; ++i) {
+        sieSendDataBlock(i);
+    }
 }
 
 uint8_t pwd[] = {0, 0, 0};
