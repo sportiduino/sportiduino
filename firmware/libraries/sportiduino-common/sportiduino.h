@@ -47,7 +47,7 @@ uint32_t byteArrayToUint32(byte *byteArray);
 
 class SerialProtocol {
 public:
-    void init(uint8_t _startByte);
+    void init(uint8_t _startByte, uint32_t baudrate = 9600);
     void begin();
     void end();
     void start(uint8_t code);
@@ -63,6 +63,7 @@ private:
     uint8_t serialBuffer[SERIAL_PACKET_SIZE];
     uint8_t serialDataPos = 3;
     uint8_t serialPacketCount = 0;
+    uint32_t baudrate = 0;
 };
 
 #endif

@@ -1,4 +1,5 @@
 #include <sportiduino.h>
+#include "sportidentprotocol.h"
 
 #define HW_VERS           1
 #define FW_MAJOR_VERS     7
@@ -62,6 +63,7 @@ inline void beepOk() { beep(500, 1); }
 // Declatarions for building by Arduino-Makefile
 void signalError(uint8_t error);
 void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
+void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
 void setPwd(uint8_t newPwd[]);
 uint8_t getPwd(uint8_t i);
 
@@ -69,6 +71,7 @@ uint8_t getPwd(uint8_t i);
 // VARIABLES
 static Rfid rfid;
 static SerialProtocol serialProto;
+static SportidentProtocol siProto;
 static uint8_t antennaGain = DEFAULT_ANTENNA_GAIN;
 
 void setup() {
@@ -87,10 +90,11 @@ void setup() {
     }
 
     rfid.init(RC522_SS_PIN, RC522_RST_PIN, antennaGain);
-    serialProto.init(SERIAL_START_BYTE);
+    serialProto.init(SERIAL_START_BYTE, 38400);
 }
 
 void loop() { 
+    digitalWrite(LED_PIN, HIGH);
     bool error = false;
     uint8_t cmdCode = 0;
     uint8_t dataSize = 0;
@@ -102,6 +106,10 @@ void loop() {
     }
     if(data) {
         handleCmd(cmdCode, data, dataSize);
+    }
+    data = siProto.read(&error, &cmdCode, &dataSize);
+    if(data) {
+        handleSiCmd(cmdCode, data, dataSize);
     }
 }
 
@@ -595,6 +603,10 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             signalError(ERROR_UNKNOWN_CMD);
             break;
     }
+}
+
+void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
+    Serial.write('o');
 }
 
 uint8_t pwd[] = {0, 0, 0};

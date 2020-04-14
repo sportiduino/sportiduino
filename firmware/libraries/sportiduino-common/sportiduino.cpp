@@ -72,14 +72,15 @@ uint32_t byteArrayToUint32(byte *byteArray) {
     return value;
 }
 
-void SerialProtocol::init(uint8_t _startByte) {
+void SerialProtocol::init(uint8_t _startByte, uint32_t _baudrate) {
     startByte = _startByte;
+    baudrate = _baudrate;
     Serial.setTimeout(SERIAL_TIMEOUT);
     begin();
 }
 
 void SerialProtocol::begin() {
-    Serial.begin(9600);
+    Serial.begin(baudrate);
 }
 
 void SerialProtocol::end() {
@@ -148,11 +149,10 @@ uint8_t SerialProtocol::checkSum(uint8_t *buffer, uint8_t dataSize) {
 uint8_t *SerialProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize) {
     *error = false;
     memset(serialBuffer, 0, SERIAL_PACKET_SIZE);
-    // Drop bytes before msg start
-    while(Serial.available() > 0) {
-        serialBuffer[0] = Serial.read();
-        if(serialBuffer[0] == startByte) {
-            Serial.readBytes(serialBuffer + 1, SERIAL_PACKET_SIZE);
+    if(Serial.available() > 0) {
+        uint8_t b = Serial.peek();
+        if(b == startByte) {
+            Serial.readBytes(serialBuffer, SERIAL_PACKET_SIZE);
 
             *dataSize = serialBuffer[2];
 

@@ -9,7 +9,7 @@ endif
 
 BOARD_TAG           = nano
 BOARD_SUB           = atmega328old
-ARDUINO_SKETCHBOOK  = ../
+ARDUINO_SKETCHBOOK  = ..
 ARDUINO_LIBS        = sportiduino-common SPI EEPROM RFID Adafruit_SleepyDog_Library
 
 ifdef port
