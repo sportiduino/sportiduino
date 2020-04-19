@@ -263,7 +263,6 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
 void processSettingsMasterCard(byte *data, byte dataSize);
 void processGetInfoMasterCard(byte *data, byte dataSize);
 void processParticipantCard(uint16_t cardNum);
-void findNewPage(uint8_t *newPage, uint8_t *lastNum);
 bool writeMarkToParticipantCard(uint8_t newPage);
 void clearParticipantCard();
 void checkParticipantCard();
@@ -1198,7 +1197,7 @@ void processParticipantCard(uint16_t cardNum) {
             }
         }
     } else {
-        findNewPage(&newPage, &lastNum);
+        findNewPage(&rfid, &newPage, &lastNum);
     }
 
     if(newPage < CARD_PAGE_START || newPage > maxPage) {
@@ -1233,40 +1232,6 @@ void processParticipantCard(uint16_t cardNum) {
     } else {
         beepCardMarkAlreadyWritten();
     }
-}
-
-void findNewPage(uint8_t *newPage, uint8_t *lastNum) {
-    uint8_t startPage = CARD_PAGE_START;
-    uint8_t endPage = rfid.getCardMaxPage() + 1; // page after last page
-    uint8_t page = startPage;
-    byte pageData[4] = {0,0,0,0};
-    byte num = 0;
-
-    *newPage = 0;
-    *lastNum = 0;
-
-    while(startPage < endPage) {   
-        page = (startPage + endPage)/2;
-
-        if(!rfid.cardPageRead(page, pageData)) {
-            return;
-        }
-
-        num = pageData[0];
-          
-        if(num == 0) {
-            endPage = page;
-        } else {
-            startPage = (startPage != page)? page : page + 1;
-        }
-    }
-
-    if(num > 0) {
-        ++page;
-    }
-
-    *newPage = page;
-    *lastNum = num;
 }
 
 bool writeMarkToParticipantCard(uint8_t newPage) {
@@ -1345,7 +1310,7 @@ void checkParticipantCard() {
     // It shouldn't be marks on a card
     uint8_t newPage = 0;
     uint8_t lastNum = 0;
-    findNewPage(&newPage, &lastNum);
+    findNewPage(&rfid, &newPage, &lastNum);
     if(newPage != CARD_PAGE_START || lastNum != 0) {
         return;
     }

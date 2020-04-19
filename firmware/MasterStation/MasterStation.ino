@@ -122,6 +122,7 @@ void serialEvent() {
     if(data) {
         sieMode = false;
         handleCmd(cmdCode, data, dataSize);
+        return;
     }
     data = siProto.read(&error, &cmdCode, &dataSize);
     if(error) {
@@ -131,6 +132,11 @@ void serialEvent() {
     if(data) {
         sieMode = true;
         handleSiCmd(cmdCode, data, dataSize);
+        return;
+    }
+    if(Serial.available() > 0) {
+        // Drop byte
+        Serial.read();
     }
 }
 
@@ -487,16 +493,16 @@ void funcReadCard(uint8_t*, uint8_t) {
         // Output station number
         serialProto.add(pageData[0]);
 
-        uint32_t markTime = pageData[1];
-        markTime <<= 8;
-        markTime |= pageData[2];
-        markTime <<= 8;
-        markTime |= pageData[3];
+        uint32_t punchTime = pageData[1];
+        punchTime <<= 8;
+        punchTime |= pageData[2];
+        punchTime <<= 8;
+        punchTime |= pageData[3];
 
         // for example, we have init time 0x00FFFFFF
         // all mark time will be 0x01xxxxxx
         // in this case we have to add 1 to timeHighByte
-        if(markTime < initTime) {
+        if(punchTime < initTime) {
             serialProto.add(timeHighByte + 1);
         } else {
             serialProto.add(timeHighByte);
@@ -671,11 +677,18 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
         case SportidentProtocol::CMD_READ_SI6:
             {
                 uint8_t blockNumber = data[0];
+                rfid.begin(antennaGain);
                 if(blockNumber == 0x08) {
                     sieSendAllDataBlocks();
                 } else {
                     sieSendDataBlock(blockNumber);
                 }
+                rfid.end();
+            }
+            break;
+        case ACK:
+            {
+                beepOk();
             }
             break;
         default:
@@ -684,33 +697,173 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
     }
 }
 
-void sieDetectCard() {
+uint8_t *readCardNumber() {
     if(!rfid.isNewCardDetected()) {
-        return;
+        return nullptr;
     }
-    digitalWrite(LED_PIN, HIGH);
 
     byte pageData[] = {0,0,0,0};
 
     if(!rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
-        return;
+        return nullptr;
     }
 
     if(pageData[2] == MASTER_CARD_SIGN) {
+        return nullptr;
+    }
+
+    static uint8_t cardNum[2];
+    cardNum[0] = pageData[0];
+    cardNum[1] = pageData[1];
+    return cardNum;
+}
+
+uint8_t *currentCardNumber = nullptr;
+
+void sieDetectCard() {
+    uint8_t *cardNum= readCardNumber();
+    if(!cardNum) {
         return;
     }
+    currentCardNumber = cardNum;
 
     siProto.start(SportidentProtocol::CMD_SI6_DETECTED);
     // Output the card number
     siProto.add(0);
     siProto.add(0);
-    siProto.add(pageData[0]);
-    siProto.add(pageData[1]);
+    siProto.add(currentCardNumber[0]);
+    siProto.add(currentCardNumber[1]);
     siProto.send();
 }
 
 void sieSendDataBlock(uint8_t blockNumber) {
-    // WiP
+    if(!currentCardNumber) {
+        siProto.error();
+        return;
+    }
+
+    siProto.start(SportidentProtocol::CMD_READ_SI6);
+    siProto.add(blockNumber);
+    if(blockNumber == 0) {
+        uint8_t lastCpMsb = 0;
+        uint8_t lastCpLsb = 0;
+
+        uint8_t newPage = 0;
+        uint8_t lastNum;
+        findNewPage(&rfid, &newPage, &lastNum);
+        uint8_t cpCount = 0;
+        if(newPage) {
+            cpCount = newPage - CARD_PAGE_START;
+        }
+ 
+        SiTimestamp clear;
+        SiTimestamp check;
+        SiTimestamp start;
+        SiTimestamp finish;
+
+        uint8_t cti[] = {
+            0x55, // card type (CTI)
+            0xAA, // punches pointer (PP)
+            0x00, 0x00, currentCardNumber[0], currentCardNumber[1]
+        };
+        Crc crc;
+        crc.value = SiProto::crc16(cti, sizeof(cti));
+
+        uint8_t data[36] = {
+            0x01, 0x01, 0x01, 0x01, // structure of data
+            0xED, 0xED, 0xED, 0xED, // SI6 ID
+            cti[0], cti[1], cti[2], cti[3], cti[4], cti[5],
+            crc.b[1], crc.b[0],
+            lastCpMsb, lastCpLsb, cpCount, cpCount + 1,
+            finish.ptd, 0, finish.pth, finish.ptl,
+            start.ptd, 0, start.pth, start.ptl,
+            check.ptd, 0, check.pth, check.ptl,
+            clear.ptd, 0, clear.pth, clear.ptl
+        };
+        siProto.add(data, sizeof(data));
+        // Last CP
+        for(uint8_t i = 0; i < 4; ++i) {
+            siProto.add(0xff);
+        }
+        // Bib
+        for(uint8_t i = 0; i < 4; ++i) {
+            siProto.add(0);
+        }
+        memset(data, ' ', sizeof(data));
+        siProto.add(data, 4);
+        // Surname
+        siProto.add(data, 20);
+        // Name
+        siProto.add(data, 20);
+        // Country
+        siProto.add(data, 4);
+        // Club
+        siProto.add(data, 36);
+    } else if(blockNumber == 1) {
+        uint8_t data[36];
+        memset(data, ' ', sizeof(data));
+        // User ID
+        siProto.add(data, 16);
+        // Mobile phone number
+        siProto.add(data, 16);
+        // E-mail
+        siProto.add(data, 36);
+        // Street
+        siProto.add(data, 20);
+        // City
+        siProto.add(data, 16);
+        // ZIP code
+        siProto.add(data, 8);
+        // Sex
+        siProto.add(data, 4);
+        // Date of birth
+        siProto.add(data, 8);
+		// Date of production
+        for(uint8_t i = 0; i < 4; ++i) {
+            siProto.add(0xff);
+        }
+    } else {
+        byte pageData[4];
+        if(!rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
+            beepError();
+            return;
+        }
+        uint8_t timeHighByte = pageData[0];
+        uint32_t initTime = byteArrayToUint32(pageData);
+
+        uint8_t maxPage = rfid.getCardMaxPage();
+        uint8_t offset = CARD_PAGE_START + (blockNumber - 2)*32;
+
+        for(uint8_t page = offset; page < offset + 32; ++page) {
+            if(page > maxPage) {
+                break;
+            }
+            if(!rfid.cardPageRead(page, pageData)) {
+                beepError();
+                return;
+            }
+
+            if(pageData[0] == 0) { // no new punches
+                break;
+            }
+
+            SiTimestamp siTimestamp;
+            siTimestamp.cn = pageData[0];
+
+            pageData[0] = timeHighByte;
+            uint32_t punchTime = byteArrayToUint32(pageData);
+
+            if(punchTime < initTime) {
+                punchTime += (uint32_t)1 << 24;
+            }
+            siTimestamp.fromUnixtime(punchTime);
+            siProto.add(siTimestamp.ptd);
+            siProto.add(siTimestamp.cn);
+            siProto.add(siTimestamp.pth);
+            siProto.add(siTimestamp.ptl);
+        }
+    }
+    siProto.send();
 }
 
 void sieSendAllDataBlocks() {

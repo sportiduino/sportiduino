@@ -3,12 +3,28 @@
 
 #include <Arduino.h>
 
-#define SPORTIDENT_MAX_PACKET_SIZE 128
+#define SPORTIDENT_MAX_PACKET_SIZE 140
 
 #define STX 0x02
 #define ETX 0x03
 #define ACK 0x06
 #define NAK 0x15
+#define WAKEUP 0xff
+
+typedef union {
+    uint16_t value;
+    byte b[2];
+} Crc;
+
+class SiTimestamp {
+public:
+    void fromUnixtime(uint32_t timestamp);
+
+    uint8_t ptd = 0xEE;
+    uint8_t cn = 0xEE;
+    uint8_t pth = 0xEE;
+    uint8_t ptl = 0xEE;
+};
 
 class SportidentProtocol {
 public:
@@ -33,12 +49,10 @@ public:
     void send();
     void error();
     uint8_t *read(bool *error, uint8_t *code, uint8_t *dataSize);
+    static uint16_t crc16(uint8_t *data, uint16_t len);
 
 private:
-    union {
-        uint16_t value;
-        byte b[2];
-    } crc;
+    Crc crc;
     uint8_t serialBuffer[SPORTIDENT_MAX_PACKET_SIZE];
     uint8_t serialDataPos = 3;
 };

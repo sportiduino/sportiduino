@@ -54,6 +54,40 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
     }
 }
 
+void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
+    uint8_t startPage = CARD_PAGE_START;
+    uint8_t endPage = rfid->getCardMaxPage() + 1; // page after last page
+    uint8_t page = startPage;
+    byte pageData[4] = {0,0,0,0};
+    byte num = 0;
+
+    *newPage = 0;
+    *lastNum = 0;
+
+    while(startPage < endPage) {   
+        page = (startPage + endPage)/2;
+
+        if(!rfid->cardPageRead(page, pageData)) {
+            return;
+        }
+
+        num = pageData[0];
+          
+        if(num == 0) {
+            endPage = page;
+        } else {
+            startPage = (startPage != page)? page : page + 1;
+        }
+    }
+
+    if(num > 0) {
+        ++page;
+    }
+
+    *newPage = page;
+    *lastNum = num;
+}
+
 bool uint32ToByteArray(uint32_t value, byte *byteArray) {
     for(uint8_t i = 0; i < 4; ++i) {
         byteArray[3 - i] = value & 0xff;

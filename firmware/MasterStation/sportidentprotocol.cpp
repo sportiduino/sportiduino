@@ -1,7 +1,17 @@
 #include "sportidentprotocol.h"
 
-static uint16_t crc16(uint8_t *data, uint16_t len)
-{
+void SiTimestamp::fromUnixtime(uint32_t timestamp) {
+    uint32_t daysFromEpoch = timestamp/86400;
+    uint32_t secsFromMidnight = timestamp%86400;
+    uint8_t weekday = (daysFromEpoch + 4)%7;
+    ptd = weekday << 1;
+    ptd |= secsFromMidnight/43200;
+    uint16_t pt = secsFromMidnight%43200;
+    pth = pt >> 8;
+    ptl = pt & 0xff;
+}
+
+uint16_t SportidentProtocol::crc16(uint8_t *data, uint16_t len) {
     if(len < 2) {
         return 0;     // response value is "0" for none or one data byte
     }
@@ -74,7 +84,7 @@ void SportidentProtocol::send() {
     
     serialBuffer[2] = dataSize;
 
-    crc.value = crc16(&serialBuffer[1], 2 + dataSize);
+    crc.value = SportidentProtocol::crc16(&serialBuffer[1], 2 + dataSize);
     serialBuffer[serialDataPos++] = crc.b[1];
     serialBuffer[serialDataPos++] = crc.b[0];
     serialBuffer[serialDataPos++] = ETX;
@@ -92,20 +102,30 @@ uint8_t *SportidentProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize)
     *error = false;
     if(Serial.available() > 0) {
         uint8_t b = Serial.peek();
-        if(b == STX) {
-            memset(serialBuffer, 0, SPORTIDENT_MAX_PACKET_SIZE);
+        if(b == ACK) {
+            Serial.read(); // drop byte
+            *code = ACK;
+            *dataSize = 0;
+            return code;
+        } else if(b == STX) {
             Serial.readBytes(serialBuffer, 3);
+            if(serialBuffer[1] == STX) {
+                serialBuffer[1] = serialBuffer[2];
+                Serial.readBytes(&serialBuffer[2], 1);
+            }
+
             uint8_t length = serialBuffer[2];
 
             if(length > SPORTIDENT_MAX_PACKET_SIZE - 6) {
                 *error = true;
                 return nullptr;
             }
+            memset(&serialBuffer[3], 0, length + 3);
             Serial.readBytes(&serialBuffer[3], length + 3);
             crc.b[1] = serialBuffer[length + 3];
             crc.b[0] = serialBuffer[length + 4];
 
-            if(crc.value != crc16(&serialBuffer[1], 2 + length)) {
+            if(crc.value != SportidentProtocol::crc16(&serialBuffer[1], 2 + length)) {
                 *error = true;
                 return nullptr;
             }
