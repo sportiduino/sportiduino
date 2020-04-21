@@ -61,17 +61,30 @@ uint16_t SportidentProtocol::crc16(uint8_t *data, uint16_t len) {
 } 
 
 void SportidentProtocol::start(uint8_t code) {
-    serialDataPos = 3;
 
     serialBuffer[0] = STX;
     serialBuffer[1] = code;
+
     const uint16_t station_code = 0x0001;
-    add(station_code >> 8);
-    add(station_code & 0xff);
+
+    // Legacy protocol
+    if(code < 0x80) {
+        legacyMode = true;
+        serialDataPos = 2;
+        add(station_code & 0xff);
+    } else {
+        legacyMode = false;
+        serialDataPos = 3;
+        add(station_code >> 8);
+        add(station_code & 0xff);
+    }
 }
 
 void SportidentProtocol::add(uint8_t dataByte) {
     if(serialDataPos < SPORTIDENT_MAX_PACKET_SIZE - 1) {
+        if(legacyMode && dataByte < 0x1F) {
+            serialBuffer[serialDataPos++] = DLE;
+        }
         serialBuffer[serialDataPos++] = dataByte;
     }
 }
@@ -83,14 +96,18 @@ void SportidentProtocol::add(const uint8_t *data, uint8_t size) {
 }
 
 void SportidentProtocol::send() {
-    uint8_t dataSize = serialDataPos - 3; // minus start, resp code, datalen
-    
-    serialBuffer[2] = dataSize;
+    if(legacyMode) {
+        serialBuffer[serialDataPos++] = ETX;
+    } else {
+        uint8_t dataSize = serialDataPos - 3; // minus start, resp code, datalen
+        
+        serialBuffer[2] = dataSize;
 
-    crc.value = SportidentProtocol::crc16(&serialBuffer[1], 2 + dataSize);
-    serialBuffer[serialDataPos++] = crc.b[1];
-    serialBuffer[serialDataPos++] = crc.b[0];
-    serialBuffer[serialDataPos++] = ETX;
+        crc.value = SportidentProtocol::crc16(&serialBuffer[1], 2 + dataSize);
+        serialBuffer[serialDataPos++] = crc.b[1];
+        serialBuffer[serialDataPos++] = crc.b[0];
+        serialBuffer[serialDataPos++] = ETX;
+    }
 
     for(uint8_t i = 0; i < serialDataPos; i++) {
         Serial.write(serialBuffer[i]);
@@ -117,6 +134,24 @@ uint8_t *SportidentProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize)
                 Serial.readBytes(&serialBuffer[2], 1);
             }
 
+            uint8_t cmd = serialBuffer[1];
+
+            // Legacy protocol
+            if(cmd < 0x80) {
+                uint8_t length = 0;
+                for(uint8_t i = 2; i < SPORTIDENT_MAX_PACKET_SIZE; ++i) {
+                    Serial.readBytes(&serialBuffer[i], 1);
+                    ++length;
+                    if(serialBuffer[i] == ETX) {
+                        --length;
+                        break;
+                    }
+                }
+                *code = cmd;
+                *dataSize = length;
+                return &serialBuffer[2];
+            }
+
             uint8_t length = serialBuffer[2];
 
             if(length > SPORTIDENT_MAX_PACKET_SIZE - 6) {
@@ -132,7 +167,7 @@ uint8_t *SportidentProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize)
                 *error = true;
                 return nullptr;
             }
-            *code = serialBuffer[1];
+            *code = cmd;
             *dataSize = length;
             return &serialBuffer[3];
         }

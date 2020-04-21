@@ -5,11 +5,6 @@
 
 #define SPORTIDENT_MAX_PACKET_SIZE 140
 
-#define STX 0x02
-#define ETX 0x03
-#define ACK 0x06
-#define NAK 0x15
-#define WAKEUP 0xff
 
 typedef union {
     uint16_t value;
@@ -28,6 +23,15 @@ public:
 
 class SportidentProtocol {
 public:
+    enum SpecialBytes {
+        STX     = 0x02,
+        ETX     = 0x03,
+        ACK     = 0x06,
+        DLE     = 0x10,
+        NAK     = 0x15,
+        WAKEUP  = 0xff
+    };
+
     enum Commands {
         BCMD_SET_MS       = 0x70,
         BCMD_GET_SYS_VAL  = 0x73,
@@ -55,6 +59,7 @@ private:
     Crc crc;
     uint8_t serialBuffer[SPORTIDENT_MAX_PACKET_SIZE];
     uint8_t serialDataPos = 3;
+    bool legacyMode = false;
 };
 
 

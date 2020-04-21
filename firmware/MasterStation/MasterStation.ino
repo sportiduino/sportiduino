@@ -98,6 +98,10 @@ void setup() {
 
     rfid.init(RC522_SS_PIN, RC522_RST_PIN, antennaGain);
     serialProto.init(SERIAL_START_BYTE, 38400);
+
+    digitalWrite(LED_PIN, HIGH);
+    delay(50);
+    digitalWrite(LED_PIN, LOW);
 }
 
 void loop() { 
@@ -633,39 +637,36 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
 
 void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
     switch(cmdCode) {
-        case SportidentProtocol::BCMD_SET_MS:
+        case SiProto::BCMD_GET_SYS_VAL:
             {
-                uint8_t msg[] = {STX, cmdCode, 0x10, 0x02, 0x4d, ETX};
-                Serial.write(msg, sizeof(msg));
-            }
-            break;
-        case SportidentProtocol::BCMD_GET_SYS_VAL:
-            {
-                uint8_t msg[] = {
-                    STX, cmdCode, 0x10, 0x02, 0x10, 0x00, 0x10, 0x00, 0x10, 0x01,
-                    0xFE, 0x10, 0x11, 0xF7, 0x36, 0x32, 0x33, 0x10, 0x0A, 0x10,
-                    0x01, 0x10, 0x19, 0x91, 0x97, 0x80, ETX
+                uint8_t data[] = {
+                    0x00, 0x00, 0x01, 0xFE, 0x11,
+                    0xF7, 0x36, 0x32, 0x33, 0x0A,
+                    0x01, 0x19, 0x91, 0x97, 0x80
                 };
 
-                Serial.write(msg, sizeof(msg));
+                siProto.start(cmdCode);
+                siProto.add(data, sizeof(data));
+                siProto.send();
             }
             break;
-        case SportidentProtocol::CMD_SET_MS:
+        case SiProto::CMD_SET_MS:
+        case SiProto::BCMD_SET_MS:
             {
                 siProto.start(cmdCode);
                 siProto.add(0x4d);
                 siProto.send();
             }
             break;
-        case SportidentProtocol::CMD_GET_SYS_VAL:
+        case SiProto::CMD_GET_SYS_VAL:
             {
                 uint8_t offset = data[0];
-                if(offset == SportidentProtocol::O_PROTO) {
+                if(offset == SiProto::O_PROTO) {
                     siProto.start(cmdCode);
                     siProto.add(offset);
                     siProto.add(0x05); // extended protocol with handshake
                     siProto.send();
-                } else if(offset == SportidentProtocol::O_MODE) {
+                } else if(offset == SiProto::O_MODE) {
                     siProto.start(cmdCode);
                     //siProto.add(data[0]);
                     siProto.add(offset);
@@ -674,7 +675,7 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
                 }
             }
             break;
-        case SportidentProtocol::CMD_READ_SI6:
+        case SiProto::CMD_READ_SI6:
             {
                 uint8_t blockNumber = data[0];
                 rfid.begin(antennaGain);
@@ -686,7 +687,7 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
                 rfid.end();
             }
             break;
-        case ACK:
+        case SiProto::ACK:
             {
                 beepOk();
             }
@@ -792,7 +793,7 @@ void sieDetectCard() {
     currentCardNumber = cardNum;
     currentCardInitTime = initTime;
 
-    siProto.start(SportidentProtocol::CMD_SI6_DETECTED);
+    siProto.start(SiProto::CMD_SI6_DETECTED);
     // Output the card number
     siProto.add(0);
     siProto.add(0);
@@ -807,7 +808,7 @@ void sieSendDataBlock(uint8_t blockNumber) {
         return;
     }
 
-    siProto.start(SportidentProtocol::CMD_READ_SI6);
+    siProto.start(SiProto::CMD_READ_SI6);
     siProto.add(blockNumber);
     if(blockNumber == 0) {
         uint8_t newPage = 0;
