@@ -718,14 +718,79 @@ uint8_t *readCardNumber() {
     return cardNum;
 }
 
+uint32_t readInitTime() {
+    byte pageData[4];
+    if(!rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
+        return 0;
+    }
+    return byteArrayToUint32(pageData);
+}
+
+uint32_t getPunchTime(const byte *pageData, uint32_t initTime) {
+    uint32_t punchTime = (byteArrayToUint32(pageData)&0x00FFFFFF) | (initTime&0xFF000000);
+    if(punchTime < initTime) {
+        punchTime += (uint32_t)1 << 24;
+    }
+    return punchTime;
+}
+
+uint32_t readStartTime(uint32_t initTime) {
+    const uint8_t beginPage = CARD_PAGE_START;
+    const uint8_t endPage = beginPage + 10; // read only first 10 punches
+    byte pageData[4];
+
+    for(uint8_t page = beginPage; page < endPage; ++page) {
+        if(!rfid.cardPageRead(page, pageData)) {
+            return 0;
+        }
+
+        uint8_t cp = pageData[0];
+        if(cp == START_STATION_NUM) {
+            return getPunchTime(pageData, initTime);
+        }
+    }
+    return 0;
+}
+
+uint32_t readFinishTime(uint32_t initTime) {
+    uint8_t newPage = 0;
+    uint8_t lastNum;
+    findNewPage(&rfid, &newPage, &lastNum);
+    if(!newPage || newPage == CARD_PAGE_START) {
+        return 0;
+    }
+    uint8_t endPage = newPage;
+    uint8_t beginPage = min(CARD_PAGE_START, endPage - 10);
+    byte pageData[4];
+
+    for(uint8_t page = endPage - 1; page >= beginPage; --page) {
+        if(!rfid.cardPageRead(page, pageData)) {
+            return 0;
+        }
+
+        uint8_t cp = pageData[0];
+        if(cp == FINISH_STATION_NUM) {
+            return getPunchTime(pageData, initTime);
+        }
+
+    }
+    return 0;
+}
+
 uint8_t *currentCardNumber = nullptr;
+uint32_t currentCardInitTime = 0;
 
 void sieDetectCard() {
     uint8_t *cardNum= readCardNumber();
     if(!cardNum) {
         return;
     }
+    uint32_t initTime = readInitTime();
+    if(!initTime) {
+        return;
+    }
     currentCardNumber = cardNum;
+    currentCardInitTime = initTime;
 
     siProto.start(SportidentProtocol::CMD_SI6_DETECTED);
     // Output the card number
@@ -745,9 +810,6 @@ void sieSendDataBlock(uint8_t blockNumber) {
     siProto.start(SportidentProtocol::CMD_READ_SI6);
     siProto.add(blockNumber);
     if(blockNumber == 0) {
-        uint8_t lastCpMsb = 0;
-        uint8_t lastCpLsb = 0;
-
         uint8_t newPage = 0;
         uint8_t lastNum;
         findNewPage(&rfid, &newPage, &lastNum);
@@ -760,6 +822,18 @@ void sieSendDataBlock(uint8_t blockNumber) {
         SiTimestamp check;
         SiTimestamp start;
         SiTimestamp finish;
+
+        clear.fromUnixtime(currentCardInitTime);
+        uint32_t startTime = readStartTime(currentCardInitTime); 
+        if(startTime) {
+            start.fromUnixtime(startTime);
+            --cpCount;
+        }
+        uint32_t finishTime = readFinishTime(currentCardInitTime);
+        if(finishTime) {
+            finish.fromUnixtime(finishTime);
+            --cpCount;
+        }
 
         uint8_t cti[] = {
             0x55, // card type (CTI)
@@ -774,7 +848,8 @@ void sieSendDataBlock(uint8_t blockNumber) {
             0xED, 0xED, 0xED, 0xED, // SI6 ID
             cti[0], cti[1], cti[2], cti[3], cti[4], cti[5],
             crc.b[1], crc.b[0],
-            lastCpMsb, lastCpLsb, cpCount, cpCount + 1,
+            0, 0, // last CP
+            cpCount, cpCount + 1,
             finish.ptd, 0, finish.pth, finish.ptl,
             start.ptd, 0, start.pth, start.ptl,
             check.ptd, 0, check.pth, check.ptl,
@@ -823,16 +898,9 @@ void sieSendDataBlock(uint8_t blockNumber) {
             siProto.add(0xff);
         }
     } else {
-        byte pageData[4];
-        if(!rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
-            beepError();
-            return;
-        }
-        uint8_t timeHighByte = pageData[0];
-        uint32_t initTime = byteArrayToUint32(pageData);
-
         uint8_t maxPage = rfid.getCardMaxPage();
         uint8_t offset = CARD_PAGE_START + (blockNumber - 2)*32;
+        byte pageData[4];
 
         for(uint8_t page = offset; page < offset + 32; ++page) {
             if(page > maxPage) {
@@ -843,19 +911,18 @@ void sieSendDataBlock(uint8_t blockNumber) {
                 return;
             }
 
-            if(pageData[0] == 0) { // no new punches
+            uint8_t cp = pageData[0];
+            if(cp == 0) { // no new punches
                 break;
+            }
+            if(cp == START_STATION_NUM || cp == FINISH_STATION_NUM) {
+                continue;
             }
 
             SiTimestamp siTimestamp;
-            siTimestamp.cn = pageData[0];
+            siTimestamp.cn = cp;
 
-            pageData[0] = timeHighByte;
-            uint32_t punchTime = byteArrayToUint32(pageData);
-
-            if(punchTime < initTime) {
-                punchTime += (uint32_t)1 << 24;
-            }
+            uint32_t punchTime = getPunchTime(pageData, currentCardInitTime);
             siTimestamp.fromUnixtime(punchTime);
             siProto.add(siTimestamp.ptd);
             siProto.add(siTimestamp.cn);

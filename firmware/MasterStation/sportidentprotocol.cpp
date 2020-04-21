@@ -1,6 +1,9 @@
 #include "sportidentprotocol.h"
 
 void SiTimestamp::fromUnixtime(uint32_t timestamp) {
+    if(!timestamp) {
+        return;
+    }
     uint32_t daysFromEpoch = timestamp/86400;
     uint32_t secsFromMidnight = timestamp%86400;
     uint8_t weekday = (daysFromEpoch + 4)%7;

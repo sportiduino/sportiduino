@@ -45,7 +45,7 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
 void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum);
 
 bool uint32ToByteArray(uint32_t value, byte *byteArray);
-uint32_t byteArrayToUint32(byte *byteArray);
+uint32_t byteArrayToUint32(const byte *byteArray);
 
 class SerialProtocol {
 public:
