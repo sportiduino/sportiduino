@@ -65,6 +65,7 @@ void signalError(uint8_t error);
 void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
 void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
 void sieDetectCard();
+void sieCardRemoved();
 void sieSendDataBlock(uint8_t blockNumber);
 void sieSendAllDataBlocks();
 void setPwd(uint8_t newPwd[]);
@@ -635,18 +636,52 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
     }
 }
 
+const uint8_t fakeStationConfig[] = {
+    0x00, 0x00, 0x00, 0x01, // serial number
+    0xF7, // SRR-dongle configuration?
+    0x36, 0x32, 0x33, // firmware (623)
+    0x0A, 0x01, 0x19, // buid date
+    0x91, 0x97, // model ID (BSM7-RS232, BSM7-USB)
+    0x80, // memory size in kB
+    0x20, 0x0D,
+    0x4B, 0x08, 0x4E, 0xFA, 0x28, 
+    0x0A, 0x01, 0x19, // battery date
+    0x00,
+    0x6D, 0xDD, // battery capacity in Ah (as multiples of 14062.5)
+    0x00,
+    0x00, 0x00, // backup ptr 1
+    0x18, 0x04, 0xFF,
+    0x03, 0x80, // backup ptr 2
+    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
+    0x00, 0x00, 0x4D, 0x70, 0xFF, 0xFF, 0xFF, 0x00, 0xC3, 
+    0xFF, // read all SI6 card 8 blocks
+    0x00, // SRR-dongle frequency band: 0x00="red", 0x01="blue"
+    0x00, 0x00, 0x0A, 0x00, 0x00,
+    0x00, 0x00, 0xFF,
+    0x00, // memory overflow if != 0x00
+    0xEF, 0xFF, 0x00, 0x24, 0xFE, 0xC0, 0xFF, 0xFF, 0x19, 0x99,
+    0x05, 0x1E, 0x7F, 0xF8, 0x85, 0x0C, 0x01, 0x01, 0xA6, 0xE0,
+    0x6F, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF,
+    0xFF, 0xFF, 0xFF, 0xFF, 0x30, 0x30, 0x30, 0x35, 0x7D, 0x20,
+    0x38, 0x00, 0x00, 0x00, 0x00, 0x00, 0xFF, 0xFF, 0xFF, 0xFF,
+    0x30, // program
+    0x05, // readout mode
+    0x01, // station code
+    0x35, // feedback
+    0x05, // extended protocol with handshake
+    0x10, 0x08, 0x01, // wakeup date
+    0x00, 0x00, 0x00, // wakeup time
+    0x00, 0x1C, 0x20, // sleep time
+    0x00, 0x78
+};
+
 void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
     switch(cmdCode) {
         case SiProto::BCMD_GET_SYS_VAL:
             {
-                uint8_t data[] = {
-                    0x00, 0x00, 0x01, 0xFE, 0x11,
-                    0xF7, 0x36, 0x32, 0x33, 0x0A,
-                    0x01, 0x19, 0x91, 0x97, 0x80
-                };
-
                 siProto.start(cmdCode);
-                siProto.add(data, sizeof(data));
+                siProto.add(0);
+                siProto.add(fakeStationConfig, 14);
                 siProto.send();
             }
             break;
@@ -661,18 +696,28 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
         case SiProto::CMD_GET_SYS_VAL:
             {
                 uint8_t offset = data[0];
-                if(offset == SiProto::O_PROTO) {
-                    siProto.start(cmdCode);
-                    siProto.add(offset);
-                    siProto.add(0x05); // extended protocol with handshake
-                    siProto.send();
-                } else if(offset == SiProto::O_MODE) {
-                    siProto.start(cmdCode);
-                    //siProto.add(data[0]);
-                    siProto.add(offset);
-                    siProto.add(0x05); // readout mode
-                    siProto.send();
+                if(offset > sizeof(fakeStationConfig)) {
+                    return;
                 }
+                uint8_t len = data[1];
+                uint8_t maxDataLen = sizeof(fakeStationConfig) - offset;
+                if(len > 0x7F) {
+                    len = maxDataLen;
+                }
+                siProto.start(cmdCode);
+                siProto.add(offset);
+                siProto.add(&fakeStationConfig[offset], len);
+                siProto.send();
+            }
+            break;
+        case SiProto::CMD_GET_TIME:
+            {
+                uint8_t data[] = {
+                    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+                };
+                siProto.start(cmdCode);
+                siProto.add(data, sizeof(data));
+                siProto.send();
             }
             break;
         case SiProto::CMD_READ_SI6:
@@ -689,6 +734,7 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             break;
         case SiProto::ACK:
             {
+                sieCardRemoved();
                 beepOk();
             }
             break;
@@ -802,6 +848,18 @@ void sieDetectCard() {
     siProto.send();
 }
 
+void sieCardRemoved() {
+    if(!currentCardNumber) {
+        return;
+    }
+    siProto.start(SiProto::CMD_SI_REMOVED);
+    siProto.add(0);
+    siProto.add(0);
+    siProto.add(currentCardNumber[0]);
+    siProto.add(currentCardNumber[1]);
+    siProto.send();
+}
+
 void sieSendDataBlock(uint8_t blockNumber) {
     if(!currentCardNumber) {
         siProto.error();
@@ -900,31 +958,34 @@ void sieSendDataBlock(uint8_t blockNumber) {
         }
     } else {
         uint8_t maxPage = rfid.getCardMaxPage();
-        uint8_t offset = CARD_PAGE_START + (blockNumber - 2)*32;
+
+        const uint8_t blockOrder[] = {
+            0, 1, 4, 5, 6, 7, 2, 3
+        };
+
+        uint8_t offset = CARD_PAGE_START + (blockOrder[blockNumber] - 2)*32;
         byte pageData[4];
 
         for(uint8_t page = offset; page < offset + 32; ++page) {
-            if(page > maxPage) {
-                break;
-            }
-            if(!rfid.cardPageRead(page, pageData)) {
-                beepError();
-                return;
-            }
-
-            uint8_t cp = pageData[0];
-            if(cp == 0) { // no new punches
-                break;
-            }
-            if(cp == START_STATION_NUM || cp == FINISH_STATION_NUM) {
-                continue;
-            }
-
             SiTimestamp siTimestamp;
-            siTimestamp.cn = cp;
+            if(page <= maxPage) {
+                if(!rfid.cardPageRead(page, pageData)) {
+                    beepError();
+                    return;
+                }
 
-            uint32_t punchTime = getPunchTime(pageData, currentCardInitTime);
-            siTimestamp.fromUnixtime(punchTime);
+                uint8_t cp = pageData[0];
+                if(cp != 0) {
+                    if(cp == START_STATION_NUM || cp == FINISH_STATION_NUM) {
+                        continue;
+                    }
+
+                    siTimestamp.cn = cp;
+
+                    uint32_t punchTime = getPunchTime(pageData, currentCardInitTime);
+                    siTimestamp.fromUnixtime(punchTime);
+                }
+            }
             siProto.add(siTimestamp.ptd);
             siProto.add(siTimestamp.cn);
             siProto.add(siTimestamp.pth);

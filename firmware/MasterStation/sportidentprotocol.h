@@ -35,7 +35,8 @@ public:
     enum Commands {
         BCMD_SET_MS       = 0x70,
         BCMD_GET_SYS_VAL  = 0x73,
-        CMD_SET_MS        = 0xf0,
+        CMD_SET_MS        = 0xF0,
+        CMD_GET_TIME      = 0xF7,
         CMD_GET_SYS_VAL   = 0x83,
         CMD_READ_SI6      = 0xE1, // read out SI-card 6 data block
         CMD_SI6_DETECTED  = 0xE6,

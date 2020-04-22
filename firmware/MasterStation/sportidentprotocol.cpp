@@ -142,7 +142,9 @@ uint8_t *SportidentProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize)
                 for(uint8_t i = 2; i < SPORTIDENT_MAX_PACKET_SIZE; ++i) {
                     Serial.readBytes(&serialBuffer[i], 1);
                     ++length;
-                    if(serialBuffer[i] == ETX) {
+                    if(serialBuffer[i] == DLE) {
+                        Serial.readBytes(&serialBuffer[i], 1);
+                    } else if(serialBuffer[i] == ETX) {
                         --length;
                         break;
                     }
