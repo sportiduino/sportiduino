@@ -33,8 +33,11 @@ public:
     };
 
     enum Commands {
+        BCMD_READ_SI6     = 0x61,
+        BCMD_SI6_DETECTED = 0x66,
         BCMD_SET_MS       = 0x70,
         BCMD_GET_SYS_VAL  = 0x73,
+
         CMD_SET_MS        = 0xF0,
         CMD_GET_TIME      = 0xF7,
         CMD_GET_SYS_VAL   = 0x83,
@@ -54,6 +57,8 @@ public:
     void send();
     void error();
     uint8_t *read(bool *error, uint8_t *code, uint8_t *dataSize);
+    bool isLegacyMode() const { return legacyMode; }
+
     static uint16_t crc16(uint8_t *data, uint16_t len);
 
 private:
@@ -61,6 +66,7 @@ private:
     uint8_t serialBuffer[SPORTIDENT_MAX_PACKET_SIZE];
     uint8_t serialDataPos = 3;
     bool legacyMode = false;
+    bool baseCmd = false;
 };
 
 

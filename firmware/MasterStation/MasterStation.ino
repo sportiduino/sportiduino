@@ -685,8 +685,8 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
                 siProto.send();
             }
             break;
-        case SiProto::CMD_SET_MS:
         case SiProto::BCMD_SET_MS:
+        case SiProto::CMD_SET_MS:
             {
                 siProto.start(cmdCode);
                 siProto.add(0x4d);
@@ -720,6 +720,7 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
                 siProto.send();
             }
             break;
+        case SiProto::BCMD_READ_SI6:
         case SiProto::CMD_READ_SI6:
             {
                 uint8_t blockNumber = data[0];
@@ -839,6 +840,17 @@ void sieDetectCard() {
     currentCardNumber = cardNum;
     currentCardInitTime = initTime;
 
+    if(siProto.isLegacyMode()) {
+        siProto.start(SiProto::BCMD_SI6_DETECTED);
+        siProto.add(0x00);
+        siProto.add(0x0F);
+        siProto.add(0x0F);
+        siProto.add(0x0F);
+        siProto.send();
+        siProto.start(SiProto::BCMD_SI6_DETECTED);
+        siProto.send();
+        return;
+    }
     siProto.start(SiProto::CMD_SI6_DETECTED);
     // Output the card number
     siProto.add(0);
@@ -866,7 +878,11 @@ void sieSendDataBlock(uint8_t blockNumber) {
         return;
     }
 
-    siProto.start(SiProto::CMD_READ_SI6);
+    if(siProto.isLegacyMode()) {
+        siProto.start(SiProto::BCMD_READ_SI6);
+    } else {
+        siProto.start(SiProto::CMD_READ_SI6);
+    }
     siProto.add(blockNumber);
     if(blockNumber == 0) {
         uint8_t newPage = 0;
@@ -975,11 +991,7 @@ void sieSendDataBlock(uint8_t blockNumber) {
                 }
 
                 uint8_t cp = pageData[0];
-                if(cp != 0) {
-                    if(cp == START_STATION_NUM || cp == FINISH_STATION_NUM) {
-                        continue;
-                    }
-
+                if(cp != 0 && cp != START_STATION_NUM && cp != FINISH_STATION_NUM) {
                     siTimestamp.cn = cp;
 
                     uint32_t punchTime = getPunchTime(pageData, currentCardInitTime);
