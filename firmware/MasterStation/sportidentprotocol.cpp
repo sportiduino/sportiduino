@@ -82,7 +82,7 @@ void SportidentProtocol::start(uint8_t code) {
 
 void SportidentProtocol::add(uint8_t dataByte) {
     if(serialDataPos < SPORTIDENT_MAX_PACKET_SIZE - 1) {
-        if(baseCmd && dataByte < 0x1F) {
+        if(baseCmd && dataByte < 0x20) {
             serialBuffer[serialDataPos++] = DLE;
         }
         serialBuffer[serialDataPos++] = dataByte;
