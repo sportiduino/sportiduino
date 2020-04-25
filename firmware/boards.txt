@@ -47,7 +47,7 @@ nano.build.variant=eightanaloginputs
 
 ## Arduino Nano w/ ATmega328P (without reset)
 ## --------------------------
-nano.menu.cpu.atmega328noreset =ATmega328P (fixed bootloader)
+nano.menu.cpu.atmega328noreset=ATmega328P (without reset)
 
 nano.menu.cpu.atmega328noreset.upload.maximum_size=30720
 nano.menu.cpu.atmega328noreset.upload.maximum_data_size=2048
