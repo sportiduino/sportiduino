@@ -884,13 +884,18 @@ void sieSendDataBlock(uint8_t blockNumber) {
         siProto.start(SiProto::CMD_READ_SI6);
     }
     siProto.add(blockNumber);
+    static uint8_t blockOffset = 0;
     if(blockNumber == 0) {
         uint8_t newPage = 0;
-        uint8_t lastNum;
-        findNewPage(&rfid, &newPage, &lastNum);
+        uint8_t lastCpNum;
+        findNewPage(&rfid, &newPage, &lastCpNum);
         uint8_t cpCount = 0;
         if(newPage) {
             cpCount = newPage - CARD_PAGE_START;
+        }
+        if(lastCpNum == FINISH_STATION_NUM) {
+            // TODO: read number of last CP
+            lastCpNum = 0;
         }
  
         SiTimestamp clear;
@@ -903,6 +908,9 @@ void sieSendDataBlock(uint8_t blockNumber) {
         if(startTime) {
             start.fromUnixtime(startTime);
             --cpCount;
+            blockOffset = 1;
+        } else {
+            blockOffset = 0;
         }
         uint32_t finishTime = readFinishTime(currentCardInitTime);
         if(finishTime) {
@@ -923,23 +931,21 @@ void sieSendDataBlock(uint8_t blockNumber) {
             0xED, 0xED, 0xED, 0xED, // SI6 ID
             cti[0], cti[1], cti[2], cti[3], cti[4], cti[5],
             crc.b[1], crc.b[0],
-            0, 0, // last CP
-            cpCount, cpCount + 1,
-            finish.ptd, 0, finish.pth, finish.ptl,
-            start.ptd, 0, start.pth, start.ptl,
+            0, lastCpNum,
+            cpCount, static_cast<uint8_t>(cpCount + 1),
+            finish.ptd, FINISH_STATION_NUM, finish.pth, finish.ptl,
+            start.ptd, START_STATION_NUM, start.pth, start.ptl,
             check.ptd, 0, check.pth, check.ptl,
             clear.ptd, 0, clear.pth, clear.ptl
         };
         siProto.add(data, sizeof(data));
-        // Last CP
+        // Start number
         for(uint8_t i = 0; i < 4; ++i) {
-            siProto.add(0xff);
-        }
-        // Bib
-        for(uint8_t i = 0; i < 4; ++i) {
-            siProto.add(0);
+            siProto.add(0xFF);
         }
         memset(data, ' ', sizeof(data));
+        // Class
+        siProto.add(data, 4);
         siProto.add(data, 4);
         // Surname
         siProto.add(data, 20);
@@ -966,7 +972,7 @@ void sieSendDataBlock(uint8_t blockNumber) {
         siProto.add(data, 8);
         // Sex
         siProto.add(data, 4);
-        // Date of birth
+        // Day of birth
         siProto.add(data, 8);
 		// Date of production
         for(uint8_t i = 0; i < 4; ++i) {
@@ -979,10 +985,10 @@ void sieSendDataBlock(uint8_t blockNumber) {
             0, 1, 4, 5, 6, 7, 2, 3
         };
 
-        uint8_t offset = CARD_PAGE_START + (blockOrder[blockNumber] - 2)*32;
+        uint8_t blockAddress = CARD_PAGE_START + (blockOrder[blockNumber] - 2)*32 + blockOffset;
         byte pageData[4];
 
-        for(uint8_t page = offset; page < offset + 32; ++page) {
+        for(uint8_t page = blockAddress; page < blockAddress + 32; ++page) {
             SiTimestamp siTimestamp;
             if(page <= maxPage) {
                 if(!rfid.cardPageRead(page, pageData)) {
