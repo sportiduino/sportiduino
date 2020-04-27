@@ -827,6 +827,7 @@ uint32_t readFinishTime(uint32_t initTime) {
 
 uint8_t *currentCardNumber = nullptr;
 uint32_t currentCardInitTime = 0;
+uint8_t currentCpCount = 0;
 
 void sieDetectCard() {
     uint8_t *cardNum= readCardNumber();
@@ -889,9 +890,9 @@ void sieSendDataBlock(uint8_t blockNumber) {
         uint8_t newPage = 0;
         uint8_t lastCpNum;
         findNewPage(&rfid, &newPage, &lastCpNum);
-        uint8_t cpCount = 0;
+        currentCpCount = 0;
         if(newPage) {
-            cpCount = newPage - CARD_PAGE_START;
+            currentCpCount = newPage - CARD_PAGE_START;
         }
         if(lastCpNum == FINISH_STATION_NUM) {
             // TODO: read number of last CP
@@ -904,10 +905,12 @@ void sieSendDataBlock(uint8_t blockNumber) {
         SiTimestamp finish;
 
         clear.fromUnixtime(currentCardInitTime);
+        clear.cn = 0;
         uint32_t startTime = readStartTime(currentCardInitTime); 
         if(startTime) {
             start.fromUnixtime(startTime);
-            --cpCount;
+            start.cn = START_STATION_NUM;
+            --currentCpCount;
             blockOffset = 1;
         } else {
             blockOffset = 0;
@@ -915,7 +918,8 @@ void sieSendDataBlock(uint8_t blockNumber) {
         uint32_t finishTime = readFinishTime(currentCardInitTime);
         if(finishTime) {
             finish.fromUnixtime(finishTime);
-            --cpCount;
+            finish.cn = FINISH_STATION_NUM;
+            --currentCpCount;
         }
 
         uint8_t cti[] = {
@@ -932,11 +936,11 @@ void sieSendDataBlock(uint8_t blockNumber) {
             cti[0], cti[1], cti[2], cti[3], cti[4], cti[5],
             crc.b[1], crc.b[0],
             0, lastCpNum,
-            cpCount, static_cast<uint8_t>(cpCount + 1),
-            finish.ptd, FINISH_STATION_NUM, finish.pth, finish.ptl,
-            start.ptd, START_STATION_NUM, start.pth, start.ptl,
-            check.ptd, 0, check.pth, check.ptl,
-            clear.ptd, 0, clear.pth, clear.ptl
+            currentCpCount, static_cast<uint8_t>(currentCpCount + 1),
+            finish.ptd, finish.cn, finish.pth, finish.ptl,
+            start.ptd, start.cn, start.pth, start.ptl,
+            check.ptd, check.cn, check.pth, check.ptl,
+            clear.ptd, clear.cn, clear.pth, clear.ptl
         };
         siProto.add(data, sizeof(data));
         // Start number
@@ -1014,8 +1018,14 @@ void sieSendDataBlock(uint8_t blockNumber) {
 }
 
 void sieSendAllDataBlocks() {
-    for(uint8_t i = 0; i < 8; ++i) {
-        sieSendDataBlock(i);
+    sieSendDataBlock(0);
+    sieSendDataBlock(1);
+    uint8_t blockNumber = 2;
+    if(currentCpCount <= 64) {
+        blockNumber = 6;
+    }
+    for(; blockNumber < 8; ++blockNumber) {
+        sieSendDataBlock(blockNumber);
     }
 }
 
