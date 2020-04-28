@@ -2,10 +2,10 @@
 #include "sportidentprotocol.h"
 
 #define HW_VERS           1
-#define FW_MAJOR_VERS     7
+#define FW_MAJOR_VERS     8
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     0
+#define FW_MINOR_VERS     (MAX_FW_MINOR_VERS + 1)
 
 
 //-----------------------------------------------------------
@@ -67,7 +67,7 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
 void sieDetectCard();
 void sieCardRemoved();
 bool sieSendDataBlock(uint8_t blockNumber);
-bool sieSendAllDataBlocks();
+bool sieSendAllDataBlocks(bool shortFormat);
 void setPwd(uint8_t newPwd[]);
 uint8_t getPwd(uint8_t i);
 
@@ -725,8 +725,12 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             {
                 uint8_t blockNumber = data[0];
                 rfid.begin(antennaGain);
-                if(blockNumber == 0x08) {
-                    if(!sieSendAllDataBlocks()) {
+                if(blockNumber == 0x00) {
+                    if(!sieSendAllDataBlocks(true)) {
+                        beepError();
+                    }
+                } else if(blockNumber == 0x08) {
+                    if(!sieSendAllDataBlocks(false)) {
                         beepError();
                     }
                 } else {
@@ -786,7 +790,8 @@ uint32_t getPunchTime(const byte *pageData, uint32_t initTime) {
     return punchTime;
 }
 
-uint32_t readStartTime(uint32_t initTime) {
+uint32_t readStartTime(uint32_t initTime, uint8_t *pageStartPunch) {
+    *pageStartPunch = CARD_PAGE_START;
     const uint8_t beginPage = CARD_PAGE_START;
     const uint8_t endPage = beginPage + 10; // read only first 10 punches
     byte pageData[4];
@@ -798,19 +803,22 @@ uint32_t readStartTime(uint32_t initTime) {
 
         uint8_t cp = pageData[0];
         if(cp == START_STATION_NUM) {
+            *pageStartPunch = page;
             return getPunchTime(pageData, initTime);
         }
     }
     return 0;
 }
 
-uint32_t readFinishTime(uint32_t initTime) {
+uint32_t readFinishTime(uint32_t initTime, uint8_t *pageFinishPunch) {
+    *pageFinishPunch = 0;
     uint8_t newPage = 0;
     uint8_t lastNum;
     findNewPage(&rfid, &newPage, &lastNum);
     if(!newPage || newPage == CARD_PAGE_START) {
         return 0;
     }
+    *pageFinishPunch = newPage;
     uint8_t endPage = newPage;
     uint8_t beginPage = min(CARD_PAGE_START, endPage - 10);
     byte pageData[4];
@@ -822,6 +830,7 @@ uint32_t readFinishTime(uint32_t initTime) {
 
         uint8_t cp = pageData[0];
         if(cp == FINISH_STATION_NUM) {
+            *pageFinishPunch = page;
             return getPunchTime(pageData, initTime);
         }
 
@@ -848,16 +857,15 @@ void sieDetectCard() {
     if(siProto.isLegacyMode()) {
         siProto.start(SiProto::BCMD_SI6_DETECTED);
         siProto.add(0x00);
-        siProto.add(0x0F);
-        siProto.add(0x0F);
-        siProto.add(0x0F);
-        siProto.send();
-        siProto.start(SiProto::BCMD_SI6_DETECTED);
+        siProto.add(0x00);
+        siProto.add(0x00);
+        siProto.add(0x00);
+        siProto.add(currentCardNumber[0]);
+        siProto.add(currentCardNumber[1]);
         siProto.send();
         return;
     }
     siProto.start(SiProto::CMD_SI6_DETECTED);
-    // Output the card number
     siProto.add(0);
     siProto.add(0);
     siProto.add(currentCardNumber[0]);
@@ -891,17 +899,9 @@ bool sieSendDataBlock(uint8_t blockNumber) {
     siProto.add(blockNumber);
     static uint8_t blockOffset = 0;
     if(blockNumber == 0) {
-        uint8_t newPage = 0;
-        uint8_t lastCpNum;
-        findNewPage(&rfid, &newPage, &lastCpNum);
+        // TODO: read number of last CP
+        uint8_t lastCpNum = 0;
         currentCpCount = 0;
-        if(newPage) {
-            currentCpCount = newPage - CARD_PAGE_START;
-        }
-        if(lastCpNum == FINISH_STATION_NUM) {
-            // TODO: read number of last CP
-            lastCpNum = 0;
-        }
  
         SiTimestamp clear;
         SiTimestamp check;
@@ -910,20 +910,26 @@ bool sieSendDataBlock(uint8_t blockNumber) {
 
         clear.fromUnixtime(currentCardInitTime);
         clear.cn = 0;
-        uint32_t startTime = readStartTime(currentCardInitTime); 
-        if(startTime) {
-            start.fromUnixtime(startTime);
-            start.cn = START_STATION_NUM;
-            --currentCpCount;
-            blockOffset = 1;
-        } else {
-            blockOffset = 0;
-        }
-        uint32_t finishTime = readFinishTime(currentCardInitTime);
+
+        uint8_t finishPunchOrEmptyPage = 0;
+        uint32_t finishTime = readFinishTime(currentCardInitTime, &finishPunchOrEmptyPage);
         if(finishTime) {
             finish.fromUnixtime(finishTime);
             finish.cn = FINISH_STATION_NUM;
-            --currentCpCount;
+        }
+        if(finishPunchOrEmptyPage) {
+            currentCpCount = finishPunchOrEmptyPage - CARD_PAGE_START;
+        }
+
+        uint8_t pageStartPunch = 0;
+        uint32_t startTime = readStartTime(currentCardInitTime, &pageStartPunch); 
+        if(startTime) {
+            start.fromUnixtime(startTime);
+            start.cn = START_STATION_NUM;
+            blockOffset = CARD_PAGE_START - pageStartPunch + 1;
+            currentCpCount -= blockOffset;
+        } else {
+            blockOffset = 0;
         }
 
         uint8_t cti[] = {
@@ -1021,19 +1027,13 @@ bool sieSendDataBlock(uint8_t blockNumber) {
     return true;
 }
 
-bool sieSendAllDataBlocks() {
-    bool status = sieSendDataBlock(0)
-        && sieSendDataBlock(1);
-    if(!status) {
-        return false;
-    }
-    uint8_t blockNumber = 2;
-    if(currentCpCount <= 64) {
-        blockNumber = 6;
-    }
-    for(; blockNumber < 8; ++blockNumber) {
+bool sieSendAllDataBlocks(bool shortFormat) {
+    for(uint8_t blockNumber = 0; blockNumber < 8; ++blockNumber) {
         if(!sieSendDataBlock(blockNumber)) {
             return false;
+        }
+        if(blockNumber == 0 && (currentCpCount <= 64 || shortFormat)) {
+            blockNumber = 5;
         }
     }
     return true;
