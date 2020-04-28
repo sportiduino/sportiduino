@@ -66,8 +66,8 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
 void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
 void sieDetectCard();
 void sieCardRemoved();
-void sieSendDataBlock(uint8_t blockNumber);
-void sieSendAllDataBlocks();
+bool sieSendDataBlock(uint8_t blockNumber);
+bool sieSendAllDataBlocks();
 void setPwd(uint8_t newPwd[]);
 uint8_t getPwd(uint8_t i);
 
@@ -726,9 +726,13 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
                 uint8_t blockNumber = data[0];
                 rfid.begin(antennaGain);
                 if(blockNumber == 0x08) {
-                    sieSendAllDataBlocks();
+                    if(!sieSendAllDataBlocks()) {
+                        beepError();
+                    }
                 } else {
-                    sieSendDataBlock(blockNumber);
+                    if(!sieSendDataBlock(blockNumber)) {
+                        beepError();
+                    }
                 }
                 rfid.end();
             }
@@ -873,10 +877,10 @@ void sieCardRemoved() {
     siProto.send();
 }
 
-void sieSendDataBlock(uint8_t blockNumber) {
+bool sieSendDataBlock(uint8_t blockNumber) {
     if(!currentCardNumber) {
         siProto.error();
-        return;
+        return false;
     }
 
     if(siProto.isLegacyMode()) {
@@ -996,8 +1000,7 @@ void sieSendDataBlock(uint8_t blockNumber) {
             SiTimestamp siTimestamp;
             if(page <= maxPage) {
                 if(!rfid.cardPageRead(page, pageData)) {
-                    beepError();
-                    return;
+                    return false;
                 }
 
                 uint8_t cp = pageData[0];
@@ -1015,18 +1018,25 @@ void sieSendDataBlock(uint8_t blockNumber) {
         }
     }
     siProto.send();
+    return true;
 }
 
-void sieSendAllDataBlocks() {
-    sieSendDataBlock(0);
-    sieSendDataBlock(1);
+bool sieSendAllDataBlocks() {
+    bool status = sieSendDataBlock(0)
+        && sieSendDataBlock(1);
+    if(!status) {
+        return false;
+    }
     uint8_t blockNumber = 2;
     if(currentCpCount <= 64) {
         blockNumber = 6;
     }
     for(; blockNumber < 8; ++blockNumber) {
-        sieSendDataBlock(blockNumber);
+        if(!sieSendDataBlock(blockNumber)) {
+            return false;
+        }
     }
+    return true;
 }
 
 uint8_t pwd[] = {0, 0, 0};
