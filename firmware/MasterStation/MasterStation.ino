@@ -50,7 +50,16 @@ enum Resp {
     RESP_FUNC_OK          = 0x79
 };
 
-#define EEPROM_ANTENNA_GAIN_ADDR 0x3EE
+#define EEPROM_CONFIG_ADDR 0x3EE
+
+//-----------------------------------------------------------
+
+using SiProto = SportidentProtocol;
+
+struct __attribute__((packed)) Configuration {
+    uint8_t antennaGain;
+    int8_t timezone; // timezone in 1/4 hours
+};
 
 //-----------------------------------------------------------
 // FUNCTIONS
@@ -71,15 +80,12 @@ bool sieSendAllDataBlocks(bool shortFormat);
 void setPwd(uint8_t newPwd[]);
 uint8_t getPwd(uint8_t i);
 
-
-using SiProto = SportidentProtocol;
-
 //-----------------------------------------------------------
 // VARIABLES
+static Configuration config;
 static Rfid rfid;
 static SerialProtocol serialProto;
 static SiProto siProto;
-static uint8_t antennaGain = DEFAULT_ANTENNA_GAIN;
 static bool sieMode = false; // Sportident emulation mode (continuos readout)
 
 void setup() {
@@ -92,12 +98,13 @@ void setup() {
     digitalWrite(BUZZ_PIN, LOW);
     digitalWrite(RC522_RST_PIN, LOW);
 
-    antennaGain = majEepromRead(EEPROM_ANTENNA_GAIN_ADDR);
-    if(antennaGain > MAX_ANTENNA_GAIN || antennaGain < MIN_ANTENNA_GAIN) {
-        antennaGain = DEFAULT_ANTENNA_GAIN;
+    readConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    if(config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
+        config.antennaGain = DEFAULT_ANTENNA_GAIN;
+        config.timezone = 0;
     }
 
-    rfid.init(RC522_SS_PIN, RC522_RST_PIN, antennaGain);
+    rfid.init(RC522_SS_PIN, RC522_RST_PIN, config.antennaGain);
     serialProto.init(SERIAL_START_BYTE, 38400);
 
     digitalWrite(LED_PIN, HIGH);
@@ -107,7 +114,7 @@ void setup() {
 
 void loop() { 
     if(sieMode) {
-        rfid.begin(antennaGain);
+        rfid.begin(config.antennaGain);
         sieDetectCard();
         rfid.end();
         delay(50);
@@ -237,22 +244,23 @@ void funcApplyPassword(uint8_t *serialData, uint8_t dataSize) {
 
 void funcReadSettings(uint8_t *serialData, uint8_t dataSize) {
     serialProto.start(RESP_FUNC_SETTINGS);
-    serialProto.add(antennaGain);
+    serialProto.add((uint8_t*)&config, sizeof(Configuration));
     serialProto.send();
 }
 
 void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
-    if(dataSize != 1) {
+    if(dataSize != sizeof(Configuration)) {
         signalError(ERROR_BAD_DATASIZE);
         return;
     }
-    uint8_t newAntennaGain = serialData[0];
-    if(newAntennaGain < MIN_ANTENNA_GAIN || newAntennaGain > MAX_ANTENNA_GAIN) {
+    Configuration *newConfig = (Configuration*)serialData;
+    if(newConfig->antennaGain < MIN_ANTENNA_GAIN || newConfig->antennaGain > MAX_ANTENNA_GAIN
+        || newConfig->timezone < -12*4 || newConfig->timezone > 14*4) {
         signalError(ERROR_BAD_SETTINGS);
         return;
     }
-    antennaGain = newAntennaGain;
-    majEepromWrite(EEPROM_ANTENNA_GAIN_ADDR, antennaGain);
+    memcpy(&config, newConfig, sizeof(Configuration));
+    writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
     signalOK();
 }
 
@@ -569,7 +577,7 @@ void funcGetVersion(uint8_t*, uint8_t) {
 }
 
 void callRfidFunction(void (*func)(uint8_t*, uint8_t), uint8_t *data, uint8_t dataSize) {
-    rfid.begin(antennaGain);
+    rfid.begin(config.antennaGain);
     func(data, dataSize);
     rfid.end();
 }
@@ -724,7 +732,7 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
         case SiProto::CMD_READ_SI6:
             {
                 uint8_t blockNumber = data[0];
-                rfid.begin(antennaGain);
+                rfid.begin(config.antennaGain);
                 if(blockNumber == 0x00) {
                     if(!sieSendAllDataBlocks(true)) {
                         beepError();
@@ -779,7 +787,8 @@ uint32_t readInitTime() {
     if(!rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
         return 0;
     }
-    return byteArrayToUint32(pageData);
+    uint32_t time = byteArrayToUint32(pageData);
+    return (time + config.timezone*900);
 }
 
 uint32_t getPunchTime(const byte *pageData, uint32_t initTime) {
@@ -787,7 +796,7 @@ uint32_t getPunchTime(const byte *pageData, uint32_t initTime) {
     if(punchTime < initTime) {
         punchTime += (uint32_t)1 << 24;
     }
-    return punchTime;
+    return (punchTime + config.timezone*900);
 }
 
 uint32_t readStartTime(uint32_t initTime, uint8_t *pageStartPunch) {

@@ -106,6 +106,27 @@ uint32_t byteArrayToUint32(const byte *byteArray) {
     return value;
 }
 
+bool readConfig(Configuration *config, uint8_t configSize, uint16_t eepromConfigAddress) {
+    uint16_t eepromAdr = eepromConfigAddress;
+    for(uint8_t i = 0; i < configSize; ++i) {
+        *((uint8_t*)config + i) = majEepromRead(eepromAdr);
+        eepromAdr += 3;
+    }
+
+    return true;
+}
+
+bool writeConfig(Configuration *newConfig, uint8_t configSize, uint16_t eepromConfigAddress) {
+    uint16_t eepromAdr = eepromConfigAddress;
+    for(uint8_t i = 0; i < configSize; ++i) {
+        majEepromWrite(eepromAdr, *((uint8_t*)newConfig + i));
+        eepromAdr += 3;
+    }
+
+    return true;
+}
+
+
 void SerialProtocol::init(uint8_t _startByte, uint32_t _baudrate) {
     startByte = _startByte;
     baudrate = _baudrate;

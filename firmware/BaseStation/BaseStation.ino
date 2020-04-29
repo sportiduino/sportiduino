@@ -95,7 +95,7 @@
 
 //-------------------------------------------------------------------
 
-typedef struct __attribute__((packed)) {
+struct __attribute__((packed)) Configuration {
     uint8_t stationNumber;
 // Active mode duration
 //    (xxx) - 2^(bit2:bit0) hours in active mode (1 - 32 hours)
@@ -110,7 +110,7 @@ typedef struct __attribute__((packed)) {
     uint8_t antennaGain: 3;
     uint8_t _reserved2: 5;
     uint8_t password[3];
-} Configuration;
+};
 
 
 #ifdef I2C_EEPROM_VCC
@@ -226,8 +226,6 @@ inline void beepSerialError()           { beep(250, 2); }
 
 
 void(*resetFunc)(void) = 0;
-bool readConfig(Configuration *config);
-bool writeConfig(Configuration *newConfig);
 void reedSwitchIrq();
 void rtcAlarmIrq();
 bool doesCardExpire();
@@ -330,7 +328,7 @@ void setup() {
 #endif
 
     // Read settings from EEPROM
-    readConfig(&config);
+    readConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
 
     if(config.stationNumber == 0 || config.stationNumber == 0xff ||
        config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
@@ -340,7 +338,7 @@ void setup() {
         config.antennaGain = DEFAULT_ANTENNA_GAIN;
         config.activeModeDuration = DEFAULT_ACTIVE_MODE_DURATION;
         config.password[0] = config.password[1] = config.password[2] = 0;
-        writeConfig(&config);
+        writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
 #ifdef USE_I2C_EEPROM
         i2cEepromErase();
 #else
@@ -464,7 +462,7 @@ void setNewConfig(Configuration *newConfig) {
     }
 
     memcpy(&config, newConfig, sizeof(Configuration));
-    writeConfig(&config);
+    writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
 }
 
 void setStationNum(uint8_t num) {
@@ -941,7 +939,7 @@ void processStationMasterCard(byte *data, byte dataSize) {
     if(newNum > 0) {
         if(config.stationNumber != newNum) {
             setStationNum(newNum);
-            writeConfig(&config);
+            writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
         }
         deinitCard();
         beepMasterCardOk();
@@ -1351,26 +1349,6 @@ void rtcAlarmIrq() {
 
 void reedSwitchIrq() {
     reedSwitchFlag = 1;
-}
-
-bool readConfig(Configuration *config) {
-    uint16_t eepromAdr = EEPROM_CONFIG_ADDR;
-    for(uint8_t i = 0; i < sizeof(Configuration); ++i) {
-        *((uint8_t*)config + i) = majEepromRead(eepromAdr);
-        eepromAdr += 3;
-    }
-
-    return true;
-}
-
-bool writeConfig(Configuration *newConfig) {
-    uint16_t eepromAdr = EEPROM_CONFIG_ADDR;
-    for(uint8_t i = 0; i < sizeof(Configuration); ++i) {
-        majEepromWrite(eepromAdr, *((uint8_t*)newConfig + i));
-        eepromAdr += 3;
-    }
-
-    return true;
 }
 
 void processSerial() {
