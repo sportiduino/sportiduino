@@ -13,7 +13,7 @@ typedef union {
 
 class SiTimestamp {
 public:
-    void fromUnixtime(uint32_t timestamp);
+    void fromUnixtime(uint32_t timestamp, int8_t timezone = 0);
 
     uint8_t ptd = 0xEE;
     uint8_t cn = 0xEE;

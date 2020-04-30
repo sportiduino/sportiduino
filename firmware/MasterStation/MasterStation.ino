@@ -787,8 +787,7 @@ uint32_t readInitTime() {
     if(!rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
         return 0;
     }
-    uint32_t time = byteArrayToUint32(pageData);
-    return (time + config.timezone*900);
+    return byteArrayToUint32(pageData);
 }
 
 uint32_t getPunchTime(const byte *pageData, uint32_t initTime) {
@@ -796,7 +795,7 @@ uint32_t getPunchTime(const byte *pageData, uint32_t initTime) {
     if(punchTime < initTime) {
         punchTime += (uint32_t)1 << 24;
     }
-    return (punchTime + config.timezone*900);
+    return punchTime;
 }
 
 uint32_t readStartTime(uint32_t initTime, uint8_t *pageStartPunch) {
@@ -917,14 +916,14 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         SiTimestamp start;
         SiTimestamp finish;
 
-        clear.fromUnixtime(currentCardInitTime);
+        clear.fromUnixtime(currentCardInitTime, config.timezone);
         clear.cn = 0;
 
         uint8_t finishPunchOrEmptyPage = 0;
         uint32_t finishTime = readFinishTime(currentCardInitTime, &finishPunchOrEmptyPage);
         if(finishTime) {
-            finish.fromUnixtime(finishTime);
-            finish.cn = FINISH_STATION_NUM;
+            finish.fromUnixtime(finishTime, config.timezone);
+            finish.cn = 0;
         }
         if(finishPunchOrEmptyPage) {
             currentCpCount = finishPunchOrEmptyPage - CARD_PAGE_START;
@@ -933,8 +932,8 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         uint8_t pageStartPunch = 0;
         uint32_t startTime = readStartTime(currentCardInitTime, &pageStartPunch); 
         if(startTime) {
-            start.fromUnixtime(startTime);
-            start.cn = START_STATION_NUM;
+            start.fromUnixtime(startTime, config.timezone);
+            start.cn = 0;
             blockOffset = CARD_PAGE_START - pageStartPunch + 1;
             currentCpCount -= blockOffset;
         } else {
@@ -1023,7 +1022,7 @@ bool sieSendDataBlock(uint8_t blockNumber) {
                     siTimestamp.cn = cp;
 
                     uint32_t punchTime = getPunchTime(pageData, currentCardInitTime);
-                    siTimestamp.fromUnixtime(punchTime);
+                    siTimestamp.fromUnixtime(punchTime, config.timezone);
                 }
             }
             siProto.add(siTimestamp.ptd);

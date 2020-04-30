@@ -1,11 +1,12 @@
 #include "sportidentprotocol.h"
 
-void SiTimestamp::fromUnixtime(uint32_t timestamp) {
+void SiTimestamp::fromUnixtime(uint32_t timestamp, int8_t timezone) {
     if(!timestamp) {
         return;
     }
-    uint32_t daysFromEpoch = timestamp/86400;
-    uint32_t secsFromMidnight = timestamp%86400;
+    uint32_t localtime = timestamp + (int16_t)timezone*900;
+    uint32_t daysFromEpoch = localtime/86400;
+    uint32_t secsFromMidnight = localtime%86400;
     uint8_t weekday = (daysFromEpoch + 4)%7;
     ptd = weekday << 1;
     ptd |= secsFromMidnight/43200;
