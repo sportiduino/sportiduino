@@ -26,7 +26,6 @@ uint8_t majEepromRead(uint16_t adr) {
         return val2;
     }
     
-    //BEEP_EEPROM_ERROR;
     return 0;
 }
 

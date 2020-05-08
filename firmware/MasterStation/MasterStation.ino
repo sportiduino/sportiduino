@@ -161,12 +161,12 @@ void signalError(uint8_t error) {
     beepError();
 }
 
-void signalOK(bool beepOK = true) {
+void signalOK(bool beep = true) {
     serialProto.start(RESP_FUNC_OK);
     serialProto.add((uint8_t)rfid.getCardType());
     serialProto.send();
 
-    if(beepOK) {
+    if(beep) {
         beepOk();
     }
 }

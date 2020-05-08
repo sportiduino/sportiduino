@@ -33,5 +33,7 @@ ifdef buzzfreq
 	CXXFLAGS += -DBUZZER_FREQUENCY=$(buzzfreq)
 endif
 
+$(info CXXFLAGS = $(CXXFLAGS))
+
 include $(ARDMK_DIR)/Arduino.mk
 
