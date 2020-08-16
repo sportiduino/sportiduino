@@ -24,11 +24,6 @@ ifdef port
 	ISP_PORT = $(port)
 endif
 
-
-ifdef port
-	MONITOR_PORT    = $(port)
-endif
-
 ifdef buzzfreq
 	CXXFLAGS += -DBUZZER_FREQUENCY=$(buzzfreq)
 endif
