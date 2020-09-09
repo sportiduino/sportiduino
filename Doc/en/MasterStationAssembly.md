@@ -19,15 +19,23 @@ It is advisable to order boards for the master station simultaneously with the P
 6. USB-lace.
 USB type depends on the port used in Arduino Nano (micro- or mini-USB).
 
-### Station with PCB variant 1 and the G1020BF case
+### Arduino Nano preparation
 
 First solder Arduino Nano.
-Spread the legs and holes with flux, solder.
 ISP (2x3 connector) can not be soldered.
 
 ![](/Images/w02.jpg?raw=true)
 
-Further solder Arduino Nano in the main board.
+#### Arduino Nano preparation for SPORTident emulation
+
+Remove capacitor at line DTR-Reset from Arduino Nano board.
+It is located next to the USB controller chip.
+After that burn fixed Optiboot bootloader (optiboot8_atmega328_38400_without_reset.hex)
+using the ISP programmer.
+
+### Station with PCB variant 1 and the G1020BF case
+
+Solder Arduino Nano in the main board.
 Also in the main board we solder a 1x8 connector, a angle-bent LED,
 a buzzer and resistors 0805 47 ohm (to the buzzer) and 150 ohm (to the LED).
 
@@ -39,8 +47,9 @@ Then connect the master station via a USB wire to the computer.
 ![](/Images/w04.jpg?raw=true)
 
 Open the Arduino IDE program on the computer (see [Arduino IDE Setting](/Doc/en/BaseStationAssembly.md#Arduino-IDE-Setting)).
-In the settings specify the board type `Arduino Nano`, processor `ATmega328P (Old Bootloader)`,
-select the appropriate serial port and upload MasterStation sketch onto the board.
+In the settings specify the board type `Arduino Nano`, processor `ATmega328P (Old Bootloader)`
+(`ATmega328P (without reset)` for SPORTident emulation).
+Select the appropriate serial port and upload MasterStation sketch onto the board.
 
 For USB cable cut off a s small groove in the case.
 The LED is greased with epoxy glue.
