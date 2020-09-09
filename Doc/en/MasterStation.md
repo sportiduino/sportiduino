@@ -18,11 +18,11 @@ The electronics of the master station can be placed in the Gainta G1020BF box or
 
 The station is connected to the computer using a USB port.
 The Arduino Nano already has a built-in Serial-to-USB converter, so no additional converters are needed.
-The station will be displayed in the connected devices as a COM port.
+The station will be displayed in the connected devices as a COM port or /dev/ttyUSBx in Linux.
 
-The transmission and retrieval of information occurs sequentially by sending up to 32-byte packets.
+### Serial data protocol
 
-### Packet structure
+The transmission of information between PC and Master Station occurs sequentially by sending up to 32-byte packets.
 
 | | Value | Byte address in the packet |
 | --- | --- | --- |
