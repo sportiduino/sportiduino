@@ -94,5 +94,5 @@ Commands pass only with the correct value of the checksum and start byte.
 Firmware of Master station v1.8.0 or greater has partial support of the SPORTident data transfer protocol.
 All RFID tags are read as SI-Card (192 punch mode).
 Communication tested with SPORTident Reader, Rogain Manager and SportOrg software.
-It doesn't work with WinOrient yet.
+It doesn't work with WinOrient 2011 yet.
 
