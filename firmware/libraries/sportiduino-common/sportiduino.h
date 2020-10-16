@@ -42,12 +42,20 @@ uint8_t majEepromRead(uint16_t adr);
  */
 void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t ms, uint8_t n);
 
+void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum);
+
 bool uint32ToByteArray(uint32_t value, byte *byteArray);
-uint32_t byteArrayToUint32(byte *byteArray);
+uint32_t byteArrayToUint32(const byte *byteArray);
+
+struct Configuration;
+
+bool readConfig(Configuration *config, uint8_t configSize, uint16_t eepromConfigAddress);
+bool writeConfig(Configuration *newConfig, uint8_t configSize, uint16_t eepromConfigAddress);
+
 
 class SerialProtocol {
 public:
-    void init(uint8_t _startByte);
+    void init(uint8_t _startByte, uint32_t baudrate = 9600);
     void begin();
     void end();
     void start(uint8_t code);
@@ -63,6 +71,7 @@ private:
     uint8_t serialBuffer[SERIAL_PACKET_SIZE];
     uint8_t serialDataPos = 3;
     uint8_t serialPacketCount = 0;
+    uint32_t baudrate = 0;
 };
 
 #endif

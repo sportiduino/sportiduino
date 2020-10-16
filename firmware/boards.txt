@@ -31,3 +31,34 @@ sportiduino.menu.bootloader.optiboot_led.bootloader.file=optiboot/optiboot8_3840
 
 ############################################################## 
 
+nano.name=Arduino Nano
+
+nano.upload.tool=avrdude
+nano.upload.protocol=arduino
+
+nano.bootloader.tool=avrdude
+nano.bootloader.unlock_bits=0x3F
+nano.bootloader.lock_bits=0x0F
+
+nano.build.f_cpu=16000000L
+nano.build.board=AVR_NANO
+nano.build.core=arduino
+nano.build.variant=eightanaloginputs
+
+## Arduino Nano w/ ATmega328P (without reset)
+## --------------------------
+nano.menu.cpu.atmega328noreset=ATmega328P (without reset)
+
+nano.menu.cpu.atmega328noreset.upload.maximum_size=30720
+nano.menu.cpu.atmega328noreset.upload.maximum_data_size=2048
+nano.menu.cpu.atmega328noreset.upload.speed=38400
+
+nano.menu.cpu.atmega328noreset.bootloader.low_fuses=0xFF
+nano.menu.cpu.atmega328noreset.bootloader.high_fuses=0xDA
+nano.menu.cpu.atmega328noreset.bootloader.extended_fuses=0xFD
+nano.menu.cpu.atmega328noreset.bootloader.file=optiboot/optiboot8_atmega328_38400_without_reset.hex
+
+nano.menu.cpu.atmega328noreset.build.mcu=atmega328p
+
+############################################################## 
+

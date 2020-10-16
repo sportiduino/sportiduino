@@ -26,7 +26,6 @@ uint8_t majEepromRead(uint16_t adr) {
         return val2;
     }
     
-    //BEEP_EEPROM_ERROR;
     return 0;
 }
 
@@ -54,6 +53,40 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
     }
 }
 
+void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
+    uint8_t startPage = CARD_PAGE_START;
+    uint8_t endPage = rfid->getCardMaxPage() + 1; // page after last page
+    uint8_t page = startPage;
+    byte pageData[4] = {0,0,0,0};
+    byte num = 0;
+
+    *newPage = 0;
+    *lastNum = 0;
+
+    while(startPage < endPage) {   
+        page = (startPage + endPage)/2;
+
+        if(!rfid->cardPageRead(page, pageData)) {
+            return;
+        }
+
+        num = pageData[0];
+          
+        if(num == 0) {
+            endPage = page;
+        } else {
+            startPage = (startPage != page)? page : page + 1;
+        }
+    }
+
+    if(num > 0) {
+        ++page;
+    }
+
+    *newPage = page;
+    *lastNum = num;
+}
+
 bool uint32ToByteArray(uint32_t value, byte *byteArray) {
     for(uint8_t i = 0; i < 4; ++i) {
         byteArray[3 - i] = value & 0xff;
@@ -62,7 +95,7 @@ bool uint32ToByteArray(uint32_t value, byte *byteArray) {
     return true;
 }
 
-uint32_t byteArrayToUint32(byte *byteArray) {
+uint32_t byteArrayToUint32(const byte *byteArray) {
     uint32_t value = 0;
     for(uint8_t i = 0; i < 4; ++i) {
         value <<= 8;
@@ -72,14 +105,36 @@ uint32_t byteArrayToUint32(byte *byteArray) {
     return value;
 }
 
-void SerialProtocol::init(uint8_t _startByte) {
+bool readConfig(Configuration *config, uint8_t configSize, uint16_t eepromConfigAddress) {
+    uint16_t eepromAdr = eepromConfigAddress;
+    for(uint8_t i = 0; i < configSize; ++i) {
+        *((uint8_t*)config + i) = majEepromRead(eepromAdr);
+        eepromAdr += 3;
+    }
+
+    return true;
+}
+
+bool writeConfig(Configuration *newConfig, uint8_t configSize, uint16_t eepromConfigAddress) {
+    uint16_t eepromAdr = eepromConfigAddress;
+    for(uint8_t i = 0; i < configSize; ++i) {
+        majEepromWrite(eepromAdr, *((uint8_t*)newConfig + i));
+        eepromAdr += 3;
+    }
+
+    return true;
+}
+
+
+void SerialProtocol::init(uint8_t _startByte, uint32_t _baudrate) {
     startByte = _startByte;
+    baudrate = _baudrate;
     Serial.setTimeout(SERIAL_TIMEOUT);
     begin();
 }
 
 void SerialProtocol::begin() {
-    Serial.begin(9600);
+    Serial.begin(baudrate);
 }
 
 void SerialProtocol::end() {
@@ -148,11 +203,10 @@ uint8_t SerialProtocol::checkSum(uint8_t *buffer, uint8_t dataSize) {
 uint8_t *SerialProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize) {
     *error = false;
     memset(serialBuffer, 0, SERIAL_PACKET_SIZE);
-    // Drop bytes before msg start
-    while(Serial.available() > 0) {
-        serialBuffer[0] = Serial.read();
-        if(serialBuffer[0] == startByte) {
-            Serial.readBytes(serialBuffer + 1, SERIAL_PACKET_SIZE);
+    if(Serial.available() > 0) {
+        uint8_t b = Serial.peek();
+        if(b == startByte) {
+            Serial.readBytes(serialBuffer, SERIAL_PACKET_SIZE);
 
             *dataSize = serialBuffer[2];
 

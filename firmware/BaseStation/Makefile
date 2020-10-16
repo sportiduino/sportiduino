@@ -8,9 +8,10 @@ ifndef ARDUINO_DIR
 endif
 
 ARDUINO_SKETCHBOOK  = ..
-ARDUINO_LIBS        = sportiduino-common SPI EEPROM RFID Adafruit_SleepyDog_Library ds3231-master Wire PinChangeInterrupt
 BOARD_TAG           = sportiduino
-BOARDS_TXT          = ./boards.txt
+ARDUINO_LIBS        = sportiduino-common SPI EEPROM RFID Adafruit_SleepyDog_Library ds3231-master Wire PinChangeInterrupt
+BOARDS_TXT          = ../boards.txt
+
 BOOTLOADER_PARENT   = ..
 BOOTLOADER_PATH     = Optiboot
 BOOTLOADER_FILE     = optiboot8_38400_sportiduino_led.hex

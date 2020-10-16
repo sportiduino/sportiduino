@@ -18,11 +18,11 @@ The electronics of the master station can be placed in the Gainta G1020BF box or
 
 The station is connected to the computer using a USB port.
 The Arduino Nano already has a built-in Serial-to-USB converter, so no additional converters are needed.
-The station will be displayed in the connected devices as a COM port.
+The station will be displayed in the connected devices as a COM port or /dev/ttyUSBx in Linux.
 
-The transmission and retrieval of information occurs sequentially by sending up to 32-byte packets.
+### Serial data protocol
 
-### Packet structure
+The transmission of information between PC and Master Station occurs sequentially by sending up to 32-byte packets.
 
 | | Value | Byte address in the packet |
 | --- | --- | --- |
@@ -42,7 +42,7 @@ Next comes an array of transmitted data up to 28 bytes.
 At the end of the packet contains a checksum: the remainder of dividing by 256 the sum of bytes 1..x.
 Commands pass only with the correct value of the checksum and start byte.
 
-### List of commands sent to the station
+#### List of commands sent to the station
 
 | Code | Command | Length | Array of data bytes (offset) |
 | --- | --- | --- | --- |
@@ -65,7 +65,7 @@ Commands pass only with the correct value of the checksum and start byte.
 | 0x59 | Beep OK (long beep) | 0 |
 | 0x5A | Create Config master card | 6 | base station configuration
 
-### List of responses transmitted by the station
+#### List of station responses
 
 | Code | Command | Length | Array of data bytes (offset) |
 | --- | --- | --- | --- |
@@ -78,7 +78,7 @@ Commands pass only with the correct value of the checksum and start byte.
 | 0x78 | Error | 2 | error code (0), card type (1)
 | 0x79 | OK | 1 | card type (0)
 
-### Error Codes
+#### Error Codes
 
 | Code | Error |
 | --- | --- |
@@ -88,4 +88,11 @@ Commands pass only with the correct value of the checksum and start byte.
 | 0x04 | EEPROM reading error
 | 0x05 | Card not found
 | 0x06 | Unknown command
+
+### SPORTident emulation
+
+Firmware of Master station v1.8.0 or greater has partial support of the SPORTident data transfer protocol.
+All RFID tags are read as SI-Card (192 punch mode).
+Communication tested with SPORTident Reader, Rogain Manager and SportOrg software.
+It doesn't work with WinOrient 2011 yet.
 

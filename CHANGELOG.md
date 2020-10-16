@@ -1,3 +1,6 @@
+## [MS 1.8.0] - 2020-10
+- Emulation of SPORTident serial protocol
+
 ## [3.7.0] - 2020-04-13
 New base station PCB:
 - Added battery voltage measurement circuit (GH-63)
