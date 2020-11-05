@@ -270,9 +270,15 @@ void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
         return;
     }
 
+    uint8_t maxPage = rfid.getCardMaxPage();
+    if(!rfid.cardErase(CARD_PAGE_START, maxPage)) {
+        signalError(ERROR_CARD_WRITE);
+        return;
+    }
+
     CardType cardType = rfid.getCardType();
 
-    uint8_t ntagType; // for old BS firmware?
+    uint8_t ntagType; // for old BS firmware only (deprecated)
     switch(cardType) {
         case CardType::NTAG213:
             ntagType = 3;
@@ -299,13 +305,6 @@ void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
         signalError(ERROR_CARD_WRITE);
         return;
     }
-
-    uint8_t maxPage = rfid.getCardMaxPage();
-    if(!rfid.cardErase(CARD_PAGE_START, maxPage)) {
-        signalError(ERROR_CARD_WRITE);
-        return;
-    }
-
 
     signalOK();
 }

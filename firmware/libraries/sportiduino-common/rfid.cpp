@@ -282,7 +282,7 @@ bool Rfid::cardWrite(uint8_t startPageAdr, const byte *data, uint16_t size) {
 }
 
 bool Rfid::cardErase(uint8_t beginPageAddr, uint8_t endPageAddr) {
-    for(uint8_t pageAddr = beginPageAddr; pageAddr <= endPageAddr; ++pageAddr) {
+    for(uint8_t pageAddr = endPageAddr; pageAddr >= beginPageAddr; --pageAddr) {
         if(!cardPageErase(pageAddr)) {
             return false;
         }
