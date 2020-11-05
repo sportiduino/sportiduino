@@ -1261,7 +1261,8 @@ void clearParticipantCard() {
     bool result = true;
 
     digitalWrite(LED, HIGH);
-    for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++) {
+    // Clear card from last page
+    for(uint8_t page = maxPage; page >= CARD_PAGE_INIT_TIME; --page) {
         Watchdog.reset();
 
         if(page % 10 == 0) {
