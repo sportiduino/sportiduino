@@ -36,7 +36,7 @@ Thus, 36/126/222 pages are available.
 Page numbers start from 0.
 Pages 4-7 are reserved, the rest of the pages are for the punches.
 In the 4th page, the first two bytes contain the programmable card number.
-The third byte contains information about card type: 3 - NTAG213, 5 - NTAG215, 6 - NTAG216, it is automatically set.
+The third byte contains information about card type. Value 255 used for master card.
 In the 4th byte, the station firmware version.
 On the 5th page, the initialization time of the card in Unixtime UTC format.
 Then two pages are reserved.

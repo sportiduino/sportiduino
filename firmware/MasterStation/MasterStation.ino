@@ -276,26 +276,8 @@ void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
         return;
     }
 
-    CardType cardType = rfid.getCardType();
-
-    uint8_t ntagType; // for old BS firmware only (deprecated)
-    switch(cardType) {
-        case CardType::NTAG213:
-            ntagType = 3;
-            break;
-        case CardType::NTAG215:
-            ntagType = 5;
-            break;
-        case CardType::NTAG216:
-            ntagType = 6;
-            break;
-        default:
-            ntagType = 0;
-            break;
-    }
-
     byte data[] = {
-        serialData[0], serialData[1], ntagType, FW_MAJOR_VERS,          // card num, card type, version
+        serialData[0], serialData[1], 0, FW_MAJOR_VERS,                 // card num, 0, fw version
         serialData[2], serialData[3], serialData[4], serialData[5],     // unixtime
         serialData[6], serialData[7], serialData[8], serialData[9],     // page6
         serialData[10], serialData[11], serialData[12], serialData[13]  // page7
