@@ -228,7 +228,7 @@ inline void beepSerialError()           { beep(250, 2); }
 void(*resetFunc)(void) = 0;
 void reedSwitchIrq();
 void rtcAlarmIrq();
-bool doesCardExpire();
+bool checkCardInitTime();
 void checkParticipantCard();
 void processSerial();
 void serialFuncReadInfo(byte *data, byte dataSize);
@@ -1219,7 +1219,7 @@ void processParticipantCard(uint16_t cardNum) {
             }
         }
 
-        if(config.checkCardInitTime && doesCardExpire()) {
+        if(config.checkCardInitTime && !checkCardInitTime()) {
             return;
         }
 
@@ -1312,23 +1312,29 @@ void checkParticipantCard() {
     if(newPage != CARD_PAGE_START || lastNum != 0) {
         return;
     }
-    // Check card init time
-    if(config.checkCardInitTime && doesCardExpire()) {
+    if(!checkCardInitTime()) {
         return;
     }
 
     beepCardCheckOk();
 }
 
-bool doesCardExpire() {
+bool checkCardInitTime() {
     byte pageData[4] = {0,0,0,0};
 
-    if(rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
+    if(!rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
+        return false;
+    }
+
+    uint32_t cardTime = byteArrayToUint32(pageData);
+
+    if(cardTime < 1577826000) { // 01-01-2020
+        return false;
+    }
+
+    if(config.checkCardInitTime) {
         DS3231_get(&t);
-
-        uint32_t cardTime = byteArrayToUint32(pageData);
-
-        if(t.unixtime - cardTime < CARD_EXPIRE_TIME) {
+        if(t.unixtime - cardTime > CARD_EXPIRE_TIME) {
             return false;
         }
     }
