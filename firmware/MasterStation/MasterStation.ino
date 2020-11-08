@@ -146,10 +146,7 @@ void serialEvent() {
         handleSiCmd(cmdCode, data, dataSize);
         return;
     }
-    if(Serial.available() > 0) {
-        // Drop byte
-        Serial.read();
-    }
+    serialProto.dropByte();
 }
 
 void signalError(uint8_t error) { 

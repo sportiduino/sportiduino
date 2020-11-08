@@ -1390,6 +1390,10 @@ void processSerial() {
                 serialRespStatus(SERIAL_ERROR_UNKNOWN_FUNC);
                 break;
         }
+        return;
+    } else {
+        // drop bytes before start byte
+        serialProto.dropByte();
     }
 }
 
