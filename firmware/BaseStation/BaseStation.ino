@@ -32,7 +32,7 @@
 // Set BUZZER_FREQUENCY by running "make buzzfreq=2500 ..."
 #ifndef BUZZER_FREQUENCY
     // or change here
-    #define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
+    #define BUZZER_FREQUENCY 4000 // or 0 for buzzer with generator
 #endif
 
 #define BUZ           3
@@ -1315,6 +1315,8 @@ void checkParticipantCard() {
     if(!checkCardInitTime()) {
         return;
     }
+
+    writeMarkToLog(cardNum);
 
     beepCardCheckOk();
 }
