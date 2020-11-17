@@ -19,7 +19,7 @@
 #define FW_MAJOR_VERS   8
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 1)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 2)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -1026,11 +1026,26 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
         return;
     }
 
+    uint8_t stationNumberFromCard = data[0];
+    uint8_t maxPage = rfid.getCardMaxPage();
+    uint16_t lastCard = 0;
+    
     byte pageData[4];
     memcpy(pageData, data, 4);
     pageData[0] = config.stationNumber;
     pageData[3] = 1; // flag: have timestamps
     bool result = rfid.cardPageWrite(CARD_PAGE_INIT, pageData);
+
+    if (stationNumberFromCard == config.stationNumber) {
+        byte pageData[4];
+        result &= rfid.cardPageRead(maxPage, pageData);
+        lastCard = pageData[0] << 8;
+        lastCard |= pageData[1];
+        lastCard >>= 4;
+        if (lastCard > 4000) {
+            lastCard = 0;
+        }
+    }
 
     DS3231_get(&t);
     uint32_t now = t.unixtime;
@@ -1042,11 +1057,10 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
     result &= rfid.cardPageWrite(page++, pageData);
 
 
-    uint8_t maxPage = rfid.getCardMaxPage();
     digitalWrite(I2C_EEPROM_VCC, HIGH);
     delay(5);
     digitalWrite(LED, HIGH);
-    for(uint16_t cardNum = 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
+    for(uint16_t cardNum = lastCard + 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
         Watchdog.reset();
 
         if(cardNum % 100 == 0) {
