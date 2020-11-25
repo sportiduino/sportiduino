@@ -5,7 +5,7 @@
 #define FW_MAJOR_VERS     8
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     (MAX_FW_MINOR_VERS + 2)
+#define FW_MINOR_VERS     0
 
 
 //-----------------------------------------------------------

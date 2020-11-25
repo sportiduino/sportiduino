@@ -1,5 +1,11 @@
-## [MS 1.8.0] - 2020-10
-- Emulation of SPORTident serial protocol
+## [3.8.0] - 2020-11-25
+Master station firmware:
+- Emulation of SPORTident serial protocol ([GH-90](https://github.com/sportiduino/sportiduino/issues/90))
+- Change baudrate to 38400 (SportiduinoPQ v0.9 and SportOrg v1.5.0+ >= [bf6c804](https://github.com/sportorg/pysport/commit/bf6c804))
+
+Base station firmware:
+- Fix card clearing ([GH-99](https://github.com/sportiduino/sportiduino/issues/99)) and checking ([GH-96](https://github.com/sportiduino/sportiduino/issues/96))
+- Check Station: write punch to EEPROM ([GH-95](https://github.com/sportiduino/sportiduino/issues/95))
 
 ## [3.7.0] - 2020-04-13
 New base station PCB:
