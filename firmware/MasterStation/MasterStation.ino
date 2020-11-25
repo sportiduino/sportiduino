@@ -5,7 +5,7 @@
 #define FW_MAJOR_VERS     8
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     (MAX_FW_MINOR_VERS + 1)
+#define FW_MINOR_VERS     (MAX_FW_MINOR_VERS + 2)
 
 
 //-----------------------------------------------------------
@@ -19,7 +19,7 @@
 // Set BUZZER_FREQUENCY by running "make buzzfreq=2500"
 #ifndef BUZZER_FREQUENCY
     // or change here
-    #define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
+    #define BUZZER_FREQUENCY 4000 // 0 for buzzer with generator
 #endif
 
 //-----------------------------------------------------------
@@ -146,10 +146,7 @@ void serialEvent() {
         handleSiCmd(cmdCode, data, dataSize);
         return;
     }
-    if(Serial.available() > 0) {
-        // Drop byte
-        Serial.read();
-    }
+    serialProto.dropByte();
 }
 
 void signalError(uint8_t error) { 
@@ -270,26 +267,17 @@ void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
         return;
     }
 
-    CardType cardType = rfid.getCardType();
-
-    uint8_t ntagType; // for old BS firmware?
-    switch(cardType) {
-        case CardType::NTAG213:
-            ntagType = 3;
-            break;
-        case CardType::NTAG215:
-            ntagType = 5;
-            break;
-        case CardType::NTAG216:
-            ntagType = 6;
-            break;
-        default:
-            ntagType = 0;
-            break;
+    uint8_t maxPage = rfid.getCardMaxPage();
+    digitalWrite(LED_PIN, HIGH);
+    if(!rfid.cardErase(CARD_PAGE_START, maxPage)) {
+        signalError(ERROR_CARD_WRITE);
+        digitalWrite(LED_PIN, LOW);
+        return;
     }
+    digitalWrite(LED_PIN, LOW);
 
     byte data[] = {
-        serialData[0], serialData[1], ntagType, FW_MAJOR_VERS,          // card num, card type, version
+        serialData[0], serialData[1], 0, FW_MAJOR_VERS,                 // card num, 0, fw version
         serialData[2], serialData[3], serialData[4], serialData[5],     // unixtime
         serialData[6], serialData[7], serialData[8], serialData[9],     // page6
         serialData[10], serialData[11], serialData[12], serialData[13]  // page7
@@ -299,13 +287,6 @@ void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
         signalError(ERROR_CARD_WRITE);
         return;
     }
-
-    uint8_t maxPage = rfid.getCardMaxPage();
-    if(!rfid.cardErase(CARD_PAGE_START, maxPage)) {
-        signalError(ERROR_CARD_WRITE);
-        return;
-    }
-
 
     signalOK();
 }

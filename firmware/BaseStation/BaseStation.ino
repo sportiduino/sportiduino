@@ -16,10 +16,10 @@
     // or change here
     #define HW_VERS     3
 #endif
-#define FW_MAJOR_VERS   7
-// If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
+#define FW_MAJOR_VERS   8
+// If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   0
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 2)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -32,7 +32,7 @@
 // Set BUZZER_FREQUENCY by running "make buzzfreq=2500 ..."
 #ifndef BUZZER_FREQUENCY
     // or change here
-    #define BUZZER_FREQUENCY 0 // 0 for buzzer with generator
+    #define BUZZER_FREQUENCY 4000 // or 0 for buzzer with generator
 #endif
 
 #define BUZ           3
@@ -228,7 +228,7 @@ inline void beepSerialError()           { beep(250, 2); }
 void(*resetFunc)(void) = 0;
 void reedSwitchIrq();
 void rtcAlarmIrq();
-bool doesCardExpire();
+bool checkCardInitTime();
 void checkParticipantCard();
 void processSerial();
 void serialFuncReadInfo(byte *data, byte dataSize);
@@ -1026,11 +1026,26 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
         return;
     }
 
+    uint8_t stationNumberFromCard = data[0];
+    uint8_t maxPage = rfid.getCardMaxPage();
+    uint16_t lastCard = 0;
+    
     byte pageData[4];
     memcpy(pageData, data, 4);
     pageData[0] = config.stationNumber;
     pageData[3] = 1; // flag: have timestamps
     bool result = rfid.cardPageWrite(CARD_PAGE_INIT, pageData);
+
+    if (stationNumberFromCard == config.stationNumber) {
+        byte pageData[4];
+        result &= rfid.cardPageRead(maxPage, pageData);
+        lastCard = pageData[0] << 8;
+        lastCard |= pageData[1];
+        lastCard >>= 4;
+        if (lastCard > 4000) {
+            lastCard = 0;
+        }
+    }
 
     DS3231_get(&t);
     uint32_t now = t.unixtime;
@@ -1042,11 +1057,10 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
     result &= rfid.cardPageWrite(page++, pageData);
 
 
-    uint8_t maxPage = rfid.getCardMaxPage();
     digitalWrite(I2C_EEPROM_VCC, HIGH);
     delay(5);
     digitalWrite(LED, HIGH);
-    for(uint16_t cardNum = 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
+    for(uint16_t cardNum = lastCard + 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
         Watchdog.reset();
 
         if(cardNum % 100 == 0) {
@@ -1219,7 +1233,7 @@ void processParticipantCard(uint16_t cardNum) {
             }
         }
 
-        if(config.checkCardInitTime && doesCardExpire()) {
+        if(config.checkCardInitTime && !checkCardInitTime()) {
             return;
         }
 
@@ -1256,12 +1270,12 @@ bool writeMarkToParticipantCard(uint8_t newPage) {
 }
 
 void clearParticipantCard() {
-    byte pageData[4] = {0,0,0,0};
     uint8_t maxPage = rfid.getCardMaxPage();
     bool result = true;
 
     digitalWrite(LED, HIGH);
-    for(uint8_t page = CARD_PAGE_INIT_TIME; page <= maxPage; page++) {
+    // Clear card from last page
+    for(uint8_t page = maxPage; page >= CARD_PAGE_INIT_TIME; --page) {
         Watchdog.reset();
 
         if(page % 10 == 0) {
@@ -1270,9 +1284,8 @@ void clearParticipantCard() {
             digitalWrite(LED, LOW);
         }
         
-        result &= rfid.cardPageWrite(page, pageData);
-        
-        if(!result) {
+        if(!rfid.cardPageErase(page)) {
+            result = false;
             break;
         }
     }
@@ -1281,6 +1294,7 @@ void clearParticipantCard() {
     if(result) {
         DS3231_get(&t);
         
+        byte pageData[4];
         pageData[0] = t.unixtime >> 24;
         pageData[1] = t.unixtime >> 16;
         pageData[2] = t.unixtime >> 8;
@@ -1312,23 +1326,31 @@ void checkParticipantCard() {
     if(newPage != CARD_PAGE_START || lastNum != 0) {
         return;
     }
-    // Check card init time
-    if(config.checkCardInitTime && doesCardExpire()) {
+    if(!checkCardInitTime()) {
         return;
     }
+
+    writeMarkToLog(cardNum);
 
     beepCardCheckOk();
 }
 
-bool doesCardExpire() {
+bool checkCardInitTime() {
     byte pageData[4] = {0,0,0,0};
 
-    if(rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
+    if(!rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
+        return false;
+    }
+
+    uint32_t cardTime = byteArrayToUint32(pageData);
+
+    if(cardTime < 1577826000) { // 01-01-2020
+        return false;
+    }
+
+    if(config.checkCardInitTime) {
         DS3231_get(&t);
-
-        uint32_t cardTime = byteArrayToUint32(pageData);
-
-        if(t.unixtime - cardTime < CARD_EXPIRE_TIME) {
+        if(t.unixtime - cardTime > CARD_EXPIRE_TIME) {
             return false;
         }
     }
@@ -1382,6 +1404,10 @@ void processSerial() {
                 serialRespStatus(SERIAL_ERROR_UNKNOWN_FUNC);
                 break;
         }
+        return;
+    } else {
+        // drop bytes before start byte
+        serialProto.dropByte();
     }
 }
 

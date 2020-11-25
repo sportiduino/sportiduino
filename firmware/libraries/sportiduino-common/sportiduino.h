@@ -63,6 +63,7 @@ public:
     void add(const uint8_t *data, uint8_t size);
     void send();
     uint8_t *read(bool *error, uint8_t *code, uint8_t *dataSize);
+    void dropByte();
 
 private:
     uint8_t checkSum(uint8_t *buffer, uint8_t dataSize);

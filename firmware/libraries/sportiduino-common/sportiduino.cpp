@@ -226,3 +226,10 @@ uint8_t *SerialProtocol::read(bool *error, uint8_t *code, uint8_t *dataSize) {
     return nullptr;
 }
 
+void SerialProtocol::dropByte() {
+    if(Serial.available() > 0) {
+        // Drop byte
+        Serial.read();
+    }
+}
+
