@@ -1,5 +1,5 @@
 EESchema Schematic File Version 4
-EELAYER 26 0
+EELAYER 30 0
 EELAYER END
 $Descr A4 11693 8268
 encoding utf-8
@@ -49,13 +49,13 @@ $EndComp
 $Comp
 L Connector_Generic:Conn_01x02 X1
 U 1 1 5BE42F8E
-P 800 1000
-F 0 "X1" H 800 1150 50  0000 C CNN
-F 1 "Battery" H 800 750 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 800 1000 50  0001 C CNN
-F 3 "~" H 800 1000 50  0001 C CNN
-	1    800  1000
-	-1   0    0    -1  
+P 800 1100
+F 0 "X1" H 800 1250 50  0000 C CNN
+F 1 "Battery" H 800 850 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x02_P2.54mm_Vertical" H 800 1100 50  0001 C CNN
+F 3 "~" H 800 1100 50  0001 C CNN
+	1    800  1100
+	-1   0    0    1   
 $EndComp
 $Comp
 L power:+BATT #PWR02
@@ -115,12 +115,12 @@ $EndComp
 $Comp
 L power:+3V3 #PWR012
 U 1 1 5BE59E43
-P 7500 2850
-F 0 "#PWR012" H 7500 2700 50  0001 C CNN
-F 1 "+3V3" H 7650 2900 50  0000 C CNN
-F 2 "" H 7500 2850 50  0001 C CNN
-F 3 "" H 7500 2850 50  0001 C CNN
-	1    7500 2850
+P 7200 2850
+F 0 "#PWR012" H 7200 2700 50  0001 C CNN
+F 1 "+3V3" H 7350 2900 50  0000 C CNN
+F 2 "" H 7200 2850 50  0001 C CNN
+F 3 "" H 7200 2850 50  0001 C CNN
+	1    7200 2850
 	1    0    0    -1  
 $EndComp
 $Comp
@@ -324,13 +324,13 @@ $EndComp
 $Comp
 L Connector_Generic:Conn_01x08 X3
 U 1 1 5BE910CC
-P 11000 1200
-F 0 "X3" H 11000 1600 50  0000 C CNN
-F 1 "RC522" H 11000 700 50  0000 C CNN
-F 2 "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical" H 11000 1200 50  0001 C CNN
-F 3 "~" H 11000 1200 50  0001 C CNN
-	1    11000 1200
-	1    0    0    -1  
+P 11000 1300
+F 0 "X3" H 11000 1700 50  0000 C CNN
+F 1 "RC522" H 11000 800 50  0000 C CNN
+F 2 "Connector_PinHeader_2.54mm:PinHeader_1x08_P2.54mm_Vertical" H 11000 1300 50  0001 C CNN
+F 3 "~" H 11000 1300 50  0001 C CNN
+	1    11000 1300
+	1    0    0    1   
 $EndComp
 Text Label 10000 900  0    50   ~ 0
 PB2
@@ -415,7 +415,7 @@ SDA
 Text Notes 10750 1600 2    50   ~ 0
 3V3
 $Comp
-L MCU_Microchip_ATmega:ATmega328P-AU D2
+L sportiduino-base-rescue:ATmega328P-AU-MCU_Microchip_ATmega D2
 U 1 1 5BE4287E
 P 5550 3300
 F 0 "D2" H 5900 4800 50  0000 C CNN
@@ -498,17 +498,6 @@ Text GLabel 6200 4300 2    50   Input ~ 0
 32K
 Text GLabel 10100 3400 2    50   Input ~ 0
 32K
-$Comp
-L Device:C C8
-U 1 1 5DDE2977
-P 8950 2900
-F 0 "C8" H 9065 2946 50  0000 L CNN
-F 1 "100 nF" H 8650 2800 50  0000 L CNN
-F 2 "Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder" H 8988 2750 50  0001 C CNN
-F 3 "~" H 8950 2900 50  0001 C CNN
-	1    8950 2900
-	1    0    0    -1  
-$EndComp
 $Comp
 L power:GNDD #PWR017
 U 1 1 5DDF3F7C
@@ -607,28 +596,6 @@ F 1 "TestPoint" H 4750 2400 50  0001 L CNN
 F 2 "TestPoint:TestPoint_THTPad_D1.5mm_Drill0.7mm" H 5100 2400 50  0001 C CNN
 F 3 "~" H 5100 2400 50  0001 C CNN
 	1    4900 2400
-	0    -1   -1   0   
-$EndComp
-$Comp
-L power:GNDD #PWR016
-U 1 1 5DE79F85
-P 8950 2550
-F 0 "#PWR016" H 8950 2300 50  0001 C CNN
-F 1 "GNDD" H 8954 2395 50  0001 C CNN
-F 2 "" H 8950 2550 50  0001 C CNN
-F 3 "" H 8950 2550 50  0001 C CNN
-	1    8950 2550
-	1    0    0    -1  
-$EndComp
-$Comp
-L Jumper:SolderJumper_3_Bridged12 JP2
-U 1 1 5DEB3AB0
-P 8950 2300
-F 0 "JP2" V 9050 2150 50  0000 C CNN
-F 1 "SolderJumper_3_Bridged12" H 8950 2414 50  0001 C CNN
-F 2 "Jumper:SolderJumper-3_P1.3mm_Open_RoundedPad1.0x1.5mm_NumberLabels" H 8950 2300 50  0001 C CNN
-F 3 "~" H 8950 2300 50  0001 C CNN
-	1    8950 2300
 	0    -1   -1   0   
 $EndComp
 $Comp
@@ -850,10 +817,6 @@ Wire Wire Line
 Wire Wire Line
 	6250 3500 6350 3400
 Wire Wire Line
-	6900 3050 6900 3000
-Wire Wire Line
-	7200 3000 7200 3050
-Wire Wire Line
 	7200 3350 7200 3500
 Wire Wire Line
 	6900 3350 6900 3400
@@ -960,16 +923,6 @@ Connection ~ 9550 2700
 Wire Wire Line
 	9350 2700 9350 3200
 Wire Wire Line
-	9250 2700 9250 3200
-Wire Wire Line
-	8950 3050 8950 3100
-Wire Wire Line
-	8950 2750 8950 2700
-Wire Wire Line
-	8950 2700 9250 2700
-Wire Wire Line
-	6600 2700 6600 2850
-Wire Wire Line
 	2300 6500 2300 6550
 Wire Wire Line
 	2900 6550 2300 6550
@@ -1025,28 +978,11 @@ Wire Wire Line
 Wire Wire Line
 	4100 2100 4950 2100
 Wire Wire Line
-	7250 2850 7500 2850
-Connection ~ 7500 2850
-Wire Wire Line
-	6850 2850 6600 2850
-Connection ~ 6600 2850
-Wire Wire Line
 	4900 2400 4950 2400
 Wire Wire Line
 	6200 2700 6150 2700
 Wire Wire Line
 	6200 2800 6150 2800
-Wire Wire Line
-	9250 2700 9250 2300
-Connection ~ 9250 2700
-Wire Wire Line
-	9100 2300 9250 2300
-Wire Wire Line
-	8950 2500 8950 2550
-Wire Wire Line
-	8950 2050 8950 2100
-Wire Wire Line
-	6600 2700 8400 2700
 Wire Wire Line
 	2300 3700 2800 3700
 Wire Wire Line
@@ -1069,10 +1005,6 @@ Wire Wire Line
 	10450 3700 10600 3700
 Wire Wire Line
 	6150 3200 6200 3200
-Wire Wire Line
-	6150 3300 6600 3300
-Wire Wire Line
-	6600 2850 6600 3300
 Wire Wire Line
 	1600 3800 1800 3800
 Wire Wire Line
@@ -1185,13 +1117,8 @@ Wire Wire Line
 	6150 2100 7900 2100
 Text Label 7700 2100 0    50   ~ 0
 PB0
-Wire Wire Line
-	8400 2050 8950 2050
-Text GLabel 8500 2700 2    50   Input ~ 0
+Text GLabel 6200 3300 2    50   Input ~ 0
 PC3
-Wire Wire Line
-	8400 2700 8500 2700
-Connection ~ 8400 2700
 Wire Wire Line
 	7500 3600 7700 3600
 Wire Wire Line
@@ -1200,24 +1127,17 @@ Wire Wire Line
 	2050 1300 2050 1500
 Wire Wire Line
 	1450 1000 1450 1100
-Wire Wire Line
-	7050 3000 7200 3000
-Wire Wire Line
-	6900 3000 7050 3000
-Connection ~ 7050 3000
 $Comp
 L Jumper:SolderJumper_3_Bridged12 JP1
 U 1 1 5DE7A060
-P 7050 2850
-F 0 "JP1" H 7050 2950 50  0000 C CNN
-F 1 "SolderJumper_3_Bridged12" H 7050 2964 50  0001 C CNN
-F 2 "Jumper:SolderJumper-3_P1.3mm_Open_RoundedPad1.0x1.5mm_NumberLabels" H 7050 2850 50  0001 C CNN
-F 3 "~" H 7050 2850 50  0001 C CNN
-	1    7050 2850
+P 2100 2950
+F 0 "JP1" H 2100 3050 50  0000 C CNN
+F 1 "SolderJumper_3_Bridged12" H 2100 3064 50  0001 C CNN
+F 2 "Jumper:SolderJumper-3_P1.3mm_Open_RoundedPad1.0x1.5mm_NumberLabels" H 2100 2950 50  0001 C CNN
+F 3 "~" H 2100 2950 50  0001 C CNN
+	1    2100 2950
 	-1   0    0    -1  
 $EndComp
-Wire Wire Line
-	8400 2050 8400 2700
 Wire Wire Line
 	2300 6050 2300 6200
 Entry Wire Line
@@ -1242,8 +1162,25 @@ Wire Wire Line
 	8100 2500 8150 2500
 Wire Wire Line
 	8100 2600 8150 2600
-Wire Bus Line
-	8000 650  8000 2600
+Wire Wire Line
+	6900 2850 7200 2850
+Connection ~ 7200 2850
+Wire Wire Line
+	7200 2850 7500 2850
+Wire Wire Line
+	6900 2850 6900 3050
+Wire Wire Line
+	7200 2850 7200 3050
+Wire Wire Line
+	8950 3100 8950 3000
+Wire Wire Line
+	8950 3000 9250 3000
+Wire Wire Line
+	9250 3000 9250 3200
+Wire Wire Line
+	6150 3300 6200 3300
 Wire Bus Line
 	9850 650  9850 1500
+Wire Bus Line
+	8000 650  8000 2600
 $EndSCHEMATC
