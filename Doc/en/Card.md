@@ -53,3 +53,50 @@ Their structure is below.
 
 ![](/Images/master-card.png?raw=true)
 
+#### Time Master Card
+
+Writes the date and time to the station (in real time clock).
+
+This card is one-shot.
+After reading information from the card, page 4 is erased on it
+to prevent accidental reuse.
+
+#### Number Master Card
+
+Writes the number to the station if it is greater than 0.
+
+This card is one-shot.
+
+#### Sleep Master Card
+
+Writes the date and time of waking up to the station and puts it into Sleep mode.
+When waking up by timer, the station goes into active mode.
+
+This card is reusable.
+
+#### Config Master Card
+
+Writes the number (if > 0), settings byte, antenna gain (if ≥ 2 and ≤ 7) and new password to the station.
+
+This card is reusable.
+
+#### Backup Master Card
+
+The station writes a log of punches to this card.
+If the station saves a log with time stamps, then a log for the last 12 days is recorded in ascending order of card numbers.
+Since the capacity of the card may not be enough to record the entire time-stamped log.
+Then for a complete reading of the log, it is necessary to attach the card to the station several times with an intermediate reading of the contents of the card.
+
+This card is reusable.
+
+#### State Master Card
+
+The station writes to this card:
+- firmware version number (3 bytes) to page 4;
+- station number, settings byte, antenna gain in page 5;
+- battery voltage (mV / 20, 1 byte) and mode (1 byte) in page 6;
+- current time in Unix format to page 7;
+- wake-up time in Unix format to page 8;
+
+This card is reusable.
+
