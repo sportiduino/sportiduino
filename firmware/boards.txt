@@ -12,7 +12,6 @@ sportiduino.upload.tool=avrdude
 sportiduino.upload.protocol=arduino
 sportiduino.upload.maximum_size=32256
 sportiduino.upload.maximum_data_size=2048
-sportiduino.upload.speed=38400
 
 sportiduino.bootloader.tool=avrdude
 sportiduino.bootloader.low_fuses=0xE2
@@ -24,10 +23,16 @@ sportiduino.bootloader.lock_bits=0x0F
 menu.bootloader=Bootloader
 
 sportiduino.menu.bootloader.optiboot=Optiboot 38400
+sportiduino.menu.bootloader.optiboot.upload.speed=38400
 sportiduino.menu.bootloader.optiboot.bootloader.file=optiboot/optiboot8_38400_sportiduino.hex
 
 sportiduino.menu.bootloader.optiboot_led=Optiboot 38400 with LED
+sportiduino.menu.bootloader.optiboot.upload.speed=38400
 sportiduino.menu.bootloader.optiboot_led.bootloader.file=optiboot/optiboot8_38400_sportiduino_led.hex
+
+sportiduino.menu.bootloader.optiboot_led=Optiboot 9600 with LED
+sportiduino.menu.bootloader.optiboot.upload.speed=9600
+sportiduino.menu.bootloader.optiboot_led.bootloader.file=optiboot/optiboot8_9600_sportiduino_led.hex
 
 ############################################################## 
 
