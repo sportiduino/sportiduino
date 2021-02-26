@@ -27,12 +27,12 @@ sportiduino.menu.bootloader.optiboot.upload.speed=38400
 sportiduino.menu.bootloader.optiboot.bootloader.file=optiboot/optiboot8_38400_sportiduino.hex
 
 sportiduino.menu.bootloader.optiboot_led=Optiboot 38400 with LED
-sportiduino.menu.bootloader.optiboot.upload.speed=38400
+sportiduino.menu.bootloader.optiboot_led.upload.speed=38400
 sportiduino.menu.bootloader.optiboot_led.bootloader.file=optiboot/optiboot8_38400_sportiduino_led.hex
 
-sportiduino.menu.bootloader.optiboot_led=Optiboot 9600 with LED
-sportiduino.menu.bootloader.optiboot.upload.speed=9600
-sportiduino.menu.bootloader.optiboot_led.bootloader.file=optiboot/optiboot8_9600_sportiduino_led.hex
+sportiduino.menu.bootloader.optiboot_led_9600=Optiboot 9600 with LED
+sportiduino.menu.bootloader.optiboot_led_9600.upload.speed=9600
+sportiduino.menu.bootloader.optiboot_led_9600.bootloader.file=optiboot/optiboot8_9600_sportiduino_led.hex
 
 ############################################################## 
 
