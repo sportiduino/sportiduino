@@ -30,7 +30,7 @@ Gerber files are placed in the folder `hardware/BaseStation/prod/v3`.
    - PLS-8 pins. Come with RFID board.
    - Connector BH-10 (aka DS1013-10S or IDC-10MS). It can be replaced by any male connector 2x5 pins 2.54 mm.
    - LED 3 mm. Any color for your choice.
-   - Passive buzzer 12085 16 ohm, TR1205Y or HC0903A.
+   - Passive buzzer 12085 16 ohm, TR1205Y or HCM1203A.
    - Reed switch normally open 2x14 mm (optional, not in the photo).
    - Connector 1x2 pins 2.54 mm for battery (optional, not in the photo).
 6. Battery box 3xAA or 3xAAA.
