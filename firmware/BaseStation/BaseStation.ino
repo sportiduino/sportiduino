@@ -97,14 +97,14 @@
 
 struct __attribute__((packed)) Configuration {
     uint8_t stationNumber;
-// Active mode duration
-//    (xxx) - 2^(bit2:bit0) hours in active mode (1 - 32 hours)
-//    (110) - always be in active mode (check card in 0.25 second period)
-//    (111) - always be in wait mode (check card in 1 second period)
+// Active Mode duration
+//    (xxx) - 2^(bit2:bit0) hours in Active Mode (1 - 32 hours)
+//    (110) - always be in Active Mode (check card in 0.25 second period)
+//    (111) - always be in Wait Mode (check card in 1 second period)
     uint8_t activeModeDuration: 3;
     uint8_t checkStartFinish: 1; // Check start/finish station marks on a participant card
     uint8_t checkCardInitTime: 1; // Check init time of a participant card
-    uint8_t _reserved0: 1;
+    uint8_t autosleep: 1; // Go to Sleep Mode after AUTOSPEEP_TIME milliseconds in Wait Mode
     uint8_t fastMark: 1; // Fast mark mode
     uint8_t _reserved1: 1;
     uint8_t antennaGain: 3;
@@ -133,6 +133,8 @@ struct __attribute__((packed)) Configuration {
 #define MODE_WAIT_CARD_CHECK_PERIOD       1000
 // Poll time in sleep mode (milliseconds)
 #define MODE_SLEEP_CARD_CHECK_PERIOD      25000
+
+const uint32_t AUTOSPEEP_TIME = 48UL*3600*1000;
 
 #define MODE_ACTIVE   0
 #define MODE_WAIT     1
@@ -410,6 +412,10 @@ void loop() {
             if(config.activeModeDuration == SETTINGS_ALWAYS_WAIT) {
                 workTimer = 0;
             }
+
+            if(config.autosleep && workTimer > AUTOSPEEP_TIME) {
+                setMode(MODE_SLEEP);
+            }
             break;
         case MODE_SLEEP:
         default:
@@ -553,7 +559,7 @@ void sleep(uint16_t ms) {
     ADCSRA = 0;
     pinMode(UART_RX, INPUT_PULLUP);
     // Attach PCINT to wake-up CPU when data will arrive by UART in sleep mode
-    attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
+    //attachPCINT(digitalPinToPCINT(UART_RX), wakeupByUartRx, CHANGE);
     // Reset watchdog
     Watchdog.reset();
     period = Watchdog.sleep(ms);
@@ -563,7 +569,7 @@ void sleep(uint16_t ms) {
         sleep(ms - period);
     }
     // no need this interrupt anymore
-    detachPCINT(digitalPinToPCINT(UART_RX));
+    //detachPCINT(digitalPinToPCINT(UART_RX));
     // Resolve issue #61
     digitalWrite(DS3231_VCC, HIGH);
     serialWakeupFlag = 0;
