@@ -47,7 +47,7 @@
 #define SDA           A4
 #define SCL           A5
 
-// If you added battery voltage measurement circuite, reed switch or I2C EEPROM to your PCB v1 or v2
+// If you added battery voltage measurement circuit, reed switch or I2C EEPROM to your PCB v1 or v2
 // you only need define appropriate pins like for PCB v3
 
 #if HW_VERS == 1
@@ -250,8 +250,8 @@ void i2cEepromWritePunch(uint16_t cardNum);
 uint32_t i2cEepromReadPunch(uint16_t cardNum);
 void i2cEepromErase();
 void processRfid();
-uint32_t measureBatteryVoltage();
-uint8_t batteryVoltageToByte(uint32_t voltage);
+uint16_t measureBatteryVoltage(bool silent = false);
+uint8_t batteryVoltageToByte(uint16_t voltage);
 bool checkBattery(bool beepEnabled = false);
 void processCard();
 void processMasterCard(uint8_t *pageInitData);
@@ -419,6 +419,14 @@ void loop() {
             break;
         case MODE_SLEEP:
         default:
+#if defined(ADC_IN) && defined(ADC_ENABLE)
+            uint16_t voltage = measureBatteryVoltage(true);
+            if (voltage < 3500) {
+                beep(100, 3);
+                beep(500, 3);
+                beep(100, 3);
+            }
+#endif
             enableInterruptReedSwitch();
             sleep(MODE_SLEEP_CARD_CHECK_PERIOD);
             disableInterruptReedSwitch();
@@ -708,18 +716,22 @@ void i2cEepromErase() {
 #endif
 
 #if defined(ADC_IN) && defined(ADC_ENABLE)
-uint32_t measureBatteryVoltage() {
+uint16_t measureBatteryVoltage(bool silent) {
     analogReference(INTERNAL);
     pinMode(ADC_ENABLE, OUTPUT);
     digitalWrite(ADC_ENABLE, LOW);
     pinMode(ADC_IN, INPUT);
     ADCSRA |= bit(ADEN);
 
-    // Turn on led to increase current
-    digitalWrite(LED, HIGH);
+    if (silent) {
+        delay(500);
+    } else {
+        // Turn on led to increase current
+        digitalWrite(LED, HIGH);
 
-    Watchdog.reset();
-    delay(3000);
+        Watchdog.reset();
+        delay(3000);
+    }
 
     // Drop first measure, it's wrong
     analogRead(ADC_IN);
@@ -732,15 +744,18 @@ uint32_t measureBatteryVoltage() {
     }
     value /= 10;
 
-    digitalWrite(LED, LOW);
+    if (!silent) {
+        digitalWrite(LED, LOW);
+    }
     pinMode(ADC_ENABLE, INPUT);
     const uint32_t R_HIGH = 270000; // Ohm
     const uint32_t R_LOW = 68000; // Ohm
-    return value*1100/1023*(R_HIGH + R_LOW)/R_LOW;
+    const uint32_t k = 1100*(R_HIGH + R_LOW)/R_LOW;
+    return value*k/1023;
 }
 #endif
 
-uint32_t measureVcc() {
+uint16_t measureVcc() {
     Watchdog.reset();
     // Turn on ADC
     ADCSRA |=  bit(ADEN);
@@ -778,8 +793,8 @@ uint32_t measureVcc() {
     return value;
 }
 
-uint8_t batteryVoltageToByte(uint32_t voltage) {
-    const uint32_t maxVoltage = 0xff*20; // mV
+uint8_t batteryVoltageToByte(uint16_t voltage) {
+    const uint16_t maxVoltage = 0xff*20; // mV
     if(voltage > maxVoltage) {
         voltage = maxVoltage;
     }
@@ -788,11 +803,11 @@ uint8_t batteryVoltageToByte(uint32_t voltage) {
 
 bool checkBattery(bool beepEnabled) {
 #if defined(ADC_IN) && defined(ADC_ENABLE)
-    uint32_t voltage = measureBatteryVoltage();
-    const uint32_t minVoltage = 3600;
+    uint16_t voltage = measureBatteryVoltage();
+    const uint16_t minVoltage = 3600;
 #else
-    uint32_t voltage = measureVcc();
-    const uint32_t minVoltage = 3100;
+    uint16_t voltage = measureVcc();
+    const uint16_t minVoltage = 3100;
 #endif
 
     Watchdog.reset();
