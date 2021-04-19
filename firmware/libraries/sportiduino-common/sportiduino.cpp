@@ -30,6 +30,7 @@ uint8_t majEepromRead(uint16_t adr) {
 }
 
 void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t ms, uint8_t n) {
+    uint8_t pause = (ms > 200) ? 200 : ms;
     for(uint8_t i = 0; i < n; i++) {
         Watchdog.reset();
         
@@ -47,7 +48,7 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
         digitalWrite(buzPin, LOW);
         
         if(i < n - 1) {
-            delay(ms);
+            delay(pause);
             Watchdog.reset();
         }
     }
