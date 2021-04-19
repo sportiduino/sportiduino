@@ -170,6 +170,7 @@ const uint32_t AUTOSPEEP_TIME = 48UL*3600*1000;
 
 // work time in milliseconds
 uint32_t workTimer = 0;
+uint16_t sleepCount = 0;
 Configuration config;
 uint8_t mode = DEFAULT_MODE;
 Rfid rfid;
@@ -420,12 +421,17 @@ void loop() {
         case MODE_SLEEP:
         default:
 #if defined(ADC_IN) && defined(ADC_ENABLE)
-            uint16_t voltage = measureBatteryVoltage(true);
-            if (voltage < 3500) {
-                beep(100, 3);
-                beep(500, 3);
-                beep(100, 3);
+            if(sleepCount % 20 == 0) {
+                uint16_t voltage = measureBatteryVoltage(true);
+                if (voltage < 3500) {
+                    beep(100, 3);
+                    delay(200);
+                    beep(500, 3);
+                    delay(200);
+                    beep(100, 3);
+                }
             }
+            ++sleepCount;
 #endif
             enableInterruptReedSwitch();
             sleep(MODE_SLEEP_CARD_CHECK_PERIOD);
@@ -586,8 +592,12 @@ void sleep(uint16_t ms) {
 }
 
 void setMode(uint8_t newMode) {
-    if(mode == MODE_SLEEP && newMode != MODE_SLEEP) {
-        checkBattery(true);
+    if(newMode == MODE_SLEEP) {
+        sleepCount = 0;
+    } else {
+        if(mode == MODE_SLEEP) {
+            checkBattery(true);
+        }
     }
     mode = newMode;
     workTimer = 0;
@@ -977,6 +987,7 @@ void processSleepMasterCard(byte *data, byte dataSize) {
     // don't use setMode because it checks settings
     // in this case we can't sleep if always work is set
     mode = MODE_SLEEP;
+    sleepCount = 0;
     
     // Config alarm
     setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
