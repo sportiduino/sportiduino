@@ -1,19 +1,20 @@
-﻿![Sportiduino logo](/Images/logo.png?raw=true)
+﻿[![Sportiduino version](https://img.shields.io/github/v/release/sportiduino/sportiduino)](https://github.com/sportiduino/sportiduino/releases)
+
+![Sportiduino logo](/Images/logo.png?raw=true)
 
 ![](/Images/Sportiduino.JPG?raw=true)
 
 [Перейти на русский язык](README.ru.md)
 
-This project is devoted to development of the electronic timing system for orienteering with inexpensive base stations and cheap tags.
-It is also possible to use one on rogaining events, adventure races, trail running, wherever time keeping is required.
-Here are hardware and firmware parts of the timing system.
+The inexpensive electronic timing system for orienteering, rogaining events, adventure races, trail running and etc.
+This resository contains hardware and firmware parts of the timing system.
 Links to data processing software are placed [below](#data-processing).
 
 [Download latest release](https://github.com/sportiduino/sportiduino/releases/latest)
 
 [Manual](/Doc/en.md)
 
-This project is open and free. Whoever is not afraid of difficulties can try doing it oneself. Just follow the instructions from the Manual.
+This project is open and free. Anyone can reproduce it yourself. Just follow the instructions from the Manual.
 The low cost of the components can be worth your efforts (about USD $10 for one base station and $0.2 per RFID tag).
 
 This development is a hobby.
