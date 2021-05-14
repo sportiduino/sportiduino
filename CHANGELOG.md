@@ -1,3 +1,13 @@
+## [3.9.0] - 2021-05-14
+Base station PCB v3b (2021-01-01):
+- Added TP4056 with leds for Li-ion battery charging
+- RC522 mini or RC522 boards
+- Change board length to 73 mm
+
+Base station firmware:
+- Autosleep option in Config (go to sleep after ~48h in Wait Mode)
+- Docs update
+
 ## [3.8.0] - 2020-11-25
 Master station firmware:
 - Emulation of SPORTident serial protocol ([GH-90](https://github.com/sportiduino/sportiduino/issues/90))
