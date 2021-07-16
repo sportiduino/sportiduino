@@ -181,7 +181,7 @@ SerialProtocol serialProto;
 // date/time
 ts t;
 // We need this variable because DS321 doesn't have Year for Alarms
-int16_t alarmYear = 2017;
+int16_t alarmYear = 2021;
 // We need this variable because DS321 doesn't have Month for Alarms
 uint8_t alarmMonth = 1;
 // To support wakeup on hw v1
