@@ -16,7 +16,7 @@
     // or change here
     #define HW_VERS     3
 #endif
-#define FW_MAJOR_VERS   9
+#define FW_MAJOR_VERS   10
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
 #define FW_MINOR_VERS   0
@@ -25,6 +25,9 @@
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
 // You can also run "make nopoll=1 ..."
 
+// Uncomment for BS check battery every 10 min in Sleep Mode and beep SOS if voltage < 3.5V
+//#define CHECK_BATTERY_IN_SLEEP
+// You can also run "make check_battery=1 ..."
 
 //-------------------------------------------------------------------
 // HARDWARE
@@ -218,6 +221,14 @@ inline void beepMasterCardSleepOk()     { beep(500, 4); }
 
 inline void beepSerialOk()              { beep(250, 1); }
 inline void beepSerialError()           { beep(250, 2); }
+
+inline void beepSos() {
+    beep(100, 3);
+    delay(200);
+    beep(500, 3);
+    delay(200);
+    beep(100, 3);
+}
 
 #ifdef REED_SWITCH
     inline void enableInterruptReedSwitch() { enablePCINT(digitalPinToPCINT(REED_SWITCH)); }
@@ -420,15 +431,11 @@ void loop() {
             break;
         case MODE_SLEEP:
         default:
-#if defined(ADC_IN) && defined(ADC_ENABLE)
+#if defined(CHECK_BATTERY_IN_SLEEP) && defined(ADC_IN) && defined(ADC_ENABLE)
             if(sleepCount % 20 == 0) {
                 uint16_t voltage = measureBatteryVoltage(true);
                 if (voltage < 3500) {
-                    beep(100, 3);
-                    delay(200);
-                    beep(500, 3);
-                    delay(200);
-                    beep(100, 3);
+                    beepSos();
                 }
             }
             ++sleepCount;
