@@ -228,6 +228,10 @@ inline void beepSos() {
     beep(500, 3);
     delay(200);
     beep(100, 3);
+    delay(200);
+    digitalWrite(LED, HIGH);
+    delay(3000);
+    digitalWrite(LED, LOW);
 }
 
 #ifdef REED_SWITCH
