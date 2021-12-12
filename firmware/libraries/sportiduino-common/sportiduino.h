@@ -40,7 +40,7 @@ uint8_t majEepromRead(uint16_t adr);
  * Turn on led and buzzer for given ms n times
  * @param freq the frequency of your buzzer if you have solded the buzzer without a generator else 0
  */
-void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t ms, uint8_t n);
+void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t ms, uint8_t n, uint16_t pause = 0);
 
 void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum);
 

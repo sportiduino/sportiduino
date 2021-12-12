@@ -5,7 +5,7 @@
 #define FW_MAJOR_VERS     8
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     0
+#define FW_MINOR_VERS     1
 
 
 //-----------------------------------------------------------
@@ -65,7 +65,7 @@ struct __attribute__((packed)) Configuration {
 // FUNCTIONS
 
 inline void beep(uint16_t ms, uint8_t n) { beep_w(LED_PIN, BUZZ_PIN, BUZZER_FREQUENCY, ms, n); }
-inline void beepTimeCardOk() { beep(500, 3); delay(500); beep(1000, 1); }
+inline void beepTimeCardOk() { beep_w(LED_PIN, BUZZ_PIN, BUZZER_FREQUENCY, 500, 3, 500); delay(500); beep(1000, 1); }
 inline void beepError() { beep(100, 3); }
 inline void beepOk() { beep(500, 1); }
 
