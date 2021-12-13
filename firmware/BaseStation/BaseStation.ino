@@ -108,7 +108,7 @@ struct __attribute__((packed)) Configuration {
     uint8_t checkStartFinish: 1; // Check start/finish station marks on a participant card
     uint8_t checkCardInitTime: 1; // Check init time of a participant card
     uint8_t autosleep: 1; // Go to Sleep Mode after AUTOSPEEP_TIME milliseconds in Wait Mode
-    uint8_t fastMark: 1; // Fast mark mode
+    uint8_t fastPunch: 1; // Fast punch mode (only for Clear Station)
     uint8_t _reserved1: 1;
     uint8_t antennaGain: 3;
     uint8_t _reserved2: 5;
@@ -279,7 +279,7 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
 void processSettingsMasterCard(byte *data, byte dataSize);
 void processGetInfoMasterCard(byte *data, byte dataSize);
 void processParticipantCard(uint16_t cardNum);
-bool writeMarkToParticipantCard(uint8_t newPage);
+bool writeMarkToParticipantCard(uint8_t newPage, bool fastPunch);
 void clearParticipantCard();
 void checkParticipantCard();
 
@@ -1239,17 +1239,20 @@ void processParticipantCard(uint16_t cardNum) {
     uint8_t lastNum = 0;
     uint8_t newPage = 0;
     uint8_t maxPage = rfid.getCardMaxPage();
+    bool fastPunch = false;
 
     // Find the empty page to write new mark
-    if(config.fastMark) {
-        byte pageData[4] = {0,0,0,0};
-        if(rfid.cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
-            lastNum = pageData[0];
-            newPage = pageData[1] + 1;
-
-            if(newPage < CARD_PAGE_START || newPage > maxPage) {
-                newPage = CARD_PAGE_START;
-            }
+    byte pageData[4] = {0,0,0,0};
+    if(rfid.cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
+        fastPunch = (pageData[3] == FAST_PUNCH_SIGN);
+    } else {
+        return;
+    }
+    if(fastPunch) {
+        lastNum = pageData[0];
+        newPage = pageData[1] + 1;
+        if(newPage < CARD_PAGE_START || newPage > maxPage) {
+            newPage = CARD_PAGE_START;
         }
     } else {
         findNewPage(&rfid, &newPage, &lastNum);
@@ -1280,7 +1283,7 @@ void processParticipantCard(uint16_t cardNum) {
             return;
         }
 
-        if(writeMarkToParticipantCard(newPage)) {
+        if(writeMarkToParticipantCard(newPage, fastPunch)) {
             writeMarkToLog(cardNum);
             beepCardMarkWritten();
         }
@@ -1289,7 +1292,7 @@ void processParticipantCard(uint16_t cardNum) {
     }
 }
 
-bool writeMarkToParticipantCard(uint8_t newPage) {
+bool writeMarkToParticipantCard(uint8_t newPage, bool fastPunch) {
     byte pageData[4] = {0,0,0,0};
     
     DS3231_get(&t);
@@ -1301,11 +1304,11 @@ bool writeMarkToParticipantCard(uint8_t newPage) {
             
     bool result = rfid.cardPageWrite(newPage, pageData);
 
-    if(config.fastMark && result) {
+    if(fastPunch && result) {
         pageData[0] = config.stationNumber;
         pageData[1] = newPage;
         pageData[2] = 0;
-        pageData[3] = 0;
+        pageData[3] = FAST_PUNCH_SIGN;
         result &= rfid.cardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData);
     }
 
@@ -1344,6 +1347,14 @@ void clearParticipantCard() {
         pageData[3] = t.unixtime & 0xFF;
 
         result &= rfid.cardPageWrite(CARD_PAGE_INIT_TIME, pageData);
+
+        if(config.fastPunch) {
+            pageData[0] = config.stationNumber;
+            pageData[1] = 0;
+            pageData[2] = 0;
+            pageData[3] = FAST_PUNCH_SIGN;
+            result &= rfid.cardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData);
+        }
     }
 
     if(result) {

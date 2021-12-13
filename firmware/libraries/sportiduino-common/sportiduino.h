@@ -21,6 +21,7 @@ enum MasterCard {
 };
 
 #define MASTER_CARD_SIGN            0xff
+#define FAST_PUNCH_SIGN             0xaa // page6[3]
 
 #define SERIAL_PACKET_SIZE          32
 
