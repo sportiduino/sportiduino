@@ -65,7 +65,7 @@ private:
     Crc crc;
     uint8_t serialBuffer[SPORTIDENT_MAX_PACKET_SIZE];
     uint8_t serialDataPos = 3;
-    bool legacyMode = false;
+    bool legacyMode = true;
     bool baseCmd = false;
 };
 

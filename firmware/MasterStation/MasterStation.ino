@@ -86,7 +86,7 @@ static Configuration config;
 static Rfid rfid;
 static SerialProtocol serialProto;
 static SiProto siProto;
-static bool sieMode = false; // Sportident emulation mode (continuos readout)
+static bool sieMode = true; // Sportident emulation mode (continuos readout)
 
 void setup() {
     pinMode(LED_PIN, OUTPUT);
