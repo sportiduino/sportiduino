@@ -33,6 +33,7 @@ public:
     };
 
     enum Commands {
+        // Base commands
         BCMD_READ_SI6     = 0x61,
         BCMD_SI6_DETECTED = 0x66,
         BCMD_SET_MS       = 0x70,
@@ -65,6 +66,7 @@ private:
     Crc crc;
     uint8_t serialBuffer[SPORTIDENT_MAX_PACKET_SIZE];
     uint8_t serialDataPos = 3;
+    uint16_t baseCmdChecksum = 0;
     bool legacyMode = true;
     bool baseCmd = false;
 };

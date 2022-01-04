@@ -714,7 +714,7 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             {
                 uint8_t blockNumber = data[0];
                 rfid.begin(config.antennaGain);
-                if(blockNumber == 0x00) {
+                if(blockNumber == 0x00 && !siProto.isLegacyMode()) {
                     if(!sieSendAllDataBlocks(true)) {
                         beepError();
                     }
@@ -845,8 +845,8 @@ void sieDetectCard() {
 
     if(siProto.isLegacyMode()) {
         siProto.start(SiProto::BCMD_SI6_DETECTED);
-        siProto.add(0x00);
-        siProto.add(0x00);
+        siProto.add(0x55);
+        siProto.add(0xAA);
         siProto.add(0x00);
         siProto.add(0x00);
         siProto.add(currentCardNumber[0]);

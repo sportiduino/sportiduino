@@ -71,6 +71,7 @@ void SportidentProtocol::start(uint8_t code) {
     // Legacy protocol
     if(code < 0x80) {
         baseCmd = true;
+        baseCmdChecksum = 0;
         serialDataPos = 2;
         add(station_code & 0xff);
     } else {
@@ -83,8 +84,11 @@ void SportidentProtocol::start(uint8_t code) {
 
 void SportidentProtocol::add(uint8_t dataByte) {
     if(serialDataPos < SPORTIDENT_MAX_PACKET_SIZE - 1) {
-        if(baseCmd && dataByte < 0x20) {
-            serialBuffer[serialDataPos++] = DLE;
+        if(baseCmd) {
+            if(dataByte < 0x20) {
+                serialBuffer[serialDataPos++] = DLE;
+            }
+            baseCmdChecksum += dataByte;
         }
         serialBuffer[serialDataPos++] = dataByte;
     }
@@ -98,6 +102,9 @@ void SportidentProtocol::add(const uint8_t *data, uint8_t size) {
 
 void SportidentProtocol::send() {
     if(baseCmd) {
+        if(serialBuffer[1] == BCMD_READ_SI6) {
+            add(baseCmdChecksum & 0xFF);
+        }
         serialBuffer[serialDataPos++] = ETX;
     } else {
         uint8_t dataSize = serialDataPos - 3; // minus start, resp code, datalen
