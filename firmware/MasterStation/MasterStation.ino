@@ -866,11 +866,16 @@ void sieCardRemoved() {
     if(!currentCardNumber) {
         return;
     }
-    siProto.start(SiProto::CMD_SI_REMOVED);
-    siProto.add(0);
-    siProto.add(0);
-    siProto.add(currentCardNumber[0]);
-    siProto.add(currentCardNumber[1]);
+    if(siProto.isLegacyMode()) {
+        siProto.start(SiProto::BCMD_SI5_DETECTED);
+        siProto.add(0x4F);
+    } else {
+        siProto.start(SiProto::CMD_SI_REMOVED);
+        siProto.add(0);
+        siProto.add(0);
+        siProto.add(currentCardNumber[0]);
+        siProto.add(currentCardNumber[1]);
+    }
     siProto.send();
 }
 
@@ -896,6 +901,7 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         SiTimestamp check;
         SiTimestamp start;
         SiTimestamp finish;
+        SiTimestamp lastCp;
 
         clear.fromUnixtime(currentCardInitTime, config.timezone);
         clear.cn = 0;
@@ -929,7 +935,7 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         Crc crc;
         crc.value = SiProto::crc16(cti, sizeof(cti));
 
-        uint8_t data[36] = {
+        uint8_t data[40] = {
             0x01, 0x01, 0x01, 0x01, // structure of data
             0xED, 0xED, 0xED, 0xED, // SI6 ID
             cti[0], cti[1], cti[2], cti[3], cti[4], cti[5],
@@ -939,7 +945,8 @@ bool sieSendDataBlock(uint8_t blockNumber) {
             finish.ptd, finish.cn, finish.pth, finish.ptl,
             start.ptd, start.cn, start.pth, start.ptl,
             check.ptd, check.cn, check.pth, check.ptl,
-            clear.ptd, clear.cn, clear.pth, clear.ptl
+            clear.ptd, clear.cn, clear.pth, clear.ptl,
+            lastCp.ptd, lastCp.cn, lastCp.pth, lastCp.ptl
         };
         siProto.add(data, sizeof(data));
         // Start number
@@ -948,7 +955,6 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         }
         memset(data, ' ', sizeof(data));
         // Class
-        siProto.add(data, 4);
         siProto.add(data, 4);
         // Surname
         siProto.add(data, 20);

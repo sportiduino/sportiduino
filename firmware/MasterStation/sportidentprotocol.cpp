@@ -83,15 +83,15 @@ void SportidentProtocol::start(uint8_t code) {
 }
 
 void SportidentProtocol::add(uint8_t dataByte) {
-    if(serialDataPos < SPORTIDENT_MAX_PACKET_SIZE - 1) {
-        if(baseCmd) {
-            if(dataByte < 0x20) {
-                serialBuffer[serialDataPos++] = DLE;
-            }
-            baseCmdChecksum += dataByte;
+    if(baseCmd) {
+        if(dataByte < 0x20) {
+            serialBuffer[serialDataPos++] = DLE;
         }
-        serialBuffer[serialDataPos++] = dataByte;
+        baseCmdChecksum += dataByte;
+    } else if (serialDataPos >= SPORTIDENT_MAX_PACKET_SIZE - 1) {
+        return;
     }
+    serialBuffer[serialDataPos++] = dataByte;
 }
 
 void SportidentProtocol::add(const uint8_t *data, uint8_t size) {
