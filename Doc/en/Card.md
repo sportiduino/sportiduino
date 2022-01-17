@@ -36,15 +36,14 @@ Thus, 36/126/222 pages are available.
 Page numbers start from 0.
 Pages 4-7 are reserved, the rest of the pages are for the punches.
 In the 4th page, the first two bytes contain the programmable card number.
-The third byte contains information about card type. Value 255 used for master card.
-In the 4th byte, the station firmware version.
+In the 4th byte, the station firmware version (e.g. 8 for v3.8.0, 9 for v3.9.1).
 On the 5th page, the initialization time of the card in Unixtime UTC format.
 Then two pages are reserved.
 Each station punch takes a separate page,
 the first byte of which contains the station number, in the remaining three bytes - the lower bytes of the current time in Unixtime UTC.
 Time is then restored using the initialization time recorded in the 5th page.
 
-![](/Images/Ntag2.JPG)
+<img src="/Images/ntag-en.png" width="690">
 
 Master cards which set up the stations have a different structure.
 The station recognizes them by the number 255, recorded in the 3rd byte of the 4th page.
