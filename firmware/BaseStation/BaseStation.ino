@@ -16,15 +16,18 @@
     // or change here
     #define HW_VERS     3
 #endif
-#define FW_MAJOR_VERS   9
+#define FW_MAJOR_VERS   10
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
-// where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   0
+// where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 1)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
 // You can also run "make nopoll=1 ..."
 
+// Uncomment for BS check battery every 10 min in Sleep Mode and beep SOS if voltage < 3.5V
+//#define CHECK_BATTERY_IN_SLEEP
+// You can also run "make check_battery=1 ..."
 
 //-------------------------------------------------------------------
 // HARDWARE
@@ -47,7 +50,7 @@
 #define SDA           A4
 #define SCL           A5
 
-// If you added battery voltage measurement circuite, reed switch or I2C EEPROM to your PCB v1 or v2
+// If you added battery voltage measurement circuit, reed switch or I2C EEPROM to your PCB v1 or v2
 // you only need define appropriate pins like for PCB v3
 
 #if HW_VERS == 1
@@ -170,6 +173,7 @@ const uint32_t AUTOSPEEP_TIME = 48UL*3600*1000;
 
 // work time in milliseconds
 uint32_t workTimer = 0;
+uint16_t sleepCount = 0;
 Configuration config;
 uint8_t mode = DEFAULT_MODE;
 Rfid rfid;
@@ -177,7 +181,7 @@ SerialProtocol serialProto;
 // date/time
 ts t;
 // We need this variable because DS321 doesn't have Year for Alarms
-int16_t alarmYear = 2017;
+int16_t alarmYear = 2021;
 // We need this variable because DS321 doesn't have Month for Alarms
 uint8_t alarmMonth = 1;
 // To support wakeup on hw v1
@@ -218,6 +222,18 @@ inline void beepMasterCardSleepOk()     { beep(500, 4); }
 inline void beepSerialOk()              { beep(250, 1); }
 inline void beepSerialError()           { beep(250, 2); }
 
+inline void beepSos() {
+    beep(100, 3);
+    delay(200);
+    beep(500, 3);
+    delay(200);
+    beep(100, 3);
+    delay(200);
+    digitalWrite(LED, HIGH);
+    delay(3000);
+    digitalWrite(LED, LOW);
+}
+
 #ifdef REED_SWITCH
     inline void enableInterruptReedSwitch() { enablePCINT(digitalPinToPCINT(REED_SWITCH)); }
     inline void disableInterruptReedSwitch() { disablePCINT(digitalPinToPCINT(REED_SWITCH)); }
@@ -250,8 +266,8 @@ void i2cEepromWritePunch(uint16_t cardNum);
 uint32_t i2cEepromReadPunch(uint16_t cardNum);
 void i2cEepromErase();
 void processRfid();
-uint32_t measureBatteryVoltage();
-uint8_t batteryVoltageToByte(uint32_t voltage);
+uint16_t measureBatteryVoltage(bool silent = false);
+uint8_t batteryVoltageToByte(uint16_t voltage);
 bool checkBattery(bool beepEnabled = false);
 void processCard();
 void processMasterCard(uint8_t *pageInitData);
@@ -419,6 +435,15 @@ void loop() {
             break;
         case MODE_SLEEP:
         default:
+#if defined(CHECK_BATTERY_IN_SLEEP) && defined(ADC_IN) && defined(ADC_ENABLE)
+            if(sleepCount % 20 == 0) {
+                uint16_t voltage = measureBatteryVoltage(true);
+                if (voltage < 3500) {
+                    beepSos();
+                }
+            }
+            ++sleepCount;
+#endif
             enableInterruptReedSwitch();
             sleep(MODE_SLEEP_CARD_CHECK_PERIOD);
             disableInterruptReedSwitch();
@@ -578,8 +603,12 @@ void sleep(uint16_t ms) {
 }
 
 void setMode(uint8_t newMode) {
-    if(mode == MODE_SLEEP && newMode != MODE_SLEEP) {
-        checkBattery(true);
+    if(newMode == MODE_SLEEP) {
+        sleepCount = 0;
+    } else {
+        if(mode == MODE_SLEEP) {
+            checkBattery(true);
+        }
     }
     mode = newMode;
     workTimer = 0;
@@ -708,18 +737,22 @@ void i2cEepromErase() {
 #endif
 
 #if defined(ADC_IN) && defined(ADC_ENABLE)
-uint32_t measureBatteryVoltage() {
+uint16_t measureBatteryVoltage(bool silent) {
     analogReference(INTERNAL);
     pinMode(ADC_ENABLE, OUTPUT);
     digitalWrite(ADC_ENABLE, LOW);
     pinMode(ADC_IN, INPUT);
     ADCSRA |= bit(ADEN);
 
-    // Turn on led to increase current
-    digitalWrite(LED, HIGH);
+    if (silent) {
+        delay(500);
+    } else {
+        // Turn on led to increase current
+        digitalWrite(LED, HIGH);
 
-    Watchdog.reset();
-    delay(3000);
+        Watchdog.reset();
+        delay(3000);
+    }
 
     // Drop first measure, it's wrong
     analogRead(ADC_IN);
@@ -732,15 +765,18 @@ uint32_t measureBatteryVoltage() {
     }
     value /= 10;
 
-    digitalWrite(LED, LOW);
+    if (!silent) {
+        digitalWrite(LED, LOW);
+    }
     pinMode(ADC_ENABLE, INPUT);
     const uint32_t R_HIGH = 270000; // Ohm
     const uint32_t R_LOW = 68000; // Ohm
-    return value*1100/1023*(R_HIGH + R_LOW)/R_LOW;
+    const uint32_t k = 1100*(R_HIGH + R_LOW)/R_LOW;
+    return value*k/1023;
 }
 #endif
 
-uint32_t measureVcc() {
+uint16_t measureVcc() {
     Watchdog.reset();
     // Turn on ADC
     ADCSRA |=  bit(ADEN);
@@ -778,8 +814,8 @@ uint32_t measureVcc() {
     return value;
 }
 
-uint8_t batteryVoltageToByte(uint32_t voltage) {
-    const uint32_t maxVoltage = 0xff*20; // mV
+uint8_t batteryVoltageToByte(uint16_t voltage) {
+    const uint16_t maxVoltage = 0xff*20; // mV
     if(voltage > maxVoltage) {
         voltage = maxVoltage;
     }
@@ -788,11 +824,11 @@ uint8_t batteryVoltageToByte(uint32_t voltage) {
 
 bool checkBattery(bool beepEnabled) {
 #if defined(ADC_IN) && defined(ADC_ENABLE)
-    uint32_t voltage = measureBatteryVoltage();
-    const uint32_t minVoltage = 3600;
+    uint16_t voltage = measureBatteryVoltage();
+    const uint16_t minVoltage = 3600;
 #else
-    uint32_t voltage = measureVcc();
-    const uint32_t minVoltage = 3100;
+    uint16_t voltage = measureVcc();
+    const uint16_t minVoltage = 3100;
 #endif
 
     Watchdog.reset();
@@ -962,6 +998,7 @@ void processSleepMasterCard(byte *data, byte dataSize) {
     // don't use setMode because it checks settings
     // in this case we can't sleep if always work is set
     mode = MODE_SLEEP;
+    sleepCount = 0;
     
     // Config alarm
     setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);

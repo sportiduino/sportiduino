@@ -1,3 +1,15 @@
+## MS-v1.8.3
+
+- Disable autosend all SI-Card 6 pages for MeOS
+
+## MS-v1.8.2
+
+- SPORTident legacy protocol emulation for WinOrient 2014
+
+## MS-v1.8.1
+
+- Fix beep pause for time card
+
 ## [3.9.0] - 2021-05-14
 Base station PCB v3b (2021-01-01):
 - Added TP4056 with leds for Li-ion battery charging

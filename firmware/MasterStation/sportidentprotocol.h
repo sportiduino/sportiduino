@@ -4,6 +4,7 @@
 #include <Arduino.h>
 
 #define SPORTIDENT_MAX_PACKET_SIZE 140
+#define SPORTIDENT_LEGACY_MAX_PACKET_SIZE 192  // It should be enough
 
 
 typedef union {
@@ -33,6 +34,8 @@ public:
     };
 
     enum Commands {
+        // Base commands
+        BCMD_SI5_DETECTED = 0x46, // SI-card 5 inserted (46 49) or removed (46 4F)
         BCMD_READ_SI6     = 0x61,
         BCMD_SI6_DETECTED = 0x66,
         BCMD_SET_MS       = 0x70,
@@ -63,9 +66,10 @@ public:
 
 private:
     Crc crc;
-    uint8_t serialBuffer[SPORTIDENT_MAX_PACKET_SIZE];
+    uint8_t serialBuffer[SPORTIDENT_LEGACY_MAX_PACKET_SIZE];
     uint8_t serialDataPos = 3;
-    bool legacyMode = false;
+    uint16_t baseCmdChecksum = 0;
+    bool legacyMode = true;
     bool baseCmd = false;
 };
 

@@ -5,7 +5,7 @@
 #define FW_MAJOR_VERS     8
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     0
+#define FW_MINOR_VERS     3
 
 
 //-----------------------------------------------------------
@@ -65,7 +65,7 @@ struct __attribute__((packed)) Configuration {
 // FUNCTIONS
 
 inline void beep(uint16_t ms, uint8_t n) { beep_w(LED_PIN, BUZZ_PIN, BUZZER_FREQUENCY, ms, n); }
-inline void beepTimeCardOk() { beep(500, 3); delay(500); beep(1000, 1); }
+inline void beepTimeCardOk() { beep_w(LED_PIN, BUZZ_PIN, BUZZER_FREQUENCY, 500, 3, 500); delay(500); beep(1000, 1); }
 inline void beepError() { beep(100, 3); }
 inline void beepOk() { beep(500, 1); }
 
@@ -86,7 +86,7 @@ static Configuration config;
 static Rfid rfid;
 static SerialProtocol serialProto;
 static SiProto siProto;
-static bool sieMode = false; // Sportident emulation mode (continuos readout)
+static bool sieMode = true; // Sportident emulation mode (continuos readout)
 
 void setup() {
     pinMode(LED_PIN, OUTPUT);
@@ -714,7 +714,8 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             {
                 uint8_t blockNumber = data[0];
                 rfid.begin(config.antennaGain);
-                if(blockNumber == 0x00) {
+                bool autosend = false; // not implemented
+                if(blockNumber == 0x00 && autosend) {
                     if(!sieSendAllDataBlocks(true)) {
                         beepError();
                     }
@@ -845,8 +846,8 @@ void sieDetectCard() {
 
     if(siProto.isLegacyMode()) {
         siProto.start(SiProto::BCMD_SI6_DETECTED);
-        siProto.add(0x00);
-        siProto.add(0x00);
+        siProto.add(0x55);
+        siProto.add(0xAA);
         siProto.add(0x00);
         siProto.add(0x00);
         siProto.add(currentCardNumber[0]);
@@ -866,11 +867,16 @@ void sieCardRemoved() {
     if(!currentCardNumber) {
         return;
     }
-    siProto.start(SiProto::CMD_SI_REMOVED);
-    siProto.add(0);
-    siProto.add(0);
-    siProto.add(currentCardNumber[0]);
-    siProto.add(currentCardNumber[1]);
+    if(siProto.isLegacyMode()) {
+        siProto.start(SiProto::BCMD_SI5_DETECTED);
+        siProto.add(0x4F);
+    } else {
+        siProto.start(SiProto::CMD_SI_REMOVED);
+        siProto.add(0);
+        siProto.add(0);
+        siProto.add(currentCardNumber[0]);
+        siProto.add(currentCardNumber[1]);
+    }
     siProto.send();
 }
 
@@ -896,6 +902,7 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         SiTimestamp check;
         SiTimestamp start;
         SiTimestamp finish;
+        SiTimestamp lastCp;
 
         clear.fromUnixtime(currentCardInitTime, config.timezone);
         clear.cn = 0;
@@ -929,7 +936,7 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         Crc crc;
         crc.value = SiProto::crc16(cti, sizeof(cti));
 
-        uint8_t data[36] = {
+        uint8_t data[40] = {
             0x01, 0x01, 0x01, 0x01, // structure of data
             0xED, 0xED, 0xED, 0xED, // SI6 ID
             cti[0], cti[1], cti[2], cti[3], cti[4], cti[5],
@@ -939,7 +946,8 @@ bool sieSendDataBlock(uint8_t blockNumber) {
             finish.ptd, finish.cn, finish.pth, finish.ptl,
             start.ptd, start.cn, start.pth, start.ptl,
             check.ptd, check.cn, check.pth, check.ptl,
-            clear.ptd, clear.cn, clear.pth, clear.ptl
+            clear.ptd, clear.cn, clear.pth, clear.ptl,
+            lastCp.ptd, lastCp.cn, lastCp.pth, lastCp.ptl
         };
         siProto.add(data, sizeof(data));
         // Start number
@@ -948,7 +956,6 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         }
         memset(data, ' ', sizeof(data));
         // Class
-        siProto.add(data, 4);
         siProto.add(data, 4);
         // Surname
         siProto.add(data, 20);

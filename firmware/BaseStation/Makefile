@@ -39,6 +39,10 @@ ifdef nopoll
 	CXXFLAGS += -DNO_POLL_CARDS_IN_SLEEP_MODE
 endif
 
+ifdef check_battery
+	CXXFLAGS += -DCHECK_BATTERY_IN_SLEEP
+endif
+
 $(info CXXFLAGS = $(CXXFLAGS))
 
 include $(ARDMK_DIR)/Arduino.mk
