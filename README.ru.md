@@ -95,7 +95,7 @@ Pull-request-ы приветствуются. Также с удовольств
 
 ### Запись чипов, настройка станций
 
-#### [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ).
+#### [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ)
 
 Программа для ПК (Windows или Linux).
 

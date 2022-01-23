@@ -103,7 +103,7 @@ There is also a wireless station with the Bluetooth module.
 
 ### Prepare cards and stations
 
-#### [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ).
+#### [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ)
 
 PC software (Windows or Linux).
 
