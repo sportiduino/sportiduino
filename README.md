@@ -35,7 +35,7 @@ The base station and the master station have their own versions. The release ver
 
 **The current base station version is 3.9.0**
 
-**The current master station version is 1.8.0**
+**The current master station version is 1.8.3**
 
 [Changelog](/CHANGELOG.md)
 
