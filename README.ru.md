@@ -8,7 +8,7 @@
 
 Недорогая система электронной отметки для спортивного ориентирования, рогейнов, мультигонок и трейлов.
 Данный репозиторий содержит аппаратную часть и прошивки системы.
-Ссылки на программное обеспечение помещены [ниже](/README.ru.md#%D0%9E%D0%B1%D1%80%D0%B0%D0%B1%D0%BE%D1%82%D0%BA%D0%B0-%D0%B4%D0%B0%D0%BD%D0%BD%D1%8B%D1%85)
+Ссылки на программное обеспечение помещены [ниже](/README.ru.md#Программы-для-работы-с-системой-отметки)
 
 [Скачать последний релиз](https://github.com/sportiduino/sportiduino/releases)
 
@@ -91,21 +91,25 @@ Pull-request-ы приветствуются. Также с удовольств
 
 Также есть беспроводная станция сопряжения с модулем Bluetooth.
 
-## Обработка данных
+## Программы для работы с системой отметки
 
-### SportiduinoPQ
+### Запись чипов, настройка станций
 
-Настройка чипов и станций производится в программе [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ).
+#### [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ).
 
-Программа написана на Python с использованием PyQt5 и [модуля SportiduinoPython](https://github.com/sportiduino/sportiduinoPython).
+Программа для ПК (Windows или Linux).
 
-### SportOrg
+Написана на Python с использованием PyQt5 и [модуля SportiduinoPython](https://github.com/sportiduino/sportiduinoPython).
 
-Чтение чипов реализовано в программе [SportOrg](https://github.com/sportorg/pysport)
+#### [SportiduinoApp](https://github.com/sportiduino/sportiduinoapp)
 
-***********
-[Список соревнований](https://github.com/sportiduino/sportiduino/wiki/%D0%9F%D1%80%D0%BE%D0%B2%D0%B5%D0%B4%D0%B5%D0%BD%D0%BD%D1%8B%D0%B5-%D1%81%D0%BE%D1%80%D0%B5%D0%B2%D0%BD%D0%BE%D0%B2%D0%B0%D0%BD%D0%B8%D1%8F),
-проведённых с использованием Sportiduino.
+Android приложение для смартфонов с модулем NFC.
+
+### Для проведения соревнований
+
+Чтение чипов реализовано в программах [SportOrg](https://github.com/sportorg/pysport) и [SportOrgPlus](https://github.com/sembruk/sportorg-plus).
+
+Также можно использовать программы для работы со SPORTident (MeOS, WinOrient, Rogain Manager и др.).
 
 ***********
 Публикации:
@@ -114,6 +118,8 @@ Pull-request-ы приветствуются. Также с удовольств
 * [Sportiduino — система электронной отметки для спортивных соревнований, часть 3](https://habr.com/ru/post/427661/)
 
 ***********
+
 Available from:  https://github.com/sportiduino/sportiduino
 
-License:         GNU GPLv3
+Лицензия:        [GNU GPLv3](/LICENSE)
+

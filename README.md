@@ -8,7 +8,7 @@
 
 The inexpensive electronic timing system for orienteering, rogaining events, adventure races, trail running and etc.
 This resository contains hardware and firmware parts of the timing system.
-Links to data processing software are placed [below](#data-processing).
+Links to data processing software are placed [below](#software).
 
 [Download latest release](https://github.com/sportiduino/sportiduino/releases/latest)
 
@@ -99,17 +99,25 @@ It connects with a PC via USB.
 
 There is also a wireless station with the Bluetooth module. 
 
-## Data processing
+## Software
 
-### SportiduinoPQ
+### Prepare cards and stations
 
-Cards and stations are configured by [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ) program.
+#### [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ).
 
-The program is written on Python, based on PyQt5 and [SportiduinoPython module](https://github.com/sportiduino/sportiduinoPython).
+PC software (Windows or Linux).
 
-### SportOrg
+It is written on Python, based on PyQt5 and [SportiduinoPython module](https://github.com/sportiduino/sportiduinoPython).
 
-Reading cards is implemented in the [SportOrg](https://github.com/sportorg/pysport) program.
+#### [SportiduinoApp](https://github.com/sportiduino/sportiduinoapp)
+
+Android application for smartphones with NFC.
+
+### For event management
+
+Reading cards is implemented in [SportOrg](https://github.com/sportorg/pysport) and [SportOrgPlus](https://github.com/sembruk/sportorg-plus).
+
+Also you can use software for SPORTident (MeOS, WinOrient, Rogain Manager etc).
 
 ***********
 
@@ -120,4 +128,5 @@ up to approx. 1400 participants and approx. 70 check points.
 
 Available from:  https://github.com/sportiduino/sportiduino
 
-License:         GNU GPLv3
+License:         [GNU GPLv3](/LICENSE)
+
