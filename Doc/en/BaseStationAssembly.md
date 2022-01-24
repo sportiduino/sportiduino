@@ -110,7 +110,6 @@ then necessary to provide the possibility of disconnecting the DTR pin.
 ### Arduino IDE Setting
 
 In the File->Settings menu change the location of the sketch folder to `path/to/project/firmware`.
-Or copy the contents of the firmware folder to the scratches folder specified in the Arduino IDE settings.
 
 Next, create a description of Sportiduino board.
 Open the file `path/to/Arduino/hardware/arduino/avr/boards.txt`

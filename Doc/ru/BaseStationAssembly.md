@@ -116,7 +116,6 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 ### Настройка Arduino IDE
 
 В меню Файл->Настройки изменяем размещение папки скетчей на `[Проект]/firmware`.
-Или можно скопировать содержимое папки firmware в папку скечей, указанную в настройках Arduino IDE.
 
 Далее нам необходимо создать описание нашей платы Sportiduino.
 Для этого открываем файл `[Program Files]\Arduino\hardware\arduino\avr\boards.txt`
