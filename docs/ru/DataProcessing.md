@@ -1,13 +1,20 @@
-### SportiduinoPQ
+## Программы для работы с системой отметки
 
-Настройка чипов и станций производится в программе [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ)
+### Запись чипов, настройка станций
 
-Программа написана на Python3 с использованием PyQt5 и [модуля SportiduinoPython](https://github.com/sportiduino/sportiduinoPython).
+#### [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ)
 
-Программа может выдавать распечатки, сохранять сырые данные в формате JSON для дальнейшей их обработки.
+Программа для ПК (Windows или Linux).
 
-### SportOrg
+Написана на Python с использованием PyQt5 и [модуля SportiduinoPython](https://github.com/sportiduino/sportiduinoPython).
 
-Чтение чипов реализовано в программе [SportOrg](https://github.com/sportorg/pysport)
+#### [SportiduinoApp](https://github.com/sportiduino/sportiduinoapp)
 
-[Сайт с руководством](https://sportorg.readthedocs.io/ru/latest/)
+Android приложение для смартфонов с модулем NFC.
+
+### Для проведения соревнований
+
+Чтение чипов реализовано в программах [SportOrg](https://github.com/sportorg/pysport) и [SportOrgPlus](https://github.com/sembruk/sportorg-plus).
+
+Также можно использовать программы для работы со SPORTident (MeOS, WinOrient, Rogain Manager и др.).
+

@@ -1,10 +1,20 @@
-### SportiduinoPQ
+## Software
 
-Cards and stations are configured by the program [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ).
+### Prepare cards and stations
 
-The program is written on Python3 using PyQt5 and [SportiduinoPython](https://github.com/sportiduino/sportiduinoPython).
+#### [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ)
 
-### SportOrg
+PC software (Windows or Linux).
 
-Reading cards is implemented in the program [SportOrg](https://github.com/sportorg/pysport).
+It is written on Python, based on PyQt5 and [SportiduinoPython module](https://github.com/sportiduino/sportiduinoPython).
+
+#### [SportiduinoApp](https://github.com/sportiduino/sportiduinoapp)
+
+Android application for smartphones with NFC.
+
+### For event management
+
+Reading cards is implemented in [SportOrg](https://github.com/sportorg/pysport) and [SportOrgPlus](https://github.com/sembruk/sportorg-plus).
+
+Also you can use software for SPORTident (MeOS, WinOrient, Rogain Manager etc).
 
