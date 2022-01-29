@@ -21,7 +21,7 @@ AVR microcontroller programming device such as Pickit2.
 The outer shell is G1020BF.
 Moisture protection is achieved by covering all the PCB electronics with a liquid silicone compound.
 
-About the assembly and the initial setting of the station written in [the assembly manual](/Doc/en/BaseStationAssembly.md).
+About the assembly and the initial setting of the station written in [the assembly manual](BaseStationAssembly.md).
 
 ### Consumption
 
@@ -43,13 +43,13 @@ Fully charged batteries last for 45 days of continuous operation.
 To reduce consumption while waiting for the competition, the Sleep mode is implemented.
 Consumption is about 15 mkA.
 Fully charged batteries last for 5 years.
-To achieve this, on the RFID board the LED and pull-up resistors must be accurately removed (see [Base Station Assembly](/Doc/en/BaseStationAssembly.md)).
+To achieve this, on the RFID board the LED and pull-up resistors must be accurately removed (see [Base Station Assembly](BaseStationAssembly.md)).
 
 ### Initial setting
 
 Station is configured by Master cards (any card can be written as a Master card) or by USB-to-TTL converter.
 
-[More details in the User manual](/Doc/en/UserManual.md).
+[More details in the User manual](UserManual.md).
 
 ### Station operation algorithm
 

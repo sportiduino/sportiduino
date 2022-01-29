@@ -46,7 +46,7 @@ Then connect the master station via a USB wire to the computer.
  
 ![](/Images/w04.jpg?raw=true)
 
-Open the Arduino IDE program on the computer (see [Arduino IDE Setting](/Doc/en/BaseStationAssembly.md#Arduino-IDE-Setting)).
+Open the Arduino IDE program on the computer (see [Arduino IDE Setting](BaseStationAssembly.md#Arduino-IDE-Setting)).
 In the settings specify the board type `Arduino Nano`, processor `ATmega328P (Old Bootloader)`
 (`ATmega328P (without reset)` for SPORTident emulation).
 Select the appropriate serial port and upload MasterStation sketch onto the board.

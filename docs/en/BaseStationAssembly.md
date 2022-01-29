@@ -36,7 +36,7 @@ Gerber files are placed in the folder `hardware/BaseStation/prod/v3`.
 6. Battery box 3xAA or 3xAAA.
 7. The Gainta G1020BF case.
 
-Equipment which is useful for assembly is given [on a separate page](/Doc/en/Equipment.md)
+Equipment which is useful for assembly is given [on a separate page](Equipment.md)
 
 ### RFID module preparing
 

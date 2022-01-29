@@ -44,7 +44,7 @@
 
 ![](/Images/w04.jpg?raw=true)
 
-Открываем программу Arduino IDE на компьютере (см. [Настройка Arduino IDE](/Doc/ru/BaseStationAssembly.md#Настройка-Arduino-IDE)). 
+Открываем программу Arduino IDE на компьютере (см. [Настройка Arduino IDE](BaseStationAssembly.md#Настройка-Arduino-IDE)). 
 В настройках указываем тип платы `Arduino Nano`, процессор `ATmega328P (Old Bootloader)`
 (или `ATmega328P (without reset)` для режима эмуляции SPORTident).
 Выбираем нужный COM порт и заливаем скетч MasterStation на плату (Файл->Папка со скетчами->MasterStation).

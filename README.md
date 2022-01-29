@@ -12,7 +12,7 @@ Links to data processing software are placed [below](#software).
 
 [Download latest release](https://github.com/sportiduino/sportiduino/releases/latest)
 
-[Manual](/Doc/en.md)
+[Manual](/docs/en.md)
 
 This project is open and free. Anyone can reproduce it yourself. Just follow the instructions from the Manual.
 The low cost of the components can be worth your efforts (about USD $10 for one base station and $0.2 per RFID tag).
@@ -52,7 +52,7 @@ We also have our [Telegram chat](https://t.me/Sportiduino) where you can ask any
 
 You can contribute by writing code.
 We welcome software for working with the system on a PC via USB and on Android via Bluetooth or NFC.
-The data transfer protocol and commands are described in the [Manual](/Doc/en/MasterStation.md).
+The data transfer protocol and commands are described in the [Manual](/docs/en/MasterStation.md).
 With pleasure we will add a link to your developments working with Sportiduino.
 
 Pull requests, creation of forks, developing any new ideas are welcome.
@@ -74,7 +74,7 @@ The memory of these chips is enough for 42 marks. They work a little slower than
 
 The system automatically detects the type of used cards.
 
-[Read more](/Doc/en/Card.md)
+[Read more](/docs/en/Card.md)
 
 ## Base stations
 
@@ -86,7 +86,7 @@ Tested at ambient temperatures from -20 to +50 degrees Celcius.
 
 Totally, the initial components for one base station and the consumables cost about $10 (in 2019).
 
-[Read more](/Doc/en/BaseStation.md)
+[Read more](/docs/en/BaseStation.md)
 
 ## Master station
 
@@ -95,7 +95,7 @@ It is simpler than the base station.
 It consists of Arduino Nano, RFID module, LED and buzzer.
 It connects with a PC via USB. 
 
-[Read more](/Doc/en/MasterStation.md)
+[Read more](/docs/en/MasterStation.md)
 
 There is also a wireless station with the Bluetooth module. 
 

@@ -14,7 +14,7 @@ The circuit and board are available in Upverter ([variant 1](https://upverter.co
 
 All components of the circuit can be placed on a PCB or soldered to the Arduino by a ordinary wires.
 The electronics of the master station can be placed in the Gainta G1020BF box or in a specially designed box that can be printed on a 3D printer.
-[More about the assembly](/Doc/en/MasterStationAssembly.md).
+[More about the assembly](MasterStationAssembly.md).
 
 The station is connected to the computer using a USB port.
 The Arduino Nano already has a built-in Serial-to-USB converter, so no additional converters are needed.

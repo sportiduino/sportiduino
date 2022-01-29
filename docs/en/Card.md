@@ -18,7 +18,7 @@ They cost USD $0.1, 0.2, 0.4 as stickers and twice as much as key fobs.
 
 **Important!**
 For reliable operation with these cards which have a small antenna area
-it is necessary to replace the inductors with the more powerful ones in the RFID RC522 module (see [Base station assembly](/Doc/en/BaseStationAssembly.md)).
+it is necessary to replace the inductors with the more powerful ones in the RFID RC522 module (see [Base station assembly](BaseStationAssembly.md)).
 
 Mifare Classic 1K cards come bundled with the RC522 module.
 The memory of these cards is enough for 42 marks. They work a little slower than NTAG. 
