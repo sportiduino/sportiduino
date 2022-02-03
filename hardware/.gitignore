@@ -1,3 +1,12 @@
+# FreeCAD
+*.FCStd1
+# KiCAD
+sym-lib-table
+fp-info-cache
+*-rescue.dcm
+*-rescue.lib
 *-cache.lib
 *.bak
+*.sch-bak
 *.kicad_pcb-bak
+
