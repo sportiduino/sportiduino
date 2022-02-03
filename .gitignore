@@ -1,4 +1,11 @@
+tags
 # Vim files
 *.swp
-
-tags
+# FreeCAD
+*.FCStd1
+# KiCAD
+sym-lib-table
+fp-info-cache
+*.sch-bak
+*-rescue.dcm
+*-rescue.lib
