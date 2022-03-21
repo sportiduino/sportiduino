@@ -47,6 +47,7 @@ void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum);
 
 bool uint32ToByteArray(uint32_t value, byte *byteArray);
 uint32_t byteArrayToUint32(const byte *byteArray);
+bool pageIsEmpty(const byte *pageData);
 
 struct Configuration;
 

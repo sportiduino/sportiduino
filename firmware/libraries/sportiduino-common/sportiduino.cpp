@@ -108,6 +108,13 @@ uint32_t byteArrayToUint32(const byte *byteArray) {
     return value;
 }
 
+bool pageIsEmpty(const byte *pageData) {
+    return (pageData[0] == 0
+        && pageData[1] == 0
+        && pageData[2] == 0
+        && pageData[3] == 0);
+}
+
 bool readConfig(Configuration *config, uint8_t configSize, uint16_t eepromConfigAddress) {
     uint16_t eepromAdr = eepromConfigAddress;
     for(uint8_t i = 0; i < configSize; ++i) {

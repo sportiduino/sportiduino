@@ -259,7 +259,7 @@ void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, u
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void sleep(uint16_t ms);
 void setMode(uint8_t newMode);
-void writeMarkToLog(uint16_t num);
+void writePunchToLog(uint16_t num);
 void clearMarkLog();
 uint16_t getMarkLogEnd();
 void i2cEepromWritePunch(uint16_t cardNum);
@@ -279,7 +279,7 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
 void processSettingsMasterCard(byte *data, byte dataSize);
 void processGetInfoMasterCard(byte *data, byte dataSize);
 void processParticipantCard(uint16_t cardNum);
-bool writeMarkToParticipantCard(uint8_t newPage, bool fastPunch);
+bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch);
 void clearParticipantCard();
 void checkParticipantCard();
 
@@ -621,7 +621,7 @@ void setMode(uint8_t newMode) {
     }
 }
 
-void writeMarkToLog(uint16_t num) {
+void writePunchToLog(uint16_t num) {
     if(num > MAX_CARD_NUM_TO_LOG) {
         return;
     }
@@ -1254,6 +1254,13 @@ void processParticipantCard(uint16_t cardNum) {
         if(newPage < CARD_PAGE_START || newPage > maxPage) {
             newPage = CARD_PAGE_START;
         }
+        if(rfid.cardPageRead(newPage, pageData)) {
+            if (!pageIsEmpty(pageData)) {
+                findNewPage(&rfid, &newPage, &lastNum);
+            }
+        } else {
+            return;
+        }
     } else {
         findNewPage(&rfid, &newPage, &lastNum);
     }
@@ -1283,8 +1290,8 @@ void processParticipantCard(uint16_t cardNum) {
             return;
         }
 
-        if(writeMarkToParticipantCard(newPage, fastPunch)) {
-            writeMarkToLog(cardNum);
+        if(writePunchToParticipantCard(newPage, fastPunch)) {
+            writePunchToLog(cardNum);
             beepCardMarkWritten();
         }
     } else {
@@ -1292,7 +1299,7 @@ void processParticipantCard(uint16_t cardNum) {
     }
 }
 
-bool writeMarkToParticipantCard(uint8_t newPage, bool fastPunch) {
+bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch) {
     byte pageData[4] = {0,0,0,0};
     
     DS3231_get(&t);
@@ -1384,7 +1391,7 @@ void checkParticipantCard() {
         return;
     }
 
-    writeMarkToLog(cardNum);
+    writePunchToLog(cardNum);
 
     beepCardCheckOk();
 }

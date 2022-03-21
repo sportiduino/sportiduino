@@ -481,7 +481,7 @@ void funcReadCard(uint8_t*, uint8_t) {
             return;
         }
 
-        if(pageData[0] == 0) { // no new punches
+        if(pageIsEmpty(pageData)) { // no new punches
             break;
         }
         // Output station number
