@@ -806,12 +806,12 @@ uint32_t readFinishTime(uint32_t initTime, uint8_t *pageFinishPunch) {
     uint8_t newPage = 0;
     uint8_t lastNum;
     findNewPage(&rfid, &newPage, &lastNum);
-    if(!newPage || newPage == CARD_PAGE_START) {
+    if(!newPage || newPage <= CARD_PAGE_START) {
         return 0;
     }
     *pageFinishPunch = newPage;
     uint8_t endPage = newPage;
-    uint8_t beginPage = min(CARD_PAGE_START, endPage - 10);
+    uint8_t beginPage = max(CARD_PAGE_START, endPage - 10);
     byte pageData[4];
 
     for(uint8_t page = endPage - 1; page >= beginPage; --page) {
@@ -824,7 +824,6 @@ uint32_t readFinishTime(uint32_t initTime, uint8_t *pageFinishPunch) {
             *pageFinishPunch = page;
             return getPunchTime(pageData, initTime);
         }
-
     }
     return 0;
 }
