@@ -1,3 +1,7 @@
+## MS-v1.8.4
+
+- Fix SPORTident emulation for card reading
+
 ## MS-v1.8.3
 
 - Disable autosend all SI-Card 6 pages for MeOS
