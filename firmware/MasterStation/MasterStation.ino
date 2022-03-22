@@ -5,7 +5,7 @@
 #define FW_MAJOR_VERS     8
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     3
+#define FW_MINOR_VERS     4
 
 
 //-----------------------------------------------------------
@@ -75,6 +75,7 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
 void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize);
 void sieDetectCard();
 void sieCardRemoved();
+void sieCardReadError();
 bool sieSendDataBlock(uint8_t blockNumber);
 bool sieSendAllDataBlocks(bool shortFormat);
 void setPwd(uint8_t newPwd[]);
@@ -717,15 +718,15 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
                 bool autosend = false; // not implemented
                 if(blockNumber == 0x00 && autosend) {
                     if(!sieSendAllDataBlocks(true)) {
-                        beepError();
+                        sieCardReadError();
                     }
                 } else if(blockNumber == 0x08) {
                     if(!sieSendAllDataBlocks(false)) {
-                        beepError();
+                        sieCardReadError();
                     }
                 } else {
                     if(!sieSendDataBlock(blockNumber)) {
-                        beepError();
+                        sieCardReadError();
                     }
                 }
                 rfid.end();
@@ -880,8 +881,13 @@ void sieCardRemoved() {
     siProto.send();
 }
 
+void sieCardReadError() {
+    sieCardRemoved();
+    beepError();
+}
+
 bool sieSendDataBlock(uint8_t blockNumber) {
-    if(!currentCardNumber) {
+    if(!currentCardNumber || !rfid.isCardDetected()) {
         siProto.error();
         return false;
     }
@@ -922,7 +928,7 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         if(startTime) {
             start.fromUnixtime(startTime, config.timezone);
             start.cn = 0;
-            blockOffset = CARD_PAGE_START - pageStartPunch + 1;
+            blockOffset = pageStartPunch - CARD_PAGE_START + 1;
             currentCpCount -= blockOffset;
         } else {
             blockOffset = 0;
@@ -1006,9 +1012,10 @@ bool sieSendDataBlock(uint8_t blockNumber) {
                 }
 
                 uint8_t cp = pageData[0];
-                if(cp != 0 && cp != START_STATION_NUM && cp != FINISH_STATION_NUM) {
+                if(cp == START_STATION_NUM || cp == FINISH_STATION_NUM) {
+                    siTimestamp.cn = 0;
+                } else if(cp != 0) {
                     siTimestamp.cn = cp;
-
                     uint32_t punchTime = getPunchTime(pageData, currentCardInitTime);
                     siTimestamp.fromUnixtime(punchTime, config.timezone);
                 }
