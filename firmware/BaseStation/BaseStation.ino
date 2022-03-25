@@ -1,6 +1,5 @@
 // To compile this project with Arduino IDE change sketchbook to <Project>/firmware
 
-#include <EEPROM.h>
 #include <Wire.h>
 #include <ds3231.h>
 #include <Adafruit_SleepyDog.h>
@@ -19,7 +18,7 @@
 #define FW_MAJOR_VERS   10
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 1)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 2)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -128,7 +127,7 @@ struct __attribute__((packed)) Configuration {
 
 #define EEPROM_CONFIG_ADDR  0x3EE
 
-#define MAX_CARD_NUM_TO_LOG 4000
+#define MAX_CARD_NUM_TO_LOG 8190
 
 // Poll time in active mode (milliseconds)
 #define MODE_ACTIVE_CARD_CHECK_PERIOD     250
@@ -259,9 +258,7 @@ void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, u
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void sleep(uint16_t ms);
 void setMode(uint8_t newMode);
-void writeMarkToLog(uint16_t num);
 void clearMarkLog();
-uint16_t getMarkLogEnd();
 void i2cEepromWritePunch(uint16_t cardNum);
 uint32_t i2cEepromReadPunch(uint16_t cardNum);
 void i2cEepromErase();
@@ -274,7 +271,6 @@ void processMasterCard(uint8_t *pageInitData);
 void processTimeMasterCard(byte *data, byte dataSize);
 void processStationMasterCard(byte *data, byte dataSize);
 void processSleepMasterCard(byte *data, byte dataSize);
-void processBackupMasterCard(byte *data, byte dataSize);
 void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
 void processSettingsMasterCard(byte *data, byte dataSize);
 void processGetInfoMasterCard(byte *data, byte dataSize);
@@ -359,8 +355,6 @@ void setup() {
         writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
 #ifdef USE_I2C_EEPROM
         i2cEepromErase();
-#else
-        clearMarkLog();
 #endif
     }
 
@@ -621,44 +615,11 @@ void setMode(uint8_t newMode) {
     }
 }
 
-void writeMarkToLog(uint16_t num) {
-    if(num > MAX_CARD_NUM_TO_LOG) {
-        return;
-    }
-    
-#ifdef USE_I2C_EEPROM
-    i2cEepromWritePunch(num);
-#else
-    uint16_t byteAdr = num/8;
-    uint16_t bitAdr = num%8;
-    uint8_t eepromByte = EEPROM.read(byteAdr);
-    bitSet(eepromByte, bitAdr);
-    EEPROM.write(byteAdr, eepromByte);
-#endif
-}
-
-void clearMarkLog() {
-    uint16_t endAdr = getMarkLogEnd();
-    
-    for (uint16_t a = 0; a <= endAdr; a++) {
-        Watchdog.reset();
-        EEPROM.write(a,0);
-        delay(2);
-    }
-}
-
-uint16_t getMarkLogEnd() {
-    uint16_t endAdr = MAX_CARD_NUM_TO_LOG/8;
-    
-    if(endAdr > 1000) {
-        endAdr = 1000;
-    }
-
-    return endAdr;
-}
-
 #ifdef USE_I2C_EEPROM
 void i2cEepromWritePunch(uint16_t cardNum) {
+    if(cardNum > MAX_CARD_NUM_TO_LOG) {
+        return;
+    }
     pinMode(I2C_EEPROM_VCC, OUTPUT);
     // Power on I2C EEPROM
     digitalWrite(I2C_EEPROM_VCC, HIGH);
@@ -933,8 +894,6 @@ void processMasterCard(uint8_t *pageInitData) {
         case MASTER_CARD_READ_BACKUP:
 #ifdef USE_I2C_EEPROM
             processBackupMasterCardWithTimestamps(masterCardData, sizeof(masterCardData));
-#else
-            processBackupMasterCard(masterCardData, sizeof(masterCardData));
 #endif
             break;
         case MASTER_CARD_CONFIG:
@@ -1003,63 +962,7 @@ void processSleepMasterCard(byte *data, byte dataSize) {
     // Config alarm
     setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
     
-#ifndef USE_I2C_EEPROM
-    clearMarkLog();
-#endif
-
     beepMasterCardSleepOk();
-}
-
-void processBackupMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        beepMasterCardError();
-        return;
-    }
-
-    data[0] = config.stationNumber;
-    data[3] = 0;
-    bool result = rfid.cardPageWrite(CARD_PAGE_INIT, data);
-
-    uint16_t eepromAdr = 0;
-    uint16_t eepromEnd = getMarkLogEnd();
-    uint8_t maxPage = rfid.getCardMaxPage();
-    for(uint8_t page = CARD_PAGE_BACKUP_START; page <= maxPage; ++page) {
-        Watchdog.reset();
-        delay(50);
-        
-        digitalWrite(LED, HIGH);
-        
-        byte pageData[4] = {0,0,0,0};
-        for(uint8_t m = 0; m < 4; m++) {
-            pageData[m] = EEPROM.read(eepromAdr);
-            eepromAdr++;
-
-            if(eepromAdr > eepromEnd) {
-                break;
-            }
-        }
-
-        result &= rfid.cardPageWrite(page, pageData);
-
-        digitalWrite(LED, LOW);
-
-        if(!result) {
-            break;
-        }
-        
-
-        if(eepromAdr > eepromEnd) {
-            break;
-        }
-    }
-
-    delay(250);
-
-    if(result) {
-        beepMasterCardOk();
-    } else {
-        beepMasterCardError();
-    }
 }
 
 #ifdef USE_I2C_EEPROM
@@ -1281,7 +1184,7 @@ void processParticipantCard(uint16_t cardNum) {
         }
 
         if(writeMarkToParticipantCard(newPage)) {
-            writeMarkToLog(cardNum);
+            i2cEepromWritePunch(cardNum);
             beepCardMarkWritten();
         }
     } else {
@@ -1373,7 +1276,7 @@ void checkParticipantCard() {
         return;
     }
 
-    writeMarkToLog(cardNum);
+    i2cEepromWritePunch(cardNum);
 
     beepCardCheckOk();
 }
