@@ -17,7 +17,8 @@ enum MasterCard {
     MASTER_CARD_SET_NUMBER    = 251,
     MASTER_CARD_SLEEP         = 252,
     MASTER_CARD_READ_BACKUP   = 253,
-    MASTER_CARD_CONFIG        = 254
+    MASTER_CARD_CONFIG        = 254,
+    MASTER_CARD_PASSWORD      = 255
 };
 
 #define MASTER_CARD_SIGN            0xff

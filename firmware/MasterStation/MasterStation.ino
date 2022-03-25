@@ -235,6 +235,21 @@ void funcWriteMasterConfig(uint8_t *serialData, uint8_t dataSize) {
     }
 }
 
+void funcWriteMasterPassword(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize != 3) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
+
+    uint8_t error = writeMasterCard(MASTER_CARD_PASSWORD, serialData, dataSize);
+
+    if(error) {
+        signalError(error);
+    } else {
+        signalOK();
+    }
+}
+
 void funcApplyPassword(uint8_t *serialData, uint8_t dataSize) {
     setPwd(serialData);
     signalOK();
@@ -571,6 +586,9 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             break;
         case 0x42:
             callRfidFunction(funcWriteMasterNum, data, dataSize);
+            break;
+        case 0x43:
+            callRfidFunction(funcWriteMasterPassword, data, dataSize);
             break;
         case 0x5A:
             callRfidFunction(funcWriteMasterConfig, data, dataSize);

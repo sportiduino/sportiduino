@@ -273,6 +273,7 @@ void processStationMasterCard(byte *data, byte dataSize);
 void processSleepMasterCard(byte *data, byte dataSize);
 void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
 void processSettingsMasterCard(byte *data, byte dataSize);
+void processPasswordMasterCard(byte *data, byte dataSize);
 void processGetInfoMasterCard(byte *data, byte dataSize);
 void processParticipantCard(uint16_t cardNum);
 bool writeMarkToParticipantCard(uint8_t newPage);
@@ -899,6 +900,9 @@ void processMasterCard(uint8_t *pageInitData) {
         case MASTER_CARD_CONFIG:
             processSettingsMasterCard(masterCardData, sizeof(masterCardData));
             break;
+        case MASTER_CARD_PASSWORD:
+            processPasswordMasterCard(masterCardData, sizeof(masterCardData));
+            break;
         case MASTER_CARD_GET_INFO:
             processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
             break;
@@ -1063,6 +1067,14 @@ void processSettingsMasterCard(byte *data, byte dataSize) {
 
     setNewConfig((Configuration*)&data[8]);
 
+    beepMasterCardOk();
+}
+
+void processPasswordMasterCard(byte *data, byte dataSize) {
+    config.password[0] = data[8];
+    config.password[1] = data[9];
+    config.password[2] = data[10];
+    writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
     beepMasterCardOk();
 }
 
@@ -1330,14 +1342,6 @@ void processSerial() {
         return;
     }
     
-    // Now we don't check password at serial
-    //if(data[0] != config.password[0] ||
-    //   data[1] != config.password[1] ||
-    //   data[2] != config.password[2] ) {
-    //    serialRespStatus(SERIAL_ERROR_PWD);
-    //    return;
-    //}
-
     if(data) {
         switch(cmdCode) {
             case SERIAL_FUNC_READ_INFO:
