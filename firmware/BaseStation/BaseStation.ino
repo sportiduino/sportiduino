@@ -18,7 +18,7 @@
 #define FW_MAJOR_VERS   10
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 2)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 3)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -183,7 +183,6 @@ ts t;
 int16_t alarmYear = 2021;
 // We need this variable because DS321 doesn't have Month for Alarms
 uint8_t alarmMonth = 1;
-// To support wakeup on hw v1
 uint32_t alarmTimestamp = 0;
 // This flag is true when it's DS3231 interrupt
 uint8_t rtcAlarmFlag = 0;
@@ -371,6 +370,16 @@ void setup() {
     Watchdog.enable(8000);
 }
 
+void wakeupIfNeed() {
+    if(alarmTimestamp > 0) {
+        DS3231_get(&t);
+        if(t.unixtime >= alarmTimestamp) {
+            alarmTimestamp = 0;
+            setMode(MODE_ACTIVE);
+        }
+    }
+}
+
 void loop() {
     Watchdog.reset();
 
@@ -378,23 +387,11 @@ void loop() {
     if(rtcAlarmFlag) {
         rtcAlarmFlag = 0;
         DS3231_clear_a1f();
-
-        DS3231_get(&t);
-        // DS3231 doesn't support year & month in alarm
-        // so it's implemented on MCU side
-        if(t.year == alarmYear && t.mon == alarmMonth) {
-            setMode(MODE_ACTIVE);
-        }
+        wakeupIfNeed();
+    } else if(mode == MODE_SLEEP) {
+        // if HV version is 1 or RTC alarm didn't occur
+        wakeupIfNeed();
     }
-
-    // automatic wake-up at competition start implementation for hw v1
-
-#if HW_VERS == 1
-    DS3231_get(&t);
-    if(t.unixtime >= alarmTimestamp && (alarmTimestamp - t.unixtime) < 60) {
-        setMode(MODE_ACTIVE);
-    }
-#endif
 
     processRfid();
 
@@ -413,6 +410,7 @@ void loop() {
                 setMode(MODE_WAIT);
             }
             break;
+
         case MODE_WAIT:
             sleep(MODE_WAIT_CARD_CHECK_PERIOD);
 
@@ -428,6 +426,7 @@ void loop() {
                 setMode(MODE_SLEEP);
             }
             break;
+
         case MODE_SLEEP:
         default:
 #if defined(CHECK_BATTERY_IN_SLEEP) && defined(ADC_IN) && defined(ADC_ENABLE)
