@@ -129,7 +129,7 @@ struct __attribute__((packed)) Configuration {
 
 #define LOG_RECORD_SIZE 8  // bytes
 const uint16_t I2C_EEPROM_MEMORY_SIZE = (uint16_t)32*1024;  // bytes
-const uint16_t MAX_LOG_RECORDS = I2C_EEPROM_MEMORY_SIZE/LOG_RECORD_SIZE;  // 4096
+const uint16_t MAX_LOG_RECORDS = I2C_EEPROM_MEMORY_SIZE/LOG_RECORD_SIZE;
 
 // Poll time in active mode (milliseconds)
 #define MODE_ACTIVE_CARD_CHECK_PERIOD     250
@@ -159,6 +159,7 @@ const uint32_t AUTOSPEEP_TIME = 48UL*3600*1000;
 
 #define SERIAL_FUNC_READ_INFO       0xF0
 #define SERIAL_FUNC_WRITE_SETTINGS  0xF1
+#define SERIAL_FUNC_ERASE_LOG       0xF2
 
 #define SERIAL_RESP_STATUS          0x01
 #define SERIAL_RESP_INFO            0x02
@@ -191,7 +192,7 @@ uint8_t rtcAlarmFlag = 0;
 uint8_t reedSwitchFlag = 0;
 // It's true if there are data from UART in sleep mode
 uint8_t serialWakeupFlag = 0;
-uint16_t logLastRecordAddress = 0;
+uint16_t logNextRecordAddress = 0;
 
 //--------------------------------------------------------------------
 // FUNCTIONS
@@ -252,6 +253,7 @@ void checkParticipantCard();
 void processSerial();
 void serialFuncReadInfo(byte *data, byte dataSize);
 void serialFuncWriteSettings(byte *data, byte dataSize);
+void serialFuncEraseLog(byte *data, byte dataSize);
 void serialRespStatus(uint8_t code);
 void wakeupByUartRx();
 uint8_t getPinMode(uint8_t pin);
@@ -629,23 +631,27 @@ void i2cEepromInit() {
     pinMode(I2C_EEPROM_VCC, OUTPUT);
     // Power on I2C EEPROM
     digitalWrite(I2C_EEPROM_VCC, HIGH);
+    digitalWrite(LED, HIGH);
     delay(1);
 
     for(uint16_t i = 0; i < MAX_LOG_RECORDS; ++i) {
         uint16_t address = i*LOG_RECORD_SIZE;
         uint16_t cardNum = i2cEepromReadCardNumber(address);
         if(cardNum == 0) {
-            logLastRecordAddress = address;
+            logNextRecordAddress = address;
+            break;
         }
     }
 
+    digitalWrite(LED, LOW);
     digitalWrite(I2C_EEPROM_VCC, LOW);
+    delay(500);
 }
 
 void i2cEepromEraseRecord(uint8_t address) {
     Wire.beginTransmission(I2C_EEPROM_ADDRESS);
-    Wire.write(logLastRecordAddress >> 8);
-    Wire.write(logLastRecordAddress & 0xff);
+    Wire.write(address >> 8);
+    Wire.write(address & 0xff);
     Wire.write(0);
     Wire.write(0);
     Wire.endTransmission();
@@ -659,9 +665,8 @@ void i2cEepromWritePunch(uint16_t cardNum) {
 
     DS3231_get(&t);
     uint32_t timestamp = t.unixtime;
-    //uint16_t recordAddress = (cardNum - 1)*4;
-    uint16_t recordAddress = logLastRecordAddress + LOG_RECORD_SIZE;
-    if(recordAddress >= I2C_EEPROM_MEMORY_SIZE) {
+    uint16_t recordAddress = logNextRecordAddress;
+    if(recordAddress > I2C_EEPROM_MEMORY_SIZE - LOG_RECORD_SIZE) {
         recordAddress = 0;
     }
     Wire.beginTransmission(I2C_EEPROM_ADDRESS);
@@ -673,9 +678,9 @@ void i2cEepromWritePunch(uint16_t cardNum) {
         Wire.write((timestamp >> (8*i)) & 0xff); // little endian order
     }
     Wire.endTransmission();
-    logLastRecordAddress = recordAddress;
+    logNextRecordAddress = recordAddress + LOG_RECORD_SIZE;
     delay(5);
-    i2cEepromEraseRecord(logLastRecordAddress);
+    i2cEepromEraseRecord(logNextRecordAddress);
 
     digitalWrite(I2C_EEPROM_VCC, LOW);
 }
@@ -725,14 +730,14 @@ void i2cEepromErase() {
     digitalWrite(LED, HIGH);
     delay(1);
 
-    const uint8_t pageSize = 64;
+    const uint8_t pageSize = 32;
     const uint16_t lastAddress = I2C_EEPROM_MEMORY_SIZE/pageSize;
     for(uint16_t i = 0; i < lastAddress; ++i) {
         Watchdog.reset();
 
-        if(i % 64 == 0) {
+        if(i % 32 == 0) {
             digitalWrite(LED, HIGH);
-        } else if(i % 32 == 0) {
+        } else if(i % 16 == 0) {
             digitalWrite(LED, LOW);
         }
 
@@ -1065,7 +1070,8 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
     delay(5);
     digitalWrite(LED, HIGH);
     //for(uint16_t cardNum = lastCard + 1; cardNum <= 4000; ++cardNum) {
-    for(uint16_t i = 0; i < MAX_LOG_RECORDS; ++i) {
+    uint16_t address = logNextRecordAddress;
+    for(uint16_t i = 1; i <= MAX_LOG_RECORDS; ++i) {
         Watchdog.reset();
         if(page > maxPage) {
             break;
@@ -1077,10 +1083,10 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
             digitalWrite(LED, HIGH);
         }
 
-        int32_t address = logLastRecordAddress - i*LOG_RECORD_SIZE;
-        if(address < 0) {
-            address += I2C_EEPROM_MEMORY_SIZE;
+        if(address == 0) {
+            address = I2C_EEPROM_MEMORY_SIZE;
         }
+        address -= LOG_RECORD_SIZE;
         uint16_t cardNum = 0;
         uint32_t timestamp = 0;
         if(!i2cEepromReadRecord(address, &cardNum, &timestamp)) {
@@ -1102,11 +1108,10 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
             pageData[2] = timestampHiHalf >> 8;
             pageData[3] = timestampHiHalf & 0xff;
             result &= rfid.cardPageWrite(page++, pageData);
-            if(!result) {
+            if(!result || page > maxPage) {
                 break;
             }
             lastTimestampHiHalf = timestampHiHalf;
-            continue;
         }
 
         pageData[0] = cardNum >> 8;
@@ -1422,6 +1427,8 @@ void processSerial() {
             case SERIAL_FUNC_WRITE_SETTINGS:
                 serialFuncWriteSettings(data, dataSize);
                 break;
+            case SERIAL_FUNC_ERASE_LOG:
+                serialFuncEraseLog(data, dataSize);
             default:
                 serialRespStatus(SERIAL_ERROR_UNKNOWN_FUNC);
                 break;
@@ -1494,6 +1501,14 @@ void serialFuncWriteSettings(byte *data, byte dataSize) {
 
     mode = data[21];
 
+    serialRespStatus(SERIAL_OK);
+}
+
+void serialFuncEraseLog(byte *data, byte dataSize) {
+#ifdef USE_I2C_EEPROM
+    i2cEepromErase();
+#endif
+    logNextRecordAddress = 0;
     serialRespStatus(SERIAL_OK);
 }
 
