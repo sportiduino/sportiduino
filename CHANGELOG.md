@@ -1,3 +1,31 @@
+## v3.10.0
+
+Base station firmware **v3.10.0**:
+- Added Password master card
+- New format of punches log (store timestamp for cards numbers 1...65535, maximum 4000 records)
+- Wake up from Sleep mode if RTC alarm doesn't work
+- Check battery every ~10 min in Sleep Mode (disabled by default) if voltage < 3.5V beep SOS
+
+Master station firmware **v1.9.0**:
+- Write Password master card
+- Read Log master card of new format
+
+Added 3D model of the custom box for Base station
+
+---
+
+Прошивка базовой станции **v3.10.0**:
+- Добавлен мастер-чип пароля
+- Новый формат лога отметок (записывается время для чипов от 1 до 65535, максимум 4000 записей)
+- Реализован выход из спящего режима, даже если будильник RTC не сработает
+- Проверка аккумулятора каждые ~10 минут в спящем режиме (по умолчанию отключено), если напряжение < 3,5 В, станция подаёт сигнал SOS
+
+Прошивка станции сопряжения **v1.9.0**:
+- Добавлена поддержка мастер-чипа пароля
+- Добавлена поддержка мастер-чипа лога отметок нового формата
+
+Добавлена 3D модель корпуса для базовой станции. 
+
 ## MS-v1.8.4
 
 - Fix SPORTident emulation for card reading
