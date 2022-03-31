@@ -90,6 +90,10 @@ void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
     *lastNum = num;
 }
 
+bool pageIsEmpty(const byte *pageData) {
+    return (pageData[0] == 0 && pageData[1] == 0 && pageData[2] == 0 && pageData[3] == 0);
+}
+
 bool uint32ToByteArray(uint32_t value, byte *byteArray) {
     for(uint8_t i = 0; i < 4; ++i) {
         byteArray[3 - i] = value & 0xff;

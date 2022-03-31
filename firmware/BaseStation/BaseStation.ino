@@ -645,7 +645,7 @@ void i2cEepromInit() {
 
     digitalWrite(LED, LOW);
     digitalWrite(I2C_EEPROM_VCC, LOW);
-    delay(500);
+    delay(100);
 }
 
 void i2cEepromEraseRecord(uint8_t address) {
@@ -731,8 +731,8 @@ void i2cEepromErase() {
     delay(1);
 
     const uint8_t pageSize = 32;
-    const uint16_t lastAddress = I2C_EEPROM_MEMORY_SIZE/pageSize;
-    for(uint16_t i = 0; i < lastAddress; ++i) {
+    const uint16_t nPages = I2C_EEPROM_MEMORY_SIZE/pageSize;
+    for(uint16_t i = 0; i < nPages; ++i) {
         Watchdog.reset();
 
         if(i % 32 == 0) {
@@ -1042,35 +1042,30 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
     bool result = rfid.cardPageWrite(CARD_PAGE_INIT, pageData);
 
     uint8_t maxPage = rfid.getCardMaxPage();
-    //uint8_t stationNumberFromCard = data[0];
-    //uint16_t lastCard = 0;
-    //if (stationNumberFromCard == config.stationNumber) {
-    //    byte pageData[4];
-    //    result &= rfid.cardPageRead(maxPage, pageData);
-    //    lastCard = pageData[0] << 8;
-    //    lastCard |= pageData[1];
-    //    lastCard >>= 4;
-    //    if (lastCard > 4000) {
-    //        lastCard = 0;
-    //    }
-    //}
-
-    //DS3231_get(&t);
-    //uint32_t now = t.unixtime;
-    //uint32_t from = t.unixtime - 0xfffff; // about last 12 days
+    uint8_t stationNumberFromCard = data[0];
+    uint16_t lastRecordAddressFromCard = 0xffff;
+    if (stationNumberFromCard == config.stationNumber) {
+        result &= rfid.cardPageRead(CARD_PAGE_INFO1, pageData);
+        byte lastPageData[4];
+        result &= rfid.cardPageRead(maxPage, lastPageData);
+        if (pageData[0] == 0 && pageData[1] == 0 && !pageIsEmpty(lastPageData)) {
+            lastRecordAddressFromCard = byteArrayToUint32(pageData) & 0xffff;
+        }
+    }
 
     uint8_t page = CARD_PAGE_INFO1;
-    // Write initial timestamp (4 bytes) in first data page
-    //uint32ToByteArray(from, pageData);
-    //result &= rfid.cardPageWrite(page++, pageData);
+    // Clear page for lastRecordAddressFromCard
+    result &= rfid.cardPageErase(page++);
     uint16_t lastTimestampHiHalf = 0;
 
     // Power on I2C EEPROM
     digitalWrite(I2C_EEPROM_VCC, HIGH);
     delay(5);
     digitalWrite(LED, HIGH);
-    //for(uint16_t cardNum = lastCard + 1; cardNum <= 4000; ++cardNum) {
     uint16_t address = logNextRecordAddress;
+    if(lastRecordAddressFromCard < I2C_EEPROM_MEMORY_SIZE) {
+        address = lastRecordAddressFromCard;
+    }
     for(uint16_t i = 1; i <= MAX_LOG_RECORDS; ++i) {
         Watchdog.reset();
         if(page > maxPage) {
@@ -1096,11 +1091,6 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
         if(cardNum == 0) {
             break;
         }
-        //if(timestamp < from || timestamp > now) {
-        //    // No timestamp for cardNum
-        //    continue;
-        //}
-        //uint32ToByteArray(timestamp, timeData);
         uint16_t timestampHiHalf = timestamp >> 16;
         if(timestampHiHalf != lastTimestampHiHalf) {
             pageData[0] = 0;
@@ -1120,6 +1110,12 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
         pageData[3] = timestamp & 0xff;
         result &= rfid.cardPageWrite(page++, pageData);
     }
+    // Write current address for lastRecordAddressFromCard in first data page
+    pageData[0] = 0;
+    pageData[1] = 0;
+    pageData[2] = address >> 8;
+    pageData[3] = address & 0xff;
+    result &= rfid.cardPageWrite(CARD_PAGE_INFO1, pageData);
 
     digitalWrite(LED, HIGH);
     result &= rfid.cardErase(page, maxPage);
