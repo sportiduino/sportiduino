@@ -1425,6 +1425,7 @@ void processSerial() {
                 break;
             case SERIAL_FUNC_ERASE_LOG:
                 serialFuncEraseLog(data, dataSize);
+                break;
             default:
                 serialRespStatus(SERIAL_ERROR_UNKNOWN_FUNC);
                 break;
