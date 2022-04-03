@@ -18,7 +18,7 @@
 #define FW_MAJOR_VERS   10
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 4)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 5)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -524,6 +524,8 @@ void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, u
 
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
     uint8_t flags[5] = {0,0,0,0,0};
+    DS3231_get(&t);
+    uint32_t currentTimestamp = t.unixtime;
     memset(&t, 0, sizeof(t));
     alarmMonth = t.mon = mon;
     alarmYear = t.year = year;
@@ -532,6 +534,9 @@ void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t
     t.min = mi;
     t.sec = sec;
     alarmTimestamp = get_unixtime(t);
+    if(alarmTimestamp < currentTimestamp) {
+        alarmTimestamp = 0;
+    }
 
     DS3231_clear_a1f();
     DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
@@ -1021,10 +1026,10 @@ void processSleepMasterCard(byte *data, byte dataSize) {
     // in this case we can't sleep if always work is set
     mode = MODE_SLEEP;
     sleepCount = 0;
-    
+
     // Config alarm
     setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
-    
+
     beepMasterCardSleepOk();
 }
 
