@@ -106,7 +106,7 @@ struct __attribute__((packed)) Configuration {
     uint8_t activeModeDuration: 3;
     uint8_t checkStartFinish: 1; // Check start/finish station punches on a participant card
     uint8_t checkCardInitTime: 1; // Check init time of a participant card
-    uint8_t autosleep: 1; // Go to Sleep Mode after AUTOSPEEP_TIME milliseconds in Wait Mode
+    uint8_t autosleep: 1; // Go to Sleep Mode after AUTOSLEEP_TIME milliseconds in Wait Mode
     uint8_t fastPunch: 1; // Fast punch mode
     uint8_t _reserved1: 1;
     uint8_t antennaGain: 3;
@@ -138,7 +138,7 @@ const uint16_t MAX_LOG_RECORDS = I2C_EEPROM_MEMORY_SIZE/LOG_RECORD_SIZE;
 // Poll time in sleep mode (milliseconds)
 #define MODE_SLEEP_CARD_CHECK_PERIOD      25000
 
-const uint32_t AUTOSPEEP_TIME = 48UL*3600*1000;
+const uint32_t AUTOSLEEP_TIME = 48UL*3600*1000;
 
 #define MODE_ACTIVE   0
 #define MODE_WAIT     1
@@ -178,6 +178,7 @@ uint32_t workTimer = 0;
 uint16_t sleepCount = 0;
 Configuration config;
 uint8_t mode = DEFAULT_MODE;
+uint16_t activeModePollPeriod = MODE_ACTIVE_CARD_CHECK_PERIOD;
 Rfid rfid;
 SerialProtocol serialProto;
 // date/time
@@ -262,6 +263,7 @@ void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, u
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void sleep(uint16_t ms);
 void setMode(uint8_t newMode);
+void setModeIfAllowed(uint8_t newMode);
 void clearPunchLog();
 void i2cEepromInit();
 uint16_t i2cEepromReadCardNumber(uint16_t address);
@@ -365,7 +367,7 @@ void setup() {
 #endif
     }
 
-    setMode(DEFAULT_MODE);
+    setModeIfAllowed(DEFAULT_MODE);
   
     serialProto.init(SERIAL_MSG_START);
     rfid.init(RC522_SS, RC522_RST, config.antennaGain);
@@ -386,7 +388,7 @@ void wakeupIfNeed() {
         DS3231_get(&t);
         if(t.unixtime >= alarmTimestamp) {
             alarmTimestamp = 0;
-            setMode(MODE_ACTIVE);
+            setModeIfAllowed(MODE_ACTIVE);
         }
     }
 }
@@ -409,7 +411,7 @@ void loop() {
     // process mode
     switch(mode) {
         case MODE_ACTIVE:
-            sleep(MODE_ACTIVE_CARD_CHECK_PERIOD);
+            sleep(activeModePollPeriod);
 
 #ifdef DEBUG
             digitalWrite(LED,HIGH);
@@ -418,7 +420,7 @@ void loop() {
             if(config.activeModeDuration == SETTINGS_ALWAYS_ACTIVE) {
                   workTimer = 0;
             } else if(workTimer >= (1<<(uint32_t)config.activeModeDuration)*3600000UL) {
-                setMode(MODE_WAIT);
+                setModeIfAllowed(MODE_WAIT);
             }
             break;
 
@@ -433,8 +435,8 @@ void loop() {
                 workTimer = 0;
             }
 
-            if(config.autosleep && workTimer > AUTOSPEEP_TIME) {
-                setMode(MODE_SLEEP);
+            if(config.autosleep && workTimer > AUTOSLEEP_TIME) {
+                setModeIfAllowed(MODE_SLEEP);
             }
             break;
 
@@ -620,14 +622,21 @@ void setMode(uint8_t newMode) {
             checkBattery(true);
         }
     }
+    if(newMode != MODE_ACTIVE) {
+        activeModePollPeriod = MODE_ACTIVE_CARD_CHECK_PERIOD;
+    }
     mode = newMode;
     workTimer = 0;
+}
 
+void setModeIfAllowed(uint8_t newMode) {
     // Check mode with settings
     if(config.activeModeDuration == SETTINGS_ALWAYS_WAIT) {
-        mode = MODE_WAIT;
+        setMode(MODE_WAIT);
     } else if(config.activeModeDuration == SETTINGS_ALWAYS_ACTIVE) {
-        mode = MODE_ACTIVE;
+        setMode(MODE_ACTIVE);
+    } else {
+        setMode(newMode);
     }
 }
 
@@ -901,7 +910,7 @@ void processCard() {
         // This is a master card
         processMasterCard(pageData);
     } else {
-        setMode(MODE_ACTIVE);
+        setModeIfAllowed(MODE_ACTIVE);
         // Process a participant card
         switch(config.stationNumber) {
             case CLEAR_STATION_NUM:
@@ -923,7 +932,7 @@ void processCard() {
 void processMasterCard(uint8_t *pageInitData) {
     // Don't change mode if it's the get info card
     if(pageInitData[1] != MASTER_CARD_GET_INFO) {
-        setMode(MODE_ACTIVE);
+        setModeIfAllowed(MODE_ACTIVE);
     }
 
     byte masterCardData[16];
@@ -1022,10 +1031,7 @@ void processSleepMasterCard(byte *data, byte dataSize) {
         return;
     }
 
-    // don't use setMode because it checks settings
-    // in this case we can't sleep if always work is set
-    mode = MODE_SLEEP;
-    sleepCount = 0;
+    setMode(MODE_SLEEP);
 
     // Config alarm
     setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
@@ -1246,6 +1252,7 @@ void processParticipantCard(uint16_t cardNum) {
         return;
     }
     if(fastPunch) {
+        activeModePollPeriod = 100;
         lastNum = pageData[0];
         newPage = pageData[1] + 1;
         if(newPage < CARD_PAGE_START || newPage > maxPage) {
@@ -1523,7 +1530,7 @@ void serialFuncWriteSettings(byte *data, byte dataSize) {
     setTime(data[9] + 2000, data[10], data[11], data[12], data[13], data[14]);
     setWakeupTime(data[15] + 2000, data[16], data[17], data[18], data[19], data[20]);
 
-    mode = data[21];
+    setMode(data[21]);
 
     serialRespStatus(SERIAL_OK);
 }
