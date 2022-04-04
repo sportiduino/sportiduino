@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #define SPORTIDENT_MAX_PACKET_SIZE 140
-#define SPORTIDENT_LEGACY_MAX_PACKET_SIZE 192  // It should be enough
+#define SPORTIDENT_LEGACY_MAX_PACKET_SIZE 255  // It should be enough
 
 
 typedef union {

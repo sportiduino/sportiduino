@@ -1,6 +1,5 @@
 // To compile this project with Arduino IDE change sketchbook to <Project>/firmware
 
-#include <EEPROM.h>
 #include <Wire.h>
 #include <ds3231.h>
 #include <Adafruit_SleepyDog.h>
@@ -19,7 +18,7 @@
 #define FW_MAJOR_VERS   10
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 1)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 5)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -105,10 +104,10 @@ struct __attribute__((packed)) Configuration {
 //    (110) - always be in Active Mode (check card in 0.25 second period)
 //    (111) - always be in Wait Mode (check card in 1 second period)
     uint8_t activeModeDuration: 3;
-    uint8_t checkStartFinish: 1; // Check start/finish station marks on a participant card
+    uint8_t checkStartFinish: 1; // Check start/finish station punches on a participant card
     uint8_t checkCardInitTime: 1; // Check init time of a participant card
     uint8_t autosleep: 1; // Go to Sleep Mode after AUTOSPEEP_TIME milliseconds in Wait Mode
-    uint8_t fastPunch: 1; // Fast punch mode (only for Clear Station)
+    uint8_t fastPunch: 1; // Fast punch mode
     uint8_t _reserved1: 1;
     uint8_t antennaGain: 3;
     uint8_t _reserved2: 5;
@@ -128,7 +127,9 @@ struct __attribute__((packed)) Configuration {
 
 #define EEPROM_CONFIG_ADDR  0x3EE
 
-#define MAX_CARD_NUM_TO_LOG 4000
+#define LOG_RECORD_SIZE 8  // bytes
+const uint16_t I2C_EEPROM_MEMORY_SIZE = (uint16_t)32*1024;  // bytes
+const uint16_t MAX_LOG_RECORDS = I2C_EEPROM_MEMORY_SIZE/LOG_RECORD_SIZE;
 
 // Poll time in active mode (milliseconds)
 #define MODE_ACTIVE_CARD_CHECK_PERIOD     250
@@ -146,7 +147,7 @@ const uint32_t AUTOSPEEP_TIME = 48UL*3600*1000;
 // It would be better to have MODE_WAIT as default
 // If station resets on competition and default 
 // mode is SLEEP in this case the participant can't
-// do mark fast
+// do punch fast
 #define DEFAULT_MODE                    MODE_WAIT
 #define DEFAULT_STATION_NUM             CHECK_STATION_NUM
 #define DEFAULT_ACTIVE_MODE_DURATION    1 // 2 hours
@@ -158,6 +159,7 @@ const uint32_t AUTOSPEEP_TIME = 48UL*3600*1000;
 
 #define SERIAL_FUNC_READ_INFO       0xF0
 #define SERIAL_FUNC_WRITE_SETTINGS  0xF1
+#define SERIAL_FUNC_ERASE_LOG       0xF2
 
 #define SERIAL_RESP_STATUS          0x01
 #define SERIAL_RESP_INFO            0x02
@@ -184,13 +186,13 @@ ts t;
 int16_t alarmYear = 2021;
 // We need this variable because DS321 doesn't have Month for Alarms
 uint8_t alarmMonth = 1;
-// To support wakeup on hw v1
 uint32_t alarmTimestamp = 0;
 // This flag is true when it's DS3231 interrupt
 uint8_t rtcAlarmFlag = 0;
 uint8_t reedSwitchFlag = 0;
 // It's true if there are data from UART in sleep mode
 uint8_t serialWakeupFlag = 0;
+uint16_t logNextRecordAddress = 0;
 
 //--------------------------------------------------------------------
 // FUNCTIONS
@@ -208,8 +210,8 @@ inline void beepBatteryOk()             { beep(1000, 1); }
 
 inline void beepCardCheckOk()           { beepOk(); }
 
-inline void beepCardMarkWritten()       { beepOk(); }
-inline void beepCardMarkAlreadyWritten(){ beep(250, 2); }
+inline void beepCardPunchWritten()        { beepOk(); }
+inline void beepCardPunchAlreadyWritten() { beep(250, 2); }
 
 inline void beepCardClearOk()           { beepOk(); }
 
@@ -251,6 +253,7 @@ void checkParticipantCard();
 void processSerial();
 void serialFuncReadInfo(byte *data, byte dataSize);
 void serialFuncWriteSettings(byte *data, byte dataSize);
+void serialFuncEraseLog(byte *data, byte dataSize);
 void serialRespStatus(uint8_t code);
 void wakeupByUartRx();
 uint8_t getPinMode(uint8_t pin);
@@ -259,11 +262,11 @@ void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, u
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void sleep(uint16_t ms);
 void setMode(uint8_t newMode);
-void writePunchToLog(uint16_t num);
-void clearMarkLog();
-uint16_t getMarkLogEnd();
+void clearPunchLog();
+void i2cEepromInit();
+uint16_t i2cEepromReadCardNumber(uint16_t address);
 void i2cEepromWritePunch(uint16_t cardNum);
-uint32_t i2cEepromReadPunch(uint16_t cardNum);
+bool i2cEepromReadRecord(uint16_t address, uint16_t *cardNum, uint32_t *timestamp);
 void i2cEepromErase();
 void processRfid();
 uint16_t measureBatteryVoltage(bool silent = false);
@@ -274,9 +277,9 @@ void processMasterCard(uint8_t *pageInitData);
 void processTimeMasterCard(byte *data, byte dataSize);
 void processStationMasterCard(byte *data, byte dataSize);
 void processSleepMasterCard(byte *data, byte dataSize);
-void processBackupMasterCard(byte *data, byte dataSize);
 void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
 void processSettingsMasterCard(byte *data, byte dataSize);
+void processPasswordMasterCard(byte *data, byte dataSize);
 void processGetInfoMasterCard(byte *data, byte dataSize);
 void processParticipantCard(uint16_t cardNum);
 bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch);
@@ -359,8 +362,6 @@ void setup() {
         writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
 #ifdef USE_I2C_EEPROM
         i2cEepromErase();
-#else
-        clearMarkLog();
 #endif
     }
 
@@ -370,10 +371,24 @@ void setup() {
     rfid.init(RC522_SS, RC522_RST, config.antennaGain);
 
     delay(500);
+
+#ifdef USE_I2C_EEPROM
+    i2cEepromInit();
+#endif
     
     checkBattery(true);
 
     Watchdog.enable(8000);
+}
+
+void wakeupIfNeed() {
+    if(alarmTimestamp > 0) {
+        DS3231_get(&t);
+        if(t.unixtime >= alarmTimestamp) {
+            alarmTimestamp = 0;
+            setMode(MODE_ACTIVE);
+        }
+    }
 }
 
 void loop() {
@@ -383,23 +398,11 @@ void loop() {
     if(rtcAlarmFlag) {
         rtcAlarmFlag = 0;
         DS3231_clear_a1f();
-
-        DS3231_get(&t);
-        // DS3231 doesn't support year & month in alarm
-        // so it's implemented on MCU side
-        if(t.year == alarmYear && t.mon == alarmMonth) {
-            setMode(MODE_ACTIVE);
-        }
+        wakeupIfNeed();
+    } else if(mode == MODE_SLEEP) {
+        // if HV version is 1 or RTC alarm didn't occur
+        wakeupIfNeed();
     }
-
-    // automatic wake-up at competition start implementation for hw v1
-
-#if HW_VERS == 1
-    DS3231_get(&t);
-    if(t.unixtime >= alarmTimestamp && (alarmTimestamp - t.unixtime) < 60) {
-        setMode(MODE_ACTIVE);
-    }
-#endif
 
     processRfid();
 
@@ -418,6 +421,7 @@ void loop() {
                 setMode(MODE_WAIT);
             }
             break;
+
         case MODE_WAIT:
             sleep(MODE_WAIT_CARD_CHECK_PERIOD);
 
@@ -433,6 +437,7 @@ void loop() {
                 setMode(MODE_SLEEP);
             }
             break;
+
         case MODE_SLEEP:
         default:
 #if defined(CHECK_BATTERY_IN_SLEEP) && defined(ADC_IN) && defined(ADC_ENABLE)
@@ -519,6 +524,8 @@ void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, u
 
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
     uint8_t flags[5] = {0,0,0,0,0};
+    DS3231_get(&t);
+    uint32_t currentTimestamp = t.unixtime;
     memset(&t, 0, sizeof(t));
     alarmMonth = t.mon = mon;
     alarmYear = t.year = year;
@@ -527,6 +534,9 @@ void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t
     t.min = mi;
     t.sec = sec;
     alarmTimestamp = get_unixtime(t);
+    if(alarmTimestamp < currentTimestamp) {
+        alarmTimestamp = 0;
+    }
 
     DS3231_clear_a1f();
     DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
@@ -621,43 +631,37 @@ void setMode(uint8_t newMode) {
     }
 }
 
-void writePunchToLog(uint16_t num) {
-    if(num > MAX_CARD_NUM_TO_LOG) {
-        return;
-    }
-    
 #ifdef USE_I2C_EEPROM
-    i2cEepromWritePunch(num);
-#else
-    uint16_t byteAdr = num/8;
-    uint16_t bitAdr = num%8;
-    uint8_t eepromByte = EEPROM.read(byteAdr);
-    bitSet(eepromByte, bitAdr);
-    EEPROM.write(byteAdr, eepromByte);
-#endif
-}
+void i2cEepromInit() {
+    pinMode(I2C_EEPROM_VCC, OUTPUT);
+    // Power on I2C EEPROM
+    digitalWrite(I2C_EEPROM_VCC, HIGH);
+    digitalWrite(LED, HIGH);
+    delay(1);
 
-void clearMarkLog() {
-    uint16_t endAdr = getMarkLogEnd();
-    
-    for (uint16_t a = 0; a <= endAdr; a++) {
-        Watchdog.reset();
-        EEPROM.write(a,0);
-        delay(2);
-    }
-}
-
-uint16_t getMarkLogEnd() {
-    uint16_t endAdr = MAX_CARD_NUM_TO_LOG/8;
-    
-    if(endAdr > 1000) {
-        endAdr = 1000;
+    for(uint16_t i = 0; i < MAX_LOG_RECORDS; ++i) {
+        uint16_t address = i*LOG_RECORD_SIZE;
+        uint16_t cardNum = i2cEepromReadCardNumber(address);
+        if(cardNum == 0) {
+            logNextRecordAddress = address;
+            break;
+        }
     }
 
-    return endAdr;
+    digitalWrite(LED, LOW);
+    digitalWrite(I2C_EEPROM_VCC, LOW);
+    delay(100);
 }
 
-#ifdef USE_I2C_EEPROM
+void i2cEepromEraseRecord(uint8_t address) {
+    Wire.beginTransmission(I2C_EEPROM_ADDRESS);
+    Wire.write(address >> 8);
+    Wire.write(address & 0xff);
+    Wire.write(0);
+    Wire.write(0);
+    Wire.endTransmission();
+}
+
 void i2cEepromWritePunch(uint16_t cardNum) {
     pinMode(I2C_EEPROM_VCC, OUTPUT);
     // Power on I2C EEPROM
@@ -666,56 +670,81 @@ void i2cEepromWritePunch(uint16_t cardNum) {
 
     DS3231_get(&t);
     uint32_t timestamp = t.unixtime;
-    uint16_t recordAddress = (cardNum - 1)*4;
-    for(uint8_t i = 0; i < 4; ++i) {
-        Wire.beginTransmission(I2C_EEPROM_ADDRESS);
-        Wire.write((recordAddress + i) >> 8);
-        Wire.write((recordAddress + i) & 0xff);
-        Wire.write((timestamp >> (8*i)) & 0xff); // little endian order
-        Wire.endTransmission();
-        delay(5);
+    uint16_t recordAddress = logNextRecordAddress;
+    if(recordAddress > I2C_EEPROM_MEMORY_SIZE - LOG_RECORD_SIZE) {
+        recordAddress = 0;
     }
+    Wire.beginTransmission(I2C_EEPROM_ADDRESS);
+    Wire.write(recordAddress >> 8);
+    Wire.write(recordAddress & 0xff);
+    Wire.write(cardNum & 0xff);
+    Wire.write(cardNum >> 8);
+    for(uint8_t i = 0; i < 4; ++i) {
+        Wire.write((timestamp >> (8*i)) & 0xff); // little endian order
+    }
+    Wire.endTransmission();
+    logNextRecordAddress = recordAddress + LOG_RECORD_SIZE;
+    delay(5);
+    i2cEepromEraseRecord(logNextRecordAddress);
 
     digitalWrite(I2C_EEPROM_VCC, LOW);
 }
 
-uint32_t i2cEepromReadPunch(uint16_t cardNum) {
-    //pinMode(I2C_EEPROM_VCC, OUTPUT);
-    // Power on I2C EEPROM
-    //digitalWrite(I2C_EEPROM_VCC, HIGH);
-    //delay(1);
-
-    uint16_t recordAddress = (cardNum - 1)*4;
+bool i2cEepromReadRecord(uint16_t address, uint16_t *cardNum, uint32_t *timestamp) {
     Wire.beginTransmission(I2C_EEPROM_ADDRESS);
-    Wire.write(recordAddress >> 8);
-    Wire.write(recordAddress & 0xff);
+    Wire.write(address >> 8);
+    Wire.write(address & 0xff);
     Wire.endTransmission(false);
-    Wire.requestFrom(I2C_EEPROM_ADDRESS, 4);
+    Wire.requestFrom(I2C_EEPROM_ADDRESS, 6);
 
-    //digitalWrite(I2C_EEPROM_VCC, LOW);
-
-    uint32_t timestamp = 0;
+    if(Wire.available() < 2) {
+        return false;
+    }
+    *cardNum = Wire.read();
+    *cardNum |= (uint16_t)Wire.read() << 8;
+    *timestamp = 0;
     for(uint8_t i = 0; i < 4; ++i) {
-        if(Wire.available()) {
-            // Transform timestamp to big endian order
-            timestamp |= ((uint32_t)Wire.read() & 0xff) << (8*i);
+        if(!Wire.available()) {
+            return false;
         }
+        // Transform timestamp to big endian order
+        *timestamp |= ((uint32_t)Wire.read() & 0xff) << (8*i);
     }
 
-    return timestamp;
+    return true;
+}
+
+uint16_t i2cEepromReadCardNumber(uint16_t address) {
+    Wire.beginTransmission(I2C_EEPROM_ADDRESS);
+    Wire.write(address >> 8);
+    Wire.write(address & 0xff);
+    Wire.endTransmission(false);
+    Wire.requestFrom(I2C_EEPROM_ADDRESS, 2);
+
+    if(Wire.available() < 2) {
+        return 0;
+    }
+    uint16_t cardNum = Wire.read();
+    cardNum |= (uint16_t)Wire.read() << 8;
+    return cardNum;
 }
 
 void i2cEepromErase() {
     pinMode(I2C_EEPROM_VCC, OUTPUT);
     digitalWrite(I2C_EEPROM_VCC, HIGH);
+    digitalWrite(LED, HIGH);
     delay(1);
 
     const uint8_t pageSize = 32;
-    const uint16_t lastAddress = (uint16_t)MAX_CARD_NUM_TO_LOG*4/pageSize;
-    for(uint16_t i = 0; i < lastAddress; ++i) {
-        digitalWrite(LED, HIGH);
-
+    const uint16_t nPages = I2C_EEPROM_MEMORY_SIZE/pageSize;
+    for(uint16_t i = 0; i < nPages; ++i) {
         Watchdog.reset();
+
+        if(i % 32 == 0) {
+            digitalWrite(LED, HIGH);
+        } else if(i % 16 == 0) {
+            digitalWrite(LED, LOW);
+        }
 
         Wire.beginTransmission(I2C_EEPROM_ADDRESS);
         uint16_t pageAddress = i*pageSize;
@@ -726,12 +755,9 @@ void i2cEepromErase() {
             Watchdog.reset();
         }
         Wire.endTransmission();
-
-        digitalWrite(LED, LOW);
-
         delay(5);
     }
-
+    digitalWrite(LED, LOW);
     digitalWrite(I2C_EEPROM_VCC, LOW);
 }
 #endif
@@ -933,12 +959,13 @@ void processMasterCard(uint8_t *pageInitData) {
         case MASTER_CARD_READ_BACKUP:
 #ifdef USE_I2C_EEPROM
             processBackupMasterCardWithTimestamps(masterCardData, sizeof(masterCardData));
-#else
-            processBackupMasterCard(masterCardData, sizeof(masterCardData));
 #endif
             break;
         case MASTER_CARD_CONFIG:
             processSettingsMasterCard(masterCardData, sizeof(masterCardData));
+            break;
+        case MASTER_CARD_PASSWORD:
+            processPasswordMasterCard(masterCardData, sizeof(masterCardData));
             break;
         case MASTER_CARD_GET_INFO:
             processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
@@ -999,67 +1026,11 @@ void processSleepMasterCard(byte *data, byte dataSize) {
     // in this case we can't sleep if always work is set
     mode = MODE_SLEEP;
     sleepCount = 0;
-    
+
     // Config alarm
     setWakeupTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
-    
-#ifndef USE_I2C_EEPROM
-    clearMarkLog();
-#endif
 
     beepMasterCardSleepOk();
-}
-
-void processBackupMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        beepMasterCardError();
-        return;
-    }
-
-    data[0] = config.stationNumber;
-    data[3] = 0;
-    bool result = rfid.cardPageWrite(CARD_PAGE_INIT, data);
-
-    uint16_t eepromAdr = 0;
-    uint16_t eepromEnd = getMarkLogEnd();
-    uint8_t maxPage = rfid.getCardMaxPage();
-    for(uint8_t page = CARD_PAGE_BACKUP_START; page <= maxPage; ++page) {
-        Watchdog.reset();
-        delay(50);
-        
-        digitalWrite(LED, HIGH);
-        
-        byte pageData[4] = {0,0,0,0};
-        for(uint8_t m = 0; m < 4; m++) {
-            pageData[m] = EEPROM.read(eepromAdr);
-            eepromAdr++;
-
-            if(eepromAdr > eepromEnd) {
-                break;
-            }
-        }
-
-        result &= rfid.cardPageWrite(page, pageData);
-
-        digitalWrite(LED, LOW);
-
-        if(!result) {
-            break;
-        }
-        
-
-        if(eepromAdr > eepromEnd) {
-            break;
-        }
-    }
-
-    delay(250);
-
-    if(result) {
-        beepMasterCardOk();
-    } else {
-        beepMasterCardError();
-    }
 }
 
 #ifdef USE_I2C_EEPROM
@@ -1069,73 +1040,87 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
         return;
     }
 
-    uint8_t stationNumberFromCard = data[0];
-    uint8_t maxPage = rfid.getCardMaxPage();
-    uint16_t lastCard = 0;
-    
     byte pageData[4];
     memcpy(pageData, data, 4);
     pageData[0] = config.stationNumber;
-    pageData[3] = 1; // flag: have timestamps
+    pageData[3] = FW_MAJOR_VERS;
     bool result = rfid.cardPageWrite(CARD_PAGE_INIT, pageData);
 
+    uint8_t maxPage = rfid.getCardMaxPage();
+    uint8_t stationNumberFromCard = data[0];
+    uint16_t lastRecordAddressFromCard = 0xffff;
     if (stationNumberFromCard == config.stationNumber) {
-        byte pageData[4];
-        result &= rfid.cardPageRead(maxPage, pageData);
-        lastCard = pageData[0] << 8;
-        lastCard |= pageData[1];
-        lastCard >>= 4;
-        if (lastCard > 4000) {
-            lastCard = 0;
+        result &= rfid.cardPageRead(CARD_PAGE_INFO1, pageData);
+        byte lastPageData[4];
+        result &= rfid.cardPageRead(maxPage, lastPageData);
+        if (pageData[0] == 0 && pageData[1] == 0 && !pageIsEmpty(lastPageData)) {
+            lastRecordAddressFromCard = byteArrayToUint32(pageData) & 0xffff;
         }
     }
 
-    DS3231_get(&t);
-    uint32_t now = t.unixtime;
-    uint32_t from = t.unixtime - 0xfffff; // about last 12 days
-
     uint8_t page = CARD_PAGE_INFO1;
-    // Write initial timestamp (4 bytes) in first data page
-    uint32ToByteArray(from, pageData);
-    result &= rfid.cardPageWrite(page++, pageData);
+    // Clear page for lastRecordAddressFromCard
+    result &= rfid.cardPageErase(page++);
+    uint16_t lastTimestampHiHalf = 0;
 
-
+    // Power on I2C EEPROM
     digitalWrite(I2C_EEPROM_VCC, HIGH);
     delay(5);
     digitalWrite(LED, HIGH);
-    for(uint16_t cardNum = lastCard + 1; cardNum <= MAX_CARD_NUM_TO_LOG; ++cardNum) {
+    uint16_t address = logNextRecordAddress;
+    if(lastRecordAddressFromCard < I2C_EEPROM_MEMORY_SIZE) {
+        address = lastRecordAddressFromCard;
+    }
+    for(uint16_t i = 1; i <= MAX_LOG_RECORDS; ++i) {
         Watchdog.reset();
-
-        if(cardNum % 100 == 0) {
-            digitalWrite(LED, HIGH);
-        } else if(cardNum % 50 == 0) {
-            digitalWrite(LED, LOW);
-        }
-
-        uint32_t timestamp = i2cEepromReadPunch(cardNum);
-        if(timestamp < from || timestamp > now) {
-            // No timestamp for cardNum
-            continue;
-        }
-
-        if(cardNum > 4095) {
-            break;
-        }
-
-        byte timeData[4];
-        uint32ToByteArray(timestamp, timeData);
-
-        // Pack card number in first 12 bits of page
-        pageData[0] = cardNum >> 4;
-        pageData[1] = ((cardNum << 4)&0xf0) | (timeData[1]&0x0f);
-        pageData[2] = timeData[2];
-        pageData[3] = timeData[3];
-        result &= rfid.cardPageWrite(page++, pageData);
-
         if(page > maxPage) {
             break;
         }
+
+        if(i % 100 == 0) {
+            digitalWrite(LED, LOW);
+        } else if(i % 50 == 0) {
+            digitalWrite(LED, HIGH);
+        }
+
+        if(address == 0) {
+            address = I2C_EEPROM_MEMORY_SIZE;
+        }
+        address -= LOG_RECORD_SIZE;
+        uint16_t cardNum = 0;
+        uint32_t timestamp = 0;
+        if(!i2cEepromReadRecord(address, &cardNum, &timestamp)) {
+            beepMasterCardError();
+            return;
+        }
+        if(cardNum == 0) {
+            break;
+        }
+        uint16_t timestampHiHalf = timestamp >> 16;
+        if(timestampHiHalf != lastTimestampHiHalf) {
+            pageData[0] = 0;
+            pageData[1] = 0;
+            pageData[2] = timestampHiHalf >> 8;
+            pageData[3] = timestampHiHalf & 0xff;
+            result &= rfid.cardPageWrite(page++, pageData);
+            if(!result || page > maxPage) {
+                break;
+            }
+            lastTimestampHiHalf = timestampHiHalf;
+        }
+
+        pageData[0] = cardNum >> 8;
+        pageData[1] = cardNum & 0xff;
+        pageData[2] = (timestamp >> 8) & 0xff;
+        pageData[3] = timestamp & 0xff;
+        result &= rfid.cardPageWrite(page++, pageData);
     }
+    // Write current address for lastRecordAddressFromCard in first data page
+    pageData[0] = 0;
+    pageData[1] = 0;
+    pageData[2] = address >> 8;
+    pageData[3] = address & 0xff;
+    result &= rfid.cardPageWrite(CARD_PAGE_INFO1, pageData);
 
     digitalWrite(LED, HIGH);
     result &= rfid.cardErase(page, maxPage);
@@ -1160,6 +1145,14 @@ void processSettingsMasterCard(byte *data, byte dataSize) {
 
     setNewConfig((Configuration*)&data[8]);
 
+    beepMasterCardOk();
+}
+
+void processPasswordMasterCard(byte *data, byte dataSize) {
+    config.password[0] = data[8];
+    config.password[1] = data[9];
+    config.password[2] = data[10];
+    writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
     beepMasterCardOk();
 }
 
@@ -1232,7 +1225,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
 }
 
 void processParticipantCard(uint16_t cardNum) {
-    if(!cardNum) {
+    if(cardNum == 0) {
         return;
     }
 
@@ -1241,7 +1234,7 @@ void processParticipantCard(uint16_t cardNum) {
     uint8_t maxPage = rfid.getCardMaxPage();
     bool fastPunch = false;
 
-    // Find the empty page to write new mark
+    // Find the empty page to write new punch
     byte pageData[4] = {0,0,0,0};
     if(rfid.cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
         fastPunch = (pageData[3] == FAST_PUNCH_SIGN);
@@ -1270,7 +1263,7 @@ void processParticipantCard(uint16_t cardNum) {
     }
 
     if(lastNum != config.stationNumber) {
-        // Check Start/Finish marks on a card
+        // Check Start/Finish punches on a card
         if(config.checkStartFinish) {
             if(newPage == CARD_PAGE_START) {
                 if(config.stationNumber != START_STATION_NUM) {
@@ -1291,11 +1284,11 @@ void processParticipantCard(uint16_t cardNum) {
         }
 
         if(writePunchToParticipantCard(newPage, fastPunch)) {
-            writePunchToLog(cardNum);
-            beepCardMarkWritten();
+            i2cEepromWritePunch(cardNum);
+            beepCardPunchWritten();
         }
     } else {
-        beepCardMarkAlreadyWritten();
+        beepCardPunchAlreadyWritten();
     }
 }
 
@@ -1380,7 +1373,7 @@ void checkParticipantCard() {
         return;
     }
 
-    // It shouldn't be marks on a card
+    // It shouldn't be punches on a card
     uint8_t newPage = 0;
     uint8_t lastNum = 0;
     findNewPage(&rfid, &newPage, &lastNum);
@@ -1391,7 +1384,7 @@ void checkParticipantCard() {
         return;
     }
 
-    writePunchToLog(cardNum);
+    i2cEepromWritePunch(cardNum);
 
     beepCardCheckOk();
 }
@@ -1445,14 +1438,6 @@ void processSerial() {
         return;
     }
     
-    // Now we don't check password at serial
-    //if(data[0] != config.password[0] ||
-    //   data[1] != config.password[1] ||
-    //   data[2] != config.password[2] ) {
-    //    serialRespStatus(SERIAL_ERROR_PWD);
-    //    return;
-    //}
-
     if(data) {
         switch(cmdCode) {
             case SERIAL_FUNC_READ_INFO:
@@ -1460,6 +1445,9 @@ void processSerial() {
                 break;
             case SERIAL_FUNC_WRITE_SETTINGS:
                 serialFuncWriteSettings(data, dataSize);
+                break;
+            case SERIAL_FUNC_ERASE_LOG:
+                serialFuncEraseLog(data, dataSize);
                 break;
             default:
                 serialRespStatus(SERIAL_ERROR_UNKNOWN_FUNC);
@@ -1533,6 +1521,14 @@ void serialFuncWriteSettings(byte *data, byte dataSize) {
 
     mode = data[21];
 
+    serialRespStatus(SERIAL_OK);
+}
+
+void serialFuncEraseLog(byte *data, byte dataSize) {
+#ifdef USE_I2C_EEPROM
+    i2cEepromErase();
+#endif
+    logNextRecordAddress = 0;
     serialRespStatus(SERIAL_OK);
 }
 

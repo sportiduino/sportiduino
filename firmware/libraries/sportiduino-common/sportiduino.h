@@ -17,7 +17,8 @@ enum MasterCard {
     MASTER_CARD_SET_NUMBER    = 251,
     MASTER_CARD_SLEEP         = 252,
     MASTER_CARD_READ_BACKUP   = 253,
-    MASTER_CARD_CONFIG        = 254
+    MASTER_CARD_CONFIG        = 254,
+    MASTER_CARD_PASSWORD      = 255
 };
 
 #define MASTER_CARD_SIGN            0xff
@@ -44,6 +45,7 @@ uint8_t majEepromRead(uint16_t adr);
 void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t ms, uint8_t n, uint16_t pause = 0);
 
 void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum);
+bool pageIsEmpty(const byte *pageData);
 
 bool uint32ToByteArray(uint32_t value, byte *byteArray);
 uint32_t byteArrayToUint32(const byte *byteArray);
