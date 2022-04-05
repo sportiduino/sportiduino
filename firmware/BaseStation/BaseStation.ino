@@ -104,7 +104,7 @@ struct __attribute__((packed)) Configuration {
 //    (110) - always be in Active Mode (check card in 0.25 second period)
 //    (111) - always be in Wait Mode (check card in 1 second period)
     uint8_t activeModeDuration: 3;
-    uint8_t checkStartFinish: 1; // Check start/finish station punches on a participant card
+    uint8_t checkNoPunchesBeforeStart: 1; // Check no punches on a participant card at start station
     uint8_t checkCardInitTime: 1; // Check init time of a participant card
     uint8_t autosleep: 1; // Go to Sleep Mode after AUTOSLEEP_TIME milliseconds in Wait Mode
     uint8_t oldFastPunchMode: 1; // Deprecated
@@ -1274,20 +1274,10 @@ void processParticipantCard(uint16_t cardNum) {
     }
 
     if(lastNum != config.stationNumber) {
-        // Check Start/Finish punches on a card
-        if(config.checkStartFinish) {
-            if(newPage == CARD_PAGE_START) {
-                if(config.stationNumber != START_STATION_NUM) {
-                    return;
-                }
-            } else {
-                if(config.stationNumber == START_STATION_NUM) {
-                    return;
-                }
-            }
-            if(lastNum == FINISH_STATION_NUM) {
-                return;
-            }
+        if(config.checkNoPunchesBeforeStart
+                && config.stationNumber == START_STATION_NUM
+                && newPage > CARD_PAGE_START) {
+            return;
         }
 
         if(config.checkCardInitTime && !checkCardInitTime()) {
