@@ -108,7 +108,7 @@ struct __attribute__((packed)) Configuration {
     uint8_t checkCardInitTime: 1; // Check init time of a participant card
     uint8_t autosleep: 1; // Go to Sleep Mode after AUTOSLEEP_TIME milliseconds in Wait Mode
     uint8_t oldFastPunchMode: 1; // Deprecated
-    uint8_t fastPunchMode: 1; // Enable fast punch when clear participant card
+    uint8_t enableFastPunchForCard: 1; // Enable fast punch for card when clear
     uint8_t antennaGain: 3;
     uint8_t _reserved2: 5;
     uint8_t password[3];
@@ -1322,7 +1322,7 @@ void clearParticipantCard() {
 
         result &= rfid.cardPageWrite(CARD_PAGE_INIT_TIME, pageData);
 
-        if(config.fastPunchMode) {
+        if(config.enableFastPunchForCard) {
             pageData[0] = config.stationNumber;
             pageData[1] = 0;
             pageData[2] = 0;
