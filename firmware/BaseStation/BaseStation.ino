@@ -257,7 +257,6 @@ void serialFuncWriteSettings(byte *data, byte dataSize);
 void serialFuncEraseLog(byte *data, byte dataSize);
 void serialRespStatus(uint8_t code);
 void wakeupByUartRx();
-uint8_t getPinMode(uint8_t pin);
 void setStationNum(uint8_t num);
 void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
 void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec);
@@ -275,7 +274,7 @@ uint16_t measureBatteryVoltage(bool silent = false);
 uint8_t batteryVoltageToByte(uint16_t voltage);
 bool checkBattery(bool beepEnabled = false);
 void processCard();
-void processMasterCard(uint8_t *pageInitData);
+void processMasterCard(uint8_t pageInitData[]);
 void processTimeMasterCard(byte *data, byte dataSize);
 void processStationMasterCard(byte *data, byte dataSize);
 void processSleepMasterCard(byte *data, byte dataSize);
@@ -463,32 +462,6 @@ void loop() {
     }
 
     processSerial();
-}
-
-uint8_t getPinMode(uint8_t pin) {
-    uint8_t bit = digitalPinToBitMask(pin);
-    uint8_t port = digitalPinToPort(pin);
-
-    // I don't see an option for mega to return this, but whatever...
-    if(NOT_A_PIN == port) return UNKNOWN_PIN;
-
-    // Is there a bit we can check?
-    if(0 == bit) return UNKNOWN_PIN;
-
-    // Is there only a single bit set?
-    if(bit & (bit - 1)) return UNKNOWN_PIN;
-
-    volatile uint8_t *reg, *out;
-    reg = portModeRegister(port);
-    out = portOutputRegister(port);
-
-    if(*reg & bit) {
-        return OUTPUT;
-    } else if(*out & bit) {
-        return INPUT_PULLUP;
-    } else {
-        return INPUT;
-    }
 }
 
 void setNewConfig(Configuration *newConfig) {
@@ -929,7 +902,7 @@ void processCard() {
     }
 }
 
-void processMasterCard(uint8_t *pageInitData) {
+void processMasterCard(uint8_t pageInitData[]) {
     // Don't change mode if it's the get info card
     if(pageInitData[1] != MASTER_CARD_GET_INFO) {
         setModeIfAllowed(MODE_ACTIVE);

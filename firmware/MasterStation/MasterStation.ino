@@ -726,11 +726,11 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             break;
         case SiProto::CMD_GET_TIME:
             {
-                uint8_t data[] = {
+                const uint8_t emptyData[] = {
                     0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
                 };
                 siProto.start(cmdCode);
-                siProto.add(data, sizeof(data));
+                siProto.add(emptyData, sizeof(emptyData));
                 siProto.send();
             }
             break;
