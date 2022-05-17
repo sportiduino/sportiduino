@@ -33,9 +33,9 @@ When a new version of the firmware is released with new functions, the third num
 
 The base station and the master station have their own versions. The release version is the largest of these two numbers.
 
-**The current base station version is 3.9.0**
+**The current base station version is 3.10.0**
 
-**The current master station version is 1.8.3**
+**The current master station version is 1.9.0**
 
 [Changelog](/CHANGELOG.md)
 
