@@ -1258,7 +1258,9 @@ void processParticipantCard(uint16_t cardNum) {
         }
 
         if(writePunchToParticipantCard(newPage, fastPunch)) {
+#ifdef USE_I2C_EEPROM
             i2cEepromWritePunch(cardNum);
+#endif
             beepCardPunchWritten();
         }
     } else {
@@ -1358,7 +1360,9 @@ void checkParticipantCard() {
         return;
     }
 
+#ifdef USE_I2C_EEPROM
     i2cEepromWritePunch(cardNum);
+#endif
 
     beepCardCheckOk();
 }
