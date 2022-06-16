@@ -1,0 +1,57 @@
+Designator,Val,Package,Mid X,Mid Y,Rotation,Layer
+C1,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,22.509164,-19.187151,90,top
+C1,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,22.509164,29.812849,90,top
+C2,4.7 uF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,43.009,-2.63,90,top
+C2,4.7 uF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,43.009,-51.63,90,top
+C3,4.7 uF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,37.009,-2.63,270,top
+C3,4.7 uF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,37.009,-51.63,270,top
+C4,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,23.784,-28.355,0,top
+C4,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,23.784,20.645,0,top
+C5,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,10.734,12.395,180,top
+C5,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,10.734,-36.605,180,top
+C6,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,10.734,-38.855,180,top
+C6,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,10.734,10.145,180,top
+C7,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,15.784,-41.355,0,top
+C7,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,15.784,7.645,0,top
+C9,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,23.509,-51.08,270,top
+C9,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,23.509,-2.08,270,top
+C10,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,26.009,-52.38,90,top
+C10,100 nF,C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,26.009,-3.38,90,top
+C11,10 uF,C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,59.259,-51.8175,270,top
+C11,10 uF,C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,59.259,-2.8175,270,top
+C12,10 uF,C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,48.009,-51.6425,270,top
+C12,10 uF,C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,48.009,-2.6425,270,top
+D1,MCP1700-3302E,SOT-23_Handsoldering,40.009,-2.355,270,top
+D1,MCP1700-3302E,SOT-23_Handsoldering,40.009,-51.355,270,top
+D2,ATmega328P-AU,TQFP-32_7x7mm_P0.8mm,17.929164,-33.024417,225,top
+D2,ATmega328P-AU,TQFP-32_7x7mm_P0.8mm,17.929164,15.975583,225,top
+D3,DS3231SN,SOIC-16W_7.5x10.3mm_P1.27mm,16.009,-51.182151,0,top
+D3,DS3231SN,SOIC-16W_7.5x10.3mm_P1.27mm,16.009,-2.182151,0,top
+D4,24LC256T-I/SN,SOIC-8_3.9x4.9mm_P1.27mm,31.259,-51.855,180,top
+D4,24LC256T-I/SN,SOIC-8_3.9x4.9mm_P1.27mm,31.259,-2.855,180,top
+D5,TP4056,TP4056_SOP-8-PP,54.009,-52.355,90,top
+D5,TP4056,TP4056_SOP-8-PP,54.009,-3.355,90,top
+R1,10K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,28.784,-45.688151,180,top
+R1,10K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,28.784,3.311849,180,top
+R2,100,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,3.734,-46.605,0,top
+R2,100,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,3.734,2.395,0,top
+R3,10K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,28.784,1.279849,180,top
+R3,10K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,28.784,-47.720151,180,top
+R4,3K3,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,51.009,-16.132,270,top
+R4,3K3,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,51.009,32.868,270,top
+R5,33K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,53.324,32.868,90,top
+R5,33K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,53.324,-16.132,90,top
+R6,33K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,25.509,-24.855,90,top
+R6,33K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,25.509,24.145,90,top
+R8,3K3,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,7.509,1.895,0,top
+R8,3K3,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,7.509,-47.105,0,top
+R9,270K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,6.972,-55.605,0,top
+R9,270K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,6.972,-6.605,0,top
+R10,68K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,7.003164,-53.432151,180,top
+R10,68K,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,7.003164,-4.432151,180,top
+R11,3K3,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,7.484,-49.105,0,top
+R11,3K3,R_0805_2012Metric_Pad1.15x1.40mm_HandSolder,7.484,-0.105,0,top
+R14,3K3,R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,59.259,-6.855,90,top
+R14,3K3,R_0805_2012Metric_Pad1.20x1.40mm_HandSolder,59.259,-55.855,90,top
+VT1,BSS138,SOT-23_Handsoldering,57.912,-16.123,180,top
+VT1,BSS138,SOT-23_Handsoldering,57.912,32.877,180,top
