@@ -18,7 +18,7 @@
 #define FW_MAJOR_VERS   10
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   0
+#define FW_MINOR_VERS   1
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -1295,23 +1295,28 @@ void clearParticipantCard() {
     uint8_t maxPage = rfid.getCardMaxPage();
     bool result = true;
 
-    digitalWrite(LED, HIGH);
-    // Clear card from last page
-    for(uint8_t page = maxPage; page >= CARD_PAGE_INIT_TIME; --page) {
-        Watchdog.reset();
+    uint8_t newPage = 0;
+    uint8_t lastNum = 0;
+    findNewPage(&rfid, &newPage, &lastNum);
+    if(newPage != CARD_PAGE_START || lastNum != 0) {
+        digitalWrite(LED, HIGH);
+        // Clear card from last page
+        for(uint8_t page = maxPage; page >= CARD_PAGE_INIT_TIME; --page) {
+            Watchdog.reset();
 
-        if(page % 10 == 0) {
-            digitalWrite(LED, HIGH);
-        } else if(page % 5 == 0) {
-            digitalWrite(LED, LOW);
+            if(page % 10 == 0) {
+                digitalWrite(LED, HIGH);
+            } else if(page % 5 == 0) {
+                digitalWrite(LED, LOW);
+            }
+            
+            if(!rfid.cardPageErase(page)) {
+                result = false;
+                break;
+            }
         }
-        
-        if(!rfid.cardPageErase(page)) {
-            result = false;
-            break;
-        }
+        digitalWrite(LED, LOW);
     }
-    digitalWrite(LED, LOW);
 
     if(result) {
         DS3231_get(&t);
