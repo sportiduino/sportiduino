@@ -11,7 +11,7 @@
 Схема и плата доступны в Upverter ([вариант 1](https://upverter.com/AlexanderVolikov/3fc0efdb2586988d/Sportiduino-reading-stantion/) и
 [вариант 2](https://upverter.com/design/syakimov/4f7ec0e2d3b9c4e9/sportiduino-master-station/)).
 
-![](/hardware/MasterStation/usb/Scheme.PNG?raw=true "Принципиальная схема")
+![](/hardware/MasterStation/usb/sportiduino-master-scheme.png?raw=true "Принципиальная схема")
 
 Все компоненты схемы можно разместить на печатной плате или припаять к Arduino навесным монтажом обычными проводами (рекомендуется провод МГТФ-0,12).
 Электронику мастер станции можно разместить в корпусе Gainta G1020BF или в специально разработанном корпусе, который можно распечатать на 3D-принтере.

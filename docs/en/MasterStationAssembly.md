@@ -66,7 +66,7 @@ The master station is ready for use.
 The master station can be assembled without a PCB.
 The LED, buzzer and RFID module are soldered by wiring to the Arduino Nano according to the scheme.
 
-![](/hardware/MasterStation/usb/Scheme.PNG?raw=true)
+![](/hardware/MasterStation/usb/sportiduino-master-scheme.png?raw=true)
 
 The station case is designed for 3D-printing.
 Files for 3D-printer placed in the folder `hardware/MasterStation/3d/print`.

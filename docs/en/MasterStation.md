@@ -10,7 +10,7 @@ or
 
 The circuit and board are available in Upverter ([variant 1](https://upverter.com/AlexanderVolikov/3fc0efdb2586988d/Sportiduino-reading-stantion/) or [variant 2](https://upverter.com/design/syakimov/4f7ec0e2d3b9c4e9/sportiduino-master-station/)).
 
-![](/hardware/MasterStation/usb/Scheme.PNG?raw=true "Scheme")
+![](/hardware/MasterStation/usb/sportiduino-master-scheme.png?raw=true "Scheme")
 
 All components of the circuit can be placed on a PCB or soldered to the Arduino by a ordinary wires.
 The electronics of the master station can be placed in the Gainta G1020BF box or in a specially designed box that can be printed on a 3D printer.
