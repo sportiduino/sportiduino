@@ -13,6 +13,7 @@ sportiduino.upload.protocol=arduino
 sportiduino.upload.maximum_size=32256
 sportiduino.upload.maximum_data_size=2048
 sportiduino.upload.speed=38400
+#sportiduino.upload.speed=19200
 
 sportiduino.bootloader.tool=avrdude
 sportiduino.bootloader.low_fuses=0xE2

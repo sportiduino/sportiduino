@@ -2,7 +2,7 @@
 
 Компоненты станции сопряжения
 
-![](/Images/w01.jpg?raw=true)
+![](/img/w01.jpg?raw=true)
 
 1. RFID-модуль RC522.
 2. Arduino Nano.
@@ -23,7 +23,7 @@
 Если гребёнки идут отдельно от платы, впаиваем их.
 Разъём ISP (2x3) можно не паять. 
 
-![](/Images/w02.jpg?raw=true)
+![](/img/w02.jpg?raw=true)
 
 #### Доработка Arduino Nano для режима эмуляции SPORTident
 
@@ -38,11 +38,11 @@
 Также в основную плату впаиваем разъём 1x8, согнутый углом светодиод,
 зуммер и резисторы типоразмера 0805 на 47 Ом (к зуммеру) и 150 Ом (к светодиоду).
 
-![](/Images/w03.jpg?raw=true)
+![](/img/w03.jpg?raw=true)
 
 Затем припаиваем модуль RFID. Подключаем через провод USB к компьютеру.
 
-![](/Images/w04.jpg?raw=true)
+![](/img/w04.jpg?raw=true)
 
 Открываем программу Arduino IDE на компьютере (см. [Настройка Arduino IDE](BaseStationAssembly.md#Настройка-Arduino-IDE)). 
 В настройках указываем тип платы `Arduino Nano`, процессор `ATmega328P (Old Bootloader)`
@@ -58,11 +58,11 @@
 
 Примеряем корпус. Для провода вырезается небольшая канавка в корпусе. Светодиод промазывается эпоксидным клеем.
 
-![](/Images/w05.jpg?raw=true)
+![](/img/w05.jpg?raw=true)
 
 После чего корпус закрывается крышкой и готов к использованию.
 
-![](/Images/w06.jpg?raw=true)
+![](/img/w06.jpg?raw=true)
 
 ### Вариант станции без печатной платы
 
@@ -74,9 +74,9 @@
 Далее для такого варианта сборки разработан свой корпус, который можно распечатать на 3D-принтере.
 Файлы для печати корпуса на 3D-принтере находятся в папке `hardware/MasterStation/3d/print`.
 
-![](/Images/MasterStationBoxTop.jpg?raw=true)
+![](/img/MasterStationBoxTop.jpg?raw=true)
 
-![](/Images/MasterStationBoxBot.jpg?raw=true)
+![](/img/MasterStationBoxBot.jpg?raw=true)
 
-![](/Images/MasterStationInBox.jpg?raw=true)
+![](/img/MasterStationInBox.jpg?raw=true)
 

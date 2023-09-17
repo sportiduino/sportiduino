@@ -1,8 +1,8 @@
 ﻿[![Sportiduino version](https://img.shields.io/github/v/release/sportiduino/sportiduino)](https://github.com/sportiduino/sportiduino/releases)
 
-![Sportiduino logo](/Images/logo.png?raw=true)
+![Sportiduino logo](/img/logo.png?raw=true)
 
-![](/Images/Sportiduino.JPG?raw=true)
+![](/img/Sportiduino.JPG?raw=true)
 
 [Перейти на русский язык](README.ru.md)
 

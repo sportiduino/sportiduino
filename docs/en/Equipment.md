@@ -1,6 +1,6 @@
 # Equipment and materials
 
-![](/Images/equip.jpg?raw=true)
+![](/img/equip.jpg?raw=true)
 
 1. The multimeter. Optional.
 
@@ -33,10 +33,10 @@
 
 To upload bootloader, you will additionally need another Arduino (Nano) or programmer Pickit2.
 
-![](/Images/nano.jpg?raw=true "Arduino Nano")
+![](/img/nano.jpg?raw=true "Arduino Nano")
 
 To upload the firmware you need USB-UART converter (USB-to-TTL, USB-SERIAL, etc.).
 It is important that one has connected DTR pin (USB-UART with ICs CH340 or CP2102).
 
-![](/Images/UsbToTtl.jpg?raw=true)
+![](/img/UsbToTtl.jpg?raw=true)
 

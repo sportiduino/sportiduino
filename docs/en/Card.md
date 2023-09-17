@@ -14,7 +14,7 @@ without any changes in firmware or hardware.
 One is advised to use NTAG213/215/216.
 They cost USD $0.1, 0.2, 0.4 as stickers and twice as much as key fobs.
 
-![](/Images/chip.jpg?raw=true "Key fobs tags")
+![](/img/chip.jpg?raw=true "Key fobs tags")
 
 **Important!**
 For reliable operation with these cards which have a small antenna area
@@ -43,14 +43,14 @@ Each station punch takes a separate page,
 the first byte of which contains the station number, in the remaining three bytes - the lower bytes of the current time in Unixtime UTC.
 Time is then restored using the initialization time recorded in the 5th page.
 
-<img src="/Images/ntag-en.png" width="690">
+<img src="/img/ntag-en.png" width="690">
 
 Master cards which set up the stations have a different structure.
 The station recognizes them by the number 255, recorded in the 3rd byte of the 4th page.
 There are 6 different master cards: Time, Number, Sleep, Config, Backup and State.
 Their structure is below.
 
-![](/Images/master-card.png?raw=true)
+![](/img/master-card.png?raw=true)
 
 #### Time Master Card
 

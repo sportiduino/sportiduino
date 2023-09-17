@@ -9,7 +9,7 @@
 
 ### Компоненты станции отметки
 
-![](/Images/s01.jpg?raw=true)
+![](/img/s01.jpg?raw=true)
 
 1. RFID-модуль RC522.
 2. Печатная плата. Можно заказать через [EasyEDA](https://easyeda.com/order) или [JLCPCB](https://jlcpcb.com/).
@@ -50,13 +50,13 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 Также рекомендуется заменить индуктивности L1 и L2 на аналогичные 2,2 мкГн,
 но с большим рабочим током для увеличения мощности антенны. Например, Murata LQH32MN2R2K (Спасибо за совет Александру Якимову).
 
-![](/Images/s12_1.JPG?raw=true)
+![](/img/s12_1.JPG?raw=true)
 
 ### Пайка основной платы
 
 ![](/hardware/BaseStation/prod/v3/sportiduino-base-v3-scheme.png?raw=true "Принципиальная схема")
 
-![](/Images/pcbv3-build-instructions.png?raw=true "Расположение компонентов")
+![](/img/pcbv3-build-instructions.png?raw=true "Расположение компонентов")
 
 Обильно промазываем флюсом все места будущей пайки.
 Далее припаиваем микросхемы.
@@ -84,13 +84,13 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 Другой конец шлейфа припаиваем к плате Arduino Nano в соответствии со схемой.
 При этом пока не устанавливаем конденсатор 10 мкФ 16В.
 
-![](/Images/ArduinoNanoIspScheme.png?raw=true "Схема программатора из Arduino Nano")
+![](/img/ArduinoNanoIspScheme.png?raw=true "Схема программатора из Arduino Nano")
 
 Далее подключаем Arduino Nano к ПК через USB и запускаем Arduino IDE.
 Открываем скетч ArduinoISP из примеров Arduino (Файл->Примеры->ArduinoISP).
 Далее в меню `Инструменты` выбираем плату `Arduino Nano`, процессор `ATmega328P (Old Bootloader)` и соответствующий порт.
 
-![](/Images/ArduinoIspScr1.jpg?raw=true)
+![](/img/ArduinoIspScr1.jpg?raw=true)
 
 Выполняем Скетч->Загрузка.
 После этого припаиваем конденсатор на 10 мкФ 16В между GND и RST как на схеме выше.
@@ -98,7 +98,7 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 `avrdude: stk500_getsync() attempt 1 of 10: not in sync: resp=0x15`.
 Программатор готов.
 
-![](/Images/ArduinoNanoISP.jpg?raw=true "Программатор из Arduino Nano")
+![](/img/ArduinoNanoISP.jpg?raw=true "Программатор из Arduino Nano")
 
 ### Преобразователь USB-UART
 
@@ -106,12 +106,12 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 У преобразователя обязательно должен быть сигнал DTR.
 Для его подключения к плате станции также нужен шлейф на 10 проводов и разъём IDC-10F.
 
-![](/Images/SerialProgrammer.png?raw=true "Схема подключения USB-UART")
+![](/img/SerialProgrammer.png?raw=true "Схема подключения USB-UART")
 
 Если помимо загрузки прошивки преобразователь будет использоваться также для настройки станции и для чтения её состояния,
 то при подключении шлейфа к преобразователю нужно предусмотреть возможность отключения проводника от вывода DTR.
 
-![](/Images/ProgrammerWire.jpg?raw=true "Преобразователь USB-UART")
+![](/img/ProgrammerWire.jpg?raw=true "Преобразователь USB-UART")
 
 ### Настройка Arduino IDE
 
@@ -130,12 +130,12 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 В Arduino IDE открываем скетч BaseStation (Файл->Папка со скетчами->BaseStation).
 В меню Инструменты->Плата устанавливаем `Sportiduino`. Далее в меню Инструменты->Программатор выбираем `Arduino as ISP`. 
 
-![](/Images/BaseStationProgConf.jpg?raw=true)
+![](/img/BaseStationProgConf.jpg?raw=true)
 
 Подключаем наш программатор к плате Sportiduino.
 Вставляем батарейки.
 
-![](/Images/ProgrammerConnect.jpg?raw=true "Подключение программатора")
+![](/img/ProgrammerConnect.jpg?raw=true "Подключение программатора")
 
 Выполняем Инструменты->Записать загрузчик.
 Если появилось сообщение об ошибке в логе, то проверяем сборку программатора и его подключение к плате, проверяем сборку самой платы.
@@ -143,7 +143,7 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 
 Подключаем преобразователь USB-UART.
 
-![](/Images/SerialProgConnect.jpg?raw=true "Подключение преобразователя USB-UART")
+![](/img/SerialProgConnect.jpg?raw=true "Подключение преобразователя USB-UART")
 
 Выполняем Скетч->Загрузить.
 После завершения загрузки станция должна подать три коротких сигнала и через 3 секунды один длинный.
@@ -153,7 +153,7 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 
 После прошивки микроконтроллера припаиваем RFID-модуль и геркон (опционально) к нашей плате.
 
-![](/Images/BaseStationRfidSolded.jpg?raw=true "Плата с припаянным RFID-модулем и герконом") 
+![](/img/BaseStationRfidSolded.jpg?raw=true "Плата с припаянным RFID-модулем и герконом") 
 
 Затем проверяем работу станции.
 Предварительно стоит записать мастер-чипы номера станции, времени и несколько обычных чипов.
@@ -165,7 +165,7 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 Подносим мастер-чип времени и после установки подносим второй обычный чип.
 Считываем его на станции сопряжения и убеждаемся в корректной работе.
 
-![](/Images/BaseStationTestAssembly.jpg?raw=true "Проверка работы старции")
+![](/img/BaseStationTestAssembly.jpg?raw=true "Проверка работы старции")
 
 Для проверки работоспособности геркона нужно подготовить специальный чип,
 который будет использоваться для быстрого пробуждения станций.
@@ -173,12 +173,12 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 
 Усыпляем станцию чипом сна и пробуждаем чипом с магнитом.
 
-![](/Images/BaseStationTestReedSwitch.jpg?raw=true "Проверка работы геркона")
+![](/img/BaseStationTestReedSwitch.jpg?raw=true "Проверка работы геркона")
 
 Если станция прошла проверку, то плату можно отмывать от остатков флюса, например, в ванне с изопропиловым спиртом или специальным средством (например, FluxOff).
 Если плата не работает, то нужно проверить прежде всего пайку микросхем и соединение с RFID-модулем.
 
-![](/Images/BaseStationClean.jpg?raw=true "Готовая плата после отмывки")
+![](/img/BaseStationClean.jpg?raw=true "Готовая плата после отмывки")
 
 ### Установка в корпус
 
@@ -187,7 +187,7 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 Чтобы влага не попадала внутрь через это отверстие,
 его необходимо заклеить с обратной стороны скотчем, а с другой стороны залить термо- или эпоксидным клеем.
 
-![](/Images/BaseStationHole.jpg?raw=true "Положение отверстия")
+![](/img/BaseStationHole.jpg?raw=true "Положение отверстия")
 
 Далее можно приклеить батарейный отсек к крышке корпуса.
 
@@ -196,49 +196,49 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 Закрепляем плату термоклеем.
 *На фото плата версии 2.*
 
-![](/Images/BaseStationPcbGlue.jpg?raw=true "Закрепляем плату термоклеем")
+![](/img/BaseStationPcbGlue.jpg?raw=true "Закрепляем плату термоклеем")
 
-![](/Images/BaseStationPcbInBox.jpg?raw=true "Плата в корпусе")
+![](/img/BaseStationPcbInBox.jpg?raw=true "Плата в корпусе")
 
 После этого можно залить корпус компаундом.
 Или можно обойтись и без него. Например, если промазать стык корпуса силиконовым герметиком или приклеить крышку к корпусу.
 
 *На фотографиях ниже показана плата версии 1.*
 
-![](/Images/s26.jpg?raw=true)
+![](/img/s26.jpg?raw=true)
 
 На 1 станцию отмеряем 30 мл компаунда
 
-![](/Images/s27.jpg?raw=true)
+![](/img/s27.jpg?raw=true)
 
 и 1 мл отвердителя. Перемешиваем отвердитель с компаундом.
 
-![](/Images/s28.jpg?raw=true)
+![](/img/s28.jpg?raw=true)
 
-![](/Images/s29.jpg?raw=true)
+![](/img/s29.jpg?raw=true)
 
 И заливаем нашу плату.
 Должно получиться так, что все контакты залиты силиконом.
 Выходят только разъём для программирования и зуммер.
 
-![](/Images/s30.jpg?raw=true)
+![](/img/s30.jpg?raw=true)
 
-![](/Images/s31.jpg?raw=true)
+![](/img/s31.jpg?raw=true)
 
 Через сутки компаунд полностью затвердевает.
 При этом все детали хорошо видно. В случае необходимости ремонта компаунд можно легко частично удалить.
 
-![](/Images/s32.jpg?raw=true)
+![](/img/s32.jpg?raw=true)
 
 Батарейный отсек промазываем вазелином или другим густым гидрофобным маслом и вставляем батарейки.
 
-![](/Images/s34.jpg?raw=true)
+![](/img/s34.jpg?raw=true)
 
 И закручиваем наш корпус. Детали лежат туго, может понадобиться небольшое усилие, чтобы закрыть корпус.
 
-![](/Images/s35.jpg?raw=true)
+![](/img/s35.jpg?raw=true)
 
-![](/Images/s36.jpg?raw=true)
+![](/img/s36.jpg?raw=true)
 
 Печатаем на принтере наклейки из папки `hardware/BaseStation/2d`.
 Наклейки выполнены в программе Inkscape.
@@ -246,7 +246,7 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 Приклеиваем наклейку и сверху ламинируем её скотчем, если наклейка из простой бумаги.
 Станция готова!
 
-![](/Images/BaseStation1.jpg)
+![](/img/BaseStation1.jpg)
 
-![](/Images/BaseStation2.jpg)
+![](/img/BaseStation2.jpg)
 

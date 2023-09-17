@@ -2,11 +2,11 @@
 
 The Master station can be made in various boxes.
 
-![](/Images/MasterStation1.jpg?raw=true "Master station in the box made on a 3D printer")
+![](/img/MasterStation1.jpg?raw=true "Master station in the box made on a 3D printer")
 
 or
 
-![](/Images/w06.jpg?raw=true "Master station in the G1020BF box")
+![](/img/w06.jpg?raw=true "Master station in the G1020BF box")
 
 The circuit and board are available in Upverter ([variant 1](https://upverter.com/AlexanderVolikov/3fc0efdb2586988d/Sportiduino-reading-stantion/) or [variant 2](https://upverter.com/design/syakimov/4f7ec0e2d3b9c4e9/sportiduino-master-station/)).
 

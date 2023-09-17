@@ -15,6 +15,7 @@ BOARDS_TXT          = ../boards.txt
 BOOTLOADER_PARENT   = ..
 BOOTLOADER_PATH     = Optiboot
 BOOTLOADER_FILE     = optiboot8_38400_sportiduino_led.hex
+#BOOTLOADER_FILE     = optiboot8_19200_sportiduino_led.hex
 ISP_PROG = stk500v1
 AVRDUDE_ISP_BAUDRATE = 19200
 

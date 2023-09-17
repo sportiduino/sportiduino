@@ -2,7 +2,7 @@
 
 ### Master station components
 
-![](/Images/w01.jpg?raw=true)
+![](/img/w01.jpg?raw=true)
 
 1. RFID module RC522.
 2. Arduino Nano.
@@ -24,7 +24,7 @@ USB type depends on the port used in Arduino Nano (micro- or mini-USB).
 First solder Arduino Nano.
 ISP (2x3 connector) can not be soldered.
 
-![](/Images/w02.jpg?raw=true)
+![](/img/w02.jpg?raw=true)
 
 #### Arduino Nano preparation for SPORTident emulation
 
@@ -39,12 +39,12 @@ Solder Arduino Nano in the main board.
 Also in the main board we solder a 1x8 connector, a angle-bent LED,
 a buzzer and resistors 0805 47 ohm (to the buzzer) and 150 ohm (to the LED).
 
-![](/Images/w03.jpg?raw=true)
+![](/img/w03.jpg?raw=true)
 
 Solder the RFID module.
 Then connect the master station via a USB wire to the computer.
  
-![](/Images/w04.jpg?raw=true)
+![](/img/w04.jpg?raw=true)
 
 Open the Arduino IDE program on the computer (see [Arduino IDE Setting](BaseStationAssembly.md#Arduino-IDE-Setting)).
 In the settings specify the board type `Arduino Nano`, processor `ATmega328P (Old Bootloader)`
@@ -54,12 +54,12 @@ Select the appropriate serial port and upload MasterStation sketch onto the boar
 For USB cable cut off a s small groove in the case.
 The LED is greased with epoxy glue.
  
-![](/Images/w05.jpg?raw=true)
+![](/img/w05.jpg?raw=true)
 
 After that close the case.
 The master station is ready for use.
 
-![](/Images/w06.jpg?raw=true)
+![](/img/w06.jpg?raw=true)
 
 ### Station without PCB
 
@@ -71,9 +71,9 @@ The LED, buzzer and RFID module are soldered by wiring to the Arduino Nano accor
 The station case is designed for 3D-printing.
 Files for 3D-printer placed in the folder `hardware/MasterStation/3d/print`.
 
-![](/Images/MasterStationBoxTop.jpg?raw=true)
+![](/img/MasterStationBoxTop.jpg?raw=true)
 
-![](/Images/MasterStationBoxBot.jpg?raw=true)
+![](/img/MasterStationBoxBot.jpg?raw=true)
 
-![](/Images/MasterStationInBox.jpg?raw=true)
+![](/img/MasterStationInBox.jpg?raw=true)
 

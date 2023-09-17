@@ -1,6 +1,6 @@
 # Оборудование и материалы для сборки
 
-![](/Images/equip.jpg?raw=true)
+![](/img/equip.jpg?raw=true)
 
 1. Мультиметр. Опционально.
 
@@ -33,11 +33,11 @@
 
 Для прошивки загрузчика (bootloader) дополнительно понадобится плата Arduino Nano или программатор Pickit2.
 
-![](/Images/nano.jpg?raw=true "Arduino Nano")
-![](/Images/pickit2.jpg?raw=true "Pickit2")
+![](/img/nano.jpg?raw=true "Arduino Nano")
+![](/img/pickit2.jpg?raw=true "Pickit2")
 
 Для загрузки основной прошивки понадобится USB-UART преобразователь (USB-to-TTL, USB-Serial).
 Важно, чтобы преобразователь имел подключённый вывод DTR (преобразователь с чипом CH340 или CP2102)
 
-![](/Images/UsbToTtl.jpg?raw=true)
+![](/img/UsbToTtl.jpg?raw=true)
 

@@ -4,7 +4,7 @@ This instruction for assembling Base station v3.
 
 ### Base station components
 
-![](/Images/s01.jpg?raw=true)
+![](/img/s01.jpg?raw=true)
 
 1. RFID module RC522.
 2. PCB. Can be ordered via [EasyEDA](https://easyeda.com/order) or [JLCPCB](https://jlcpcb.com/).
@@ -44,13 +44,13 @@ Remove LED D1, resistors R1 and R2 to reduce module power consumption.
 
 Replace inductors L1 and L2 by similar 2.2 uH, but with a large operating current to increase the antenna power (e.g. Murata LQH32MN2R2K).
 
-![](/Images/s12_1.JPG?raw=true)
+![](/img/s12_1.JPG?raw=true)
 
 ### Soldering the main board
 
 ![](/hardware/BaseStation/prod/v3/sportiduino-base-v3-scheme.png?raw=true "Scheme")
 
-![](/Images/pcbv3-build-instructions.png?raw=true "PCB with instructions")
+![](/img/pcbv3-build-instructions.png?raw=true "PCB with instructions")
 
 Grease flux all places of future soldering.
 Next solder chips.
@@ -78,13 +78,13 @@ A connector is installed at the end of the cable.
 Solder the other end of the cable to the Arduino Nano board in accordance with the scheme below.
 We do not yet install a 10 μF 16V capacitor.
 
-![](/Images/ArduinoNanoIspScheme.png?raw=true "Arduino Nano programmer scheme")
+![](/img/ArduinoNanoIspScheme.png?raw=true "Arduino Nano programmer scheme")
 
 Connect the Arduino Nano to the PC via USB and launch the Arduino IDE.
 Open the ArduinoISP sketch from Arduino examples (File -> Examples -> ArduinoISP).
 In the `Tools` menu, select the `Arduino Nano` board, the `ATmega328P (Old Bootloader)` processor, and the corresponding port.
 
-![](/Images/ArduinoIspScr1.jpg?raw=true)
+![](/img/ArduinoIspScr1.jpg?raw=true)
 
 Perform Sketch -> Upload.
 After that, solder the 10 uF 16V capacitor between GND and RST as in the scheme above.
@@ -92,7 +92,7 @@ If the capacitor is not soldered, an error message will constantly appear during
 `avrdude: stk500_getsync() attempt 1 of 10: not in sync: resp=0x15`.
 The programmer is ready.
 
-![](/Images/ArduinoNanoISP.jpg?raw=true "Arduino Nano Programmer")
+![](/img/ArduinoNanoISP.jpg?raw=true "Arduino Nano Programmer")
 
 ### Serial programmer
 
@@ -100,12 +100,12 @@ To upload the main firmware to the microcontroller, a USB-UART converter is requ
 The converter must have a DTR pin.
 To connect it to the station board, you also need a 10-wire flat cable and IDC-10F connector.
 
-![](/Images/SerialProgrammer.png?raw=true "Serial programmer scheme")
+![](/img/SerialProgrammer.png?raw=true "Serial programmer scheme")
 
 If the converter will also be used to configure the station and to read its state
 then necessary to provide the possibility of disconnecting the DTR pin.
 
-![](/Images/ProgrammerWire.jpg?raw=true "Serial programmer")
+![](/img/ProgrammerWire.jpg?raw=true "Serial programmer")
 
 ### Arduino IDE Setting
 
@@ -125,11 +125,11 @@ In Arduino IDE, open the BaseStation sketch (File->Sketchbook->BaseStation).
 In the Tools->Board menu select `Sportiduino`.
 Next in the Tools->Programmer menu select `Arduino as ISP`.
 
-![](/Images/BaseStationProgConf.jpg?raw=true)
+![](/img/BaseStationProgConf.jpg?raw=true)
 
 Connect programmer to the board. Power on board.
 
-![](/Images/ProgrammerConnect.jpg?raw=true "Programmer connection")
+![](/img/ProgrammerConnect.jpg?raw=true "Programmer connection")
 
 Execute Tools->Burn Bootloader.
 If an error message appears in the log then check the assembly of the programmer and its connection to the board, check the assembly of the board itself.
@@ -137,7 +137,7 @@ If everything went well then turn off the programmer.
 
 Connect the serial programmer.
 
-![](/Images/SerialProgConnect.jpg?raw=true "Serial programmer connection")
+![](/img/SerialProgConnect.jpg?raw=true "Serial programmer connection")
 
 Execute Sketch->Upload.
 After the upload is complete the station should beeps three times and beeps one long time after 3 seconds.
@@ -147,7 +147,7 @@ If this does not happen then check the soldering of the board.
 
 After uploading the firmware to the microcontroller solder the RFID module and the reed switch (optional) to the board.
 
-![](/Images/BaseStationRfidSolded.jpg?raw=true "PCB with RFID and reed switch") 
+![](/img/BaseStationRfidSolded.jpg?raw=true "PCB with RFID and reed switch") 
 
 Then test the operation of the station.
 Create master cards of the station number, time, and several regular cards.
@@ -160,12 +160,12 @@ Next, configure the clock.
 Bring the Time master card and after beep bring the second regular card.
 Read it at the master station and make sure that base station clock works correctly.
 
-![](/Images/BaseStationTestAssembly.jpg?raw=true "Station testing")
+![](/img/BaseStationTestAssembly.jpg?raw=true "Station testing")
 
 If the station passed the test, then the board can be washed off the flux residues, for example, in a bath with isopropyl alcohol.
 If the board does not work then check first the soldering of chips and the connection to the RFID module.
 
-![](/Images/BaseStationClean.jpg?raw=true "Готовая плата после отмывки")
+![](/img/BaseStationClean.jpg?raw=true "Готовая плата после отмывки")
 
 ### Installation in the case
 
@@ -174,7 +174,7 @@ The hole coordinates are shown in the figure below.
 To prevent moisture from entering through this hole,
 it must be sealed with adhesive tape on the reverse side, and on the other hand, filled with hot or epoxy glue.
 
-![](/Images/BaseStationHole.jpg?raw=true "Hole coordinates")
+![](/img/BaseStationHole.jpg?raw=true "Hole coordinates")
 
 Next, glue the battery box to the cover of the case (optional).
 
@@ -183,57 +183,57 @@ After that install the board so that the LED falls into the center of the drille
 Fix the board with hot glue.
 *In the photo show the PCB v2.*
 
-![](/Images/BaseStationPcbGlue.jpg?raw=true "Fix the board with hot glue")
+![](/img/BaseStationPcbGlue.jpg?raw=true "Fix the board with hot glue")
 
-![](/Images/BaseStationPcbInBox.jpg?raw=true "PCB in case")
+![](/img/BaseStationPcbInBox.jpg?raw=true "PCB in case")
 
 After that fill the compound (optional).
 Or blur the joint of the housing with a silicone sealant, or glue the cover to the case.
 
 *In the photos below show the PCB v1.*
 
-![](/Images/s26.jpg?raw=true)
+![](/img/s26.jpg?raw=true)
 
 At a station measure 30 ml of compound
 
-![](/Images/s27.jpg?raw=true)
+![](/img/s27.jpg?raw=true)
 
 and 1 ml of hardener. Mix the hardener with the compound.
 
-![](/Images/s28.jpg?raw=true)
+![](/img/s28.jpg?raw=true)
 
-![](/Images/s29.jpg?raw=true)
+![](/img/s29.jpg?raw=true)
 
 And fill the board.
 Silicone should fill all contacts.
 There are only programmer connector and buzzer.
 
-![](/Images/s30.jpg?raw=true)
+![](/img/s30.jpg?raw=true)
 
-![](/Images/s31.jpg?raw=true)
+![](/img/s31.jpg?raw=true)
 
 In a day the compound solidifies completely.
 In this case, all the details can be seen, in which case the compound can easily be removed for repairing.
 
-![](/Images/s32.jpg?raw=true)
+![](/img/s32.jpg?raw=true)
 
 The battery box is smeared with petroleum jelly or other thick hydrophobic thick oil and insert batteries.
  
-![](/Images/s34.jpg?raw=true)
+![](/img/s34.jpg?raw=true)
 
 Close the case with the cover.
 Parts lie tight, you may need a little effort to close the case.
 
-![](/Images/s35.jpg?raw=true)
+![](/img/s35.jpg?raw=true)
 
-![](/Images/s36.jpg?raw=true)
+![](/img/s36.jpg?raw=true)
 
 Print stickers form the folder `hardware/BaseStation/2d`.
 Glue the sticker on top of the station.
 
 The station is ready!
 
-![](/Images/BaseStation1.jpg)
+![](/img/BaseStation1.jpg)
 
-![](/Images/BaseStation2.jpg)
+![](/img/BaseStation2.jpg)
 

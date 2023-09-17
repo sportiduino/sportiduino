@@ -2,11 +2,11 @@
 
 Станция сопряжения может быть выполнена в различных корпусах.
 
-![](/Images/MasterStation1.jpg?raw=true "Станция сопряжения в корпусе, распечатанном на 3D-принтере")
+![](/img/MasterStation1.jpg?raw=true "Станция сопряжения в корпусе, распечатанном на 3D-принтере")
 
 или
 
-![](/Images/w06.jpg?raw=true "Станция сопряжения в корпусе G1020BF")
+![](/img/w06.jpg?raw=true "Станция сопряжения в корпусе G1020BF")
 
 Схема и плата доступны в Upverter ([вариант 1](https://upverter.com/AlexanderVolikov/3fc0efdb2586988d/Sportiduino-reading-stantion/) и
 [вариант 2](https://upverter.com/design/syakimov/4f7ec0e2d3b9c4e9/sportiduino-master-station/)).

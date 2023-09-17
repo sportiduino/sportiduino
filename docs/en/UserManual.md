@@ -41,9 +41,9 @@ There are no buttons and no other interface at the station.
 All information is exchanged contactlessly.
 The optimum response area is 0.5 - 2 cm above the station.
 
-![](/Images/BaseStation1.jpg?raw=true)
+![](/img/BaseStation1.jpg?raw=true)
 
-![](/Images/2017_09_30_09_34_45.jpg?raw=true)
+![](/img/2017_09_30_09_34_45.jpg?raw=true)
 
 A real-time clock IC is installed in the station.
 Clock has a small accuracy error,
@@ -93,7 +93,7 @@ A beep indicates the success of the procedure.
 A station with a USB connector for connecting to a computer.
 It is needed to configure base stations, write and read cards.
 
-![](/Images/MasterStation1.jpg?raw=true)
+![](/img/MasterStation1.jpg?raw=true)
 
 ## Instructions for participants
 
@@ -129,7 +129,7 @@ There is also a user manual.
 To connect the station, click the `Connect` button.
 If the connection is successful the message `Master station is connected` is displayed in the log area.
 
-![](/Images/SportiduinoPQ-Connect.jpg?raw=true)
+![](/img/SportiduinoPQ-Connect.jpg?raw=true)
 
 If you cannot connect the station, check the connection.
 Problems may arise if used another device connected via serial port.
@@ -146,7 +146,7 @@ If successful the station will beep once.
 If the `Autoincrement` box is checked the number in the input field will increase by 1.
 If the process failed (series of short beeps) try the procedure again.
 
-![](/Images/SportiduinoPQ-InitCard.jpg?raw=true)
+![](/img/SportiduinoPQ-InitCard.jpg?raw=true)
 
 The card number can be set in the range from 1 to 65535.
 But base stations will not backup punches for cards with the number over 4000.
@@ -165,7 +165,7 @@ Already initialized cards can be cleared at Clear station with keeping the card 
 
 For quick preparing the base station by UART using USB-to-TTL converter.
 
-![](/Images/ProgrammerWire.jpg?raw=true)
+![](/img/ProgrammerWire.jpg?raw=true)
 
 Connect it to the base station Prog connector. DTR pin must be disconnected.
 
@@ -174,13 +174,13 @@ In the SportduinoPQ program, in the `Config` tab, in the `Config by UART` sectio
 set the number of serial port corresponding the USB-to-TTL converter and click the `Write` button.
 The current time and all other settings will be recorded in the base station.
 
-![](/Images/SportiduinoPQ-ConfigByUart.jpg?raw=true)
+![](/img/SportiduinoPQ-ConfigByUart.jpg?raw=true)
 
 To make sure that the settings are recorded correctly click on the `Read` button.
 After that the current station settings will appear on the screen.
 The station will remain in current mode.
 
-![](/Images/SportiduinoPQ-ConfigByUart2.jpg?raw=true)
+![](/img/SportiduinoPQ-ConfigByUart2.jpg?raw=true)
 
 **Warning!**
 Set the current password correctly in the SportduinoPQ program.
@@ -188,7 +188,7 @@ After the station is assembled the default password is 0,0,0.
 If you do not correctly set the password, the base station will not accept settings from the master card.
 You can reset password by writing new settings by UART.
 
-![](/Images/SportiduinoPQ-Pwd.jpg?raw=true)
+![](/img/SportiduinoPQ-Pwd.jpg?raw=true)
 
 ### Master cards
 
@@ -206,7 +206,7 @@ After 3 seconds of LED lighting the station will beep once (the battery Ok) or b
 
 To set the time you need to bring card to the master station and click `Create` in the `Date/Time Card` section in the `Card` tab.
 
-![](/Images/SportiduinoPQ-DateTimeCreate.jpg?raw=true)
+![](/img/SportiduinoPQ-DateTimeCreate.jpg?raw=true)
 
 The station will beep 4 times.
 After the third signal bring the card to the base station.
@@ -226,7 +226,7 @@ The station will beep once.
 
 There are separate buttons for special stations (Start, Finish, Clear and Check).
 
-![](/Images/SportiduinoPQ-SetNum.jpg?raw=true)
+![](/img/SportiduinoPQ-SetNum.jpg?raw=true)
 
 ### Put stations into Sleep mode
 
@@ -237,7 +237,7 @@ Then bring the created master card to the base station.
 The station will beep 4 times and will go into Sleep mode.
 To awakening stations you need to bring a participant card to it for up to 30 seconds.
 
-![](/Images/SportiduinoPQ-SetSleep.jpg?raw=true)
+![](/img/SportiduinoPQ-SetSleep.jpg?raw=true)
 
 When creating a Sleep card you can specify the date the station automatically wakes up in the `Wake Up Time` field.
 At this time the base station will automatically switch to Active mode and the first participant will not have to wait a second for punching.
@@ -248,7 +248,7 @@ If you want to put the base stations into Sleep mode for a long time then set an
 The duration of the Active mode, additional checks and antenna gain of the base station can be set on the tab `Config`,
 and record to the station using the master card.
 
-![](/Images/SportiduinoPQ-OtherSettings.jpg?raw=true)
+![](/img/SportiduinoPQ-OtherSettings.jpg?raw=true)
 
 Using passwords protects unauthorized change of the stations settings.
 After the build, the default password is 0, 0, 0.
@@ -278,7 +278,7 @@ The process is long, you need to carefully keep the card in the optimal recordin
 After successful bring the card to the master station and click `Read` button in the `Dump Card` section.
 The result will be displayed in the log area.
 
-![](/Images/SportiduinoPQ-SetDump.jpg?raw=true)
+![](/img/SportiduinoPQ-SetDump.jpg?raw=true)
 
 ### Checking base stations
 
@@ -295,7 +295,7 @@ bring the master card to the master station and in the SportidunoPQ program clic
 After that all information about the base station will be displayed in the log area.
 Also the field values in all tabs of the SportiduinoPQ will changed in accordance with the current settings of the base station.
 
-![](/Images/SportiduinoPQ-GetInfo.jpg?raw=true)
+![](/img/SportiduinoPQ-GetInfo.jpg?raw=true)
 
 ## Reading cards and preparing results
 
@@ -307,5 +307,5 @@ You can also use SportiduinoPQ to quickly view punches from cards.
 To do this bring the card to the station and in the `Main` tab, click `Read Card` button. 
 The result will be displayed in the log area.
 
-![](/Images/SportiduinoPQ-ReadCard.jpg?raw=true)
+![](/img/SportiduinoPQ-ReadCard.jpg?raw=true)
 
