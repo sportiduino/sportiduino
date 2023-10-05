@@ -107,14 +107,14 @@
 Для работы со станциями необходимо использовать программы:
 * [SportiduinoPQ](https://github.com/sportiduino/SportiduinoPQ/releases) для подготовки чипов участников и настройки станций;
 * [SportiduinoApp](https://github.com/sportiduino/SportiduinoApp/releases) для тех же целей на Android-смартфоне с NFC;
-* [SportOrg](https://sportorg.readthedocs.io/ru/latest/) или [SportOrgPlus](https://github.com/sembruk/sportorg-plus/blob/master/docs/index.md) для чтения чипов и подсчёта результатов соревнований.
+* [SportOrgPlus](https://github.com/sembruk/sportorg-plus/blob/master/docs/index.md) для чтения чипов и подсчёта результатов соревнований.
 
 Программу SportiduinoPQ можно скачать [на странице](https://github.com/sportiduino/SportiduinoPQ/releases).
 В релизе присутствует портативный исполняемый EXE файл для Windows, не требующий установки.
 При работе программы весь лог сохраняется в подпапку log.
 
-Программа SportOrg предназначена для подсчёта результатов соревнований.
-Программа SportOrgPlus является адаптацией SportOrg для подсчёта результатов соревнований по рогейну.
+Программа SportOrgPlus является адаптацией [SportOrg](https://sportorg.readthedocs.io/ru/latest/),
+и предназначена для подсчёта результатов соревнований как по ориентированию, так и по рогейну.
 
 *Далее описана процедура работы со станциями и чипами с момощью программы SportiduinoPQ.*
 
@@ -159,7 +159,7 @@
 
 ### Чтение чипов и формирование результатов
 
-Для чтения чипов и формирования результатов рекомендуется использовать программы SportOrg или SportOrgPlus
+Для чтения чипов и формирования результатов рекомендуется использовать программы SportOrgPlus или SportOrg.
 
 Для быстрого просмотра результатов по отдельным чипам можно также использовать SportiduinoPQ.
 Для этого поднести чип к станции и во вкладке `Осн` (`Main`) нажать `Прочитать чип` (`Read Card`).
