@@ -88,28 +88,36 @@ void DS3231_set(struct ts t)
     Wire.endTransmission();
 }
 
-void DS3231_get(struct ts *t)
+bool DS3231_get(struct ts *t)
 {
-    uint8_t TimeDate[7];        //second,minute,hour,dow,day,month,year
-    uint8_t century = 0;
-    uint8_t i, n;
-    uint16_t year_full;
-
+    memset(&t, 0, sizeof(t));
     Wire.beginTransmission(DS3231_I2C_ADDR);
     Wire.write(DS3231_TIME_CAL_ADDR);
     Wire.endTransmission();
 
-    Wire.requestFrom(DS3231_I2C_ADDR, 7);
+    if(Wire.requestFrom(DS3231_I2C_ADDR, 7) < 7) {
+        return false;
+    }
 
-    for (i = 0; i <= 6; i++) {
-        n = Wire.read();
+    uint8_t TimeDate[7];        // second,minute,hour,dow,day,month,year
+    uint8_t century = 0;
+    uint8_t b = 0xff;
+    for (uint8_t i = 0; i <= 6; i++) {
+        uint8_t n = Wire.read();
+        b &= n;
         if (i == 5) {
             TimeDate[5] = bcdtodec(n & 0x1F);
             century = (n & 0x80) >> 7;
-        } else
+        } else {
             TimeDate[i] = bcdtodec(n);
+        }
+    }
+    if (b == 0xff) {
+        // DS3231 not connected
+        return false;
     }
 
+    uint16_t year_full;
     if (century == 1) {
         year_full = 2000 + TimeDate[6];
     } else {
@@ -125,7 +133,7 @@ void DS3231_get(struct ts *t)
     t->wday = TimeDate[3];
     t->year_s = TimeDate[6];
     t->unixtime = get_unixtime(*t);
-
+    return true;
 }
 
 void DS3231_set_addr(const uint8_t addr, const uint8_t val)
@@ -258,11 +266,11 @@ void DS3231_set_a1(const uint8_t s, uint8_t mi, uint8_t h, uint8_t d, const uint
     Wire.endTransmission();
 }
 
-void DS3231_get_a1(char *buf, const uint8_t len)
+void DS3231_get_a1(struct ts *td)
 {
     uint8_t n[4];
-    uint8_t t[4];               //second,minute,hour,day
-    uint8_t f[5];               // flags
+    uint8_t t[4];               // second,minute,hour,day
+    //uint8_t f[5];               // flags
     uint8_t i;
 
     Wire.beginTransmission(DS3231_I2C_ADDR);
@@ -273,18 +281,16 @@ void DS3231_get_a1(char *buf, const uint8_t len)
 
     for (i = 0; i <= 3; i++) {
         n[i] = Wire.read();
-        f[i] = (n[i] & 0x80) >> 7;
+        //f[i] = (n[i] & 0x80) >> 7;
         t[i] = bcdtodec(n[i] & 0x7F);
     }
 
-    f[4] = (n[3] & 0x40) >> 6;
+    //f[4] = (n[3] & 0x40) >> 6;
     t[3] = bcdtodec(n[3] & 0x3F);
-
-    snprintf(buf, len,
-             "s%02d m%02d h%02d d%02d fs%d m%d h%d d%d wm%d %d %d %d %d",
-             t[0], t[1], t[2], t[3], f[0], f[1], f[2], f[3], f[4], n[0],
-             n[1], n[2], n[3]);
-
+    td->sec = t[0];
+    td->min = t[1];
+    td->hour = t[2];
+    td->mday = t[3];
 }
 
 // when the alarm flag is cleared the pulldown on INT is also released

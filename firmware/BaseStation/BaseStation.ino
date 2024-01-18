@@ -15,10 +15,10 @@
     // or change here
     #define HW_VERS     3
 #endif
-#define FW_MAJOR_VERS   10
+#define FW_MAJOR_VERS   11
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   0
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 1)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -203,6 +203,7 @@ inline void beep(uint16_t ms, uint8_t n) { beep_w(LED, BUZ, BUZZER_FREQUENCY, ms
 
 inline void beepOk()                    { beep(500, 1); }
 
+inline void beepRtcError()              { beep(100, 2); }
 inline void beepTimeError()             { beep(100, 3); }
 inline void beepPassError()             { beep(100, 4); }
 
@@ -334,7 +335,9 @@ void setup() {
     DS3231_init(DS3231_INTCN | DS3231_A1IE);
     memset(&t, 0, sizeof(t));
     // Check current time
-    DS3231_get(&t);
+    if(!DS3231_get(&t)) {
+        beepRtcError();
+    }
     if(t.year < 2017) {
         beepTimeError();
     }
@@ -384,7 +387,9 @@ void setup() {
 
 void wakeupIfNeed() {
     if(alarmTimestamp > 0) {
-        DS3231_get(&t);
+        if(!DS3231_get(&t)) {
+            return;
+        }
         if(t.unixtime >= alarmTimestamp) {
             alarmTimestamp = 0;
             setModeIfAllowed(MODE_ACTIVE);
@@ -972,8 +977,8 @@ void processTimeMasterCard(byte *data, byte dataSize) {
 
     deinitCard();
 
-    if(t.year < 2017) {
-        beepTimeError();
+    if(!DS3231_get(&t)) {
+        beepRtcError();
     } else {
         beepMasterCardTimeOk();
     }
@@ -1184,10 +1189,7 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
 
     // Write wake-up time
     memset(&t, 0, sizeof(t));
-    t.sec = bcdtodec(DS3231_get_addr(0x07));
-    t.min = bcdtodec(DS3231_get_addr(0x08));
-    t.hour = bcdtodec(DS3231_get_addr(0x09));
-    t.mday = bcdtodec(DS3231_get_addr(0x0A));
+    DS3231_get_a1(&t);
     t.mon = alarmMonth;
     t.year = alarmYear;
     t.unixtime = get_unixtime(t);
@@ -1466,11 +1468,9 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
     serialProto.add(t.unixtime >> 8);
     serialProto.add(t.unixtime & 0xFF);
 
+    memset(&t, 0, sizeof(t));
+    DS3231_get_a1(&t);
     // Write wake-up time
-    t.sec = bcdtodec(DS3231_get_addr(0x07));
-    t.min = bcdtodec(DS3231_get_addr(0x08));
-    t.hour = bcdtodec(DS3231_get_addr(0x09));
-    t.mday = bcdtodec(DS3231_get_addr(0x0A));
     t.mon = alarmMonth;
     t.year = alarmYear;
     t.unixtime = get_unixtime(t);

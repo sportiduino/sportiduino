@@ -51,7 +51,7 @@ struct ts {
 
 void DS3231_init(const uint8_t creg);
 void DS3231_set(struct ts t);
-void DS3231_get(struct ts *t);
+bool DS3231_get(struct ts *t);
 
 void DS3231_set_addr(const uint8_t addr, const uint8_t val);
 uint8_t DS3231_get_addr(const uint8_t addr);
@@ -71,7 +71,7 @@ float DS3231_get_treg(void);
 // alarms
 void DS3231_set_a1(const uint8_t s, const uint8_t mi, const uint8_t h, const uint8_t d,
                    const uint8_t * flags);
-void DS3231_get_a1(char *buf, const uint8_t len);
+void DS3231_get_a1(struct ts *td);
 void DS3231_clear_a1f(void);
 uint8_t DS3231_triggered_a1(void);
 
