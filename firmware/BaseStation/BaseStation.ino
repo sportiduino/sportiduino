@@ -274,6 +274,7 @@ void processRfid();
 uint16_t measureBatteryVoltage(bool silent = false);
 uint8_t batteryVoltageToByte(uint16_t voltage);
 bool checkBattery(bool beepEnabled = false);
+void checkRtc();
 void processCard();
 void processMasterCard(uint8_t pageInitData[]);
 void processTimeMasterCard(byte *data, byte dataSize);
@@ -333,14 +334,7 @@ void setup() {
     // Reset all interrupts and disable 32 kHz output
     DS3231_set_addr(DS3231_STATUS_ADDR, 0);
     DS3231_init(DS3231_INTCN | DS3231_A1IE);
-    memset(&t, 0, sizeof(t));
-    // Check current time
-    if(!DS3231_get(&t)) {
-        beepRtcError();
-    }
-    if(t.year < 2017) {
-        beepTimeError();
-    }
+    checkRtc();
 
 #ifdef DS3231_IRQ
     // Config DS3231 interrupts
@@ -597,7 +591,10 @@ void setMode(uint8_t newMode) {
         sleepCount = 0;
     } else {
         if(mode == MODE_SLEEP) {
+            // Wake up
             checkBattery(true);
+            delay(100);
+            checkRtc();
         }
     }
     if(newMode != MODE_ACTIVE) {
@@ -858,6 +855,17 @@ bool checkBattery(bool beepEnabled) {
         beepLowBattery();
     }
     return false;
+}
+
+void checkRtc() {
+    if(!DS3231_get(&t)) {
+        // DS3231 broken or not connected
+        beepRtcError();
+    }
+    // Check current time
+    if(t.year < 2024) {
+        beepTimeError();
+    }
 }
 
 void processRfid() {
