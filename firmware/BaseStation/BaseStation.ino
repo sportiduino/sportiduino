@@ -182,7 +182,7 @@ uint16_t activeModePollPeriod = MODE_ACTIVE_CARD_CHECK_PERIOD;
 Rfid rfid;
 SerialProtocol serialProto;
 // date/time
-ts t;
+static ts t;
 // We need this variable because DS321 doesn't have Year for Alarms
 int16_t alarmYear = 2021;
 // We need this variable because DS321 doesn't have Month for Alarms
@@ -203,7 +203,7 @@ inline void beep(uint16_t ms, uint8_t n) { beep_w(LED, BUZ, BUZZER_FREQUENCY, ms
 
 inline void beepOk()                    { beep(500, 1); }
 
-inline void beepRtcError()              { beep(100, 2); }
+inline void beepRtcError()              { beep(80, 2); }
 inline void beepTimeError()             { beep(100, 3); }
 inline void beepPassError()             { beep(100, 4); }
 
@@ -592,9 +592,8 @@ void setMode(uint8_t newMode) {
     } else {
         if(mode == MODE_SLEEP) {
             // Wake up
-            checkBattery(true);
-            delay(100);
             checkRtc();
+            checkBattery(true);
         }
     }
     if(newMode != MODE_ACTIVE) {
@@ -861,6 +860,7 @@ void checkRtc() {
     if(!DS3231_get(&t)) {
         // DS3231 broken or not connected
         beepRtcError();
+        return;
     }
     // Check current time
     if(t.year < 2024) {
@@ -1196,7 +1196,6 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
     result &= rfid.cardPageWrite(page++, pageData);
 
     // Write wake-up time
-    memset(&t, 0, sizeof(t));
     DS3231_get_a1(&t);
     t.mon = alarmMonth;
     t.year = alarmYear;
@@ -1476,7 +1475,6 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
     serialProto.add(t.unixtime >> 8);
     serialProto.add(t.unixtime & 0xFF);
 
-    memset(&t, 0, sizeof(t));
     DS3231_get_a1(&t);
     // Write wake-up time
     t.mon = alarmMonth;

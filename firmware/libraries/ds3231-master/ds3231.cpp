@@ -90,14 +90,12 @@ void DS3231_set(struct ts t)
 
 bool DS3231_get(struct ts *t)
 {
-    memset(&t, 0, sizeof(t));
+    memset(t, 0, sizeof(ts));
     Wire.beginTransmission(DS3231_I2C_ADDR);
     Wire.write(DS3231_TIME_CAL_ADDR);
     Wire.endTransmission();
 
-    if(Wire.requestFrom(DS3231_I2C_ADDR, 7) < 7) {
-        return false;
-    }
+    Wire.requestFrom(DS3231_I2C_ADDR, 7);
 
     uint8_t TimeDate[7];        // second,minute,hour,dow,day,month,year
     uint8_t century = 0;
@@ -273,6 +271,7 @@ void DS3231_get_a1(struct ts *td)
     //uint8_t f[5];               // flags
     uint8_t i;
 
+    memset(td, 0, sizeof(ts));
     Wire.beginTransmission(DS3231_I2C_ADDR);
     Wire.write(DS3231_ALARM1_ADDR);
     Wire.endTransmission();
