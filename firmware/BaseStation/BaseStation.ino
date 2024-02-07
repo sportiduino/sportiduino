@@ -18,7 +18,7 @@
 #define FW_MAJOR_VERS   11
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 1)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 2)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -916,8 +916,9 @@ void processCard() {
 }
 
 void processMasterCard(uint8_t pageInitData[]) {
-    // Don't change mode if it's the get info card
-    if(pageInitData[1] != MASTER_CARD_GET_INFO) {
+    // Don't change mode for some types of cards
+    if(pageInitData[1] != MASTER_CARD_GET_INFO
+            || pageInitData[1] == MASTER_CARD_SLEEP) {
         setModeIfAllowed(MODE_ACTIVE);
     }
 
