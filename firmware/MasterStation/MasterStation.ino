@@ -1,7 +1,10 @@
 #include <sportiduino.h>
 #include "sportidentprotocol.h"
 
-#define HW_VERS           1
+#ifndef HW_VERS
+    #define HW_VERS           1
+#endif
+
 #define FW_MAJOR_VERS     9
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
