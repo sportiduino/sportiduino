@@ -12,7 +12,7 @@ enum StationNum {
 };
 
 enum MasterCard {
-    MASTER_CARD_GET_INFO      = 249,
+    MASTER_CARD_STATE         = 249,
     MASTER_CARD_SET_TIME      = 250,
     MASTER_CARD_SET_NUMBER    = 251,
     MASTER_CARD_SLEEP         = 252,

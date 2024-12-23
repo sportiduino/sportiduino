@@ -340,7 +340,7 @@ void funcWriteMasterBackup(uint8_t*, uint8_t) {
 }
 
 void funcWriteGetInfoCard(uint8_t*, uint8_t) {
-    uint8_t error = writeMasterCard(MASTER_CARD_GET_INFO);
+    uint8_t error = writeMasterCard(MASTER_CARD_STATE);
 
     if(error) {
         signalError(error);

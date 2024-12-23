@@ -283,7 +283,7 @@ void processSleepMasterCard(byte *data, byte dataSize);
 void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
 void processSettingsMasterCard(byte *data, byte dataSize);
 void processPasswordMasterCard(byte *data, byte dataSize);
-void processGetInfoMasterCard(byte *data, byte dataSize);
+void processStateMasterCard(byte *data, byte dataSize);
 void processParticipantCard(uint16_t cardNum);
 bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch);
 void clearParticipantCard();
@@ -833,7 +833,7 @@ uint8_t batteryVoltageToByte(uint16_t voltage) {
 
 bool checkBattery(bool beepEnabled) {
 #if defined(ADC_IN) && defined(ADC_ENABLE)
-    uint16_t voltage = measureBatteryVoltage();
+    uint16_t voltage = measureBatteryVoltage(not beepEnabled);
     const uint16_t minVoltage = 3600;
 #else
     uint16_t voltage = measureVcc();
@@ -917,7 +917,7 @@ void processCard() {
 
 void processMasterCard(uint8_t pageInitData[]) {
     // Don't change mode for some types of cards
-    if(pageInitData[1] != MASTER_CARD_GET_INFO
+    if(pageInitData[1] != MASTER_CARD_STATE
             || pageInitData[1] == MASTER_CARD_SLEEP) {
         setModeIfAllowed(MODE_ACTIVE);
     }
@@ -963,8 +963,8 @@ void processMasterCard(uint8_t pageInitData[]) {
         case MASTER_CARD_PASSWORD:
             processPasswordMasterCard(masterCardData, sizeof(masterCardData));
             break;
-        case MASTER_CARD_GET_INFO:
-            processGetInfoMasterCard(masterCardData, sizeof(masterCardData));
+        case MASTER_CARD_STATE:
+            processStateMasterCard(masterCardData, sizeof(masterCardData));
             break;
         default:
             beepMasterCardReadError();
@@ -1153,7 +1153,7 @@ void processPasswordMasterCard(byte *data, byte dataSize) {
     beepMasterCardOk();
 }
 
-void processGetInfoMasterCard(byte *data, byte dataSize) {
+void processStateMasterCard(byte *data, byte dataSize) {
     if(dataSize < 16) {
         beepMasterCardError();
         return;
@@ -1162,10 +1162,10 @@ void processGetInfoMasterCard(byte *data, byte dataSize) {
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     // Disable RFID to prevent bad impact on measurements
     rfid.end();
-    byte batteryByte = batteryVoltageToByte(measureBatteryVoltage());
+    byte batteryByte = batteryVoltageToByte(measureBatteryVoltage(true));
     rfid.begin(config.antennaGain);
 #else
-    byte batteryByte = checkBattery();
+    byte batteryByte = checkBattery(false);
 #endif
     uint8_t page = CARD_PAGE_START;
     byte pageData[4] = {0,0,0,0};
@@ -1461,9 +1461,9 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
     serialProto.add((uint8_t*)&config, sizeof(Configuration));
 
 #if defined(ADC_IN) && defined(ADC_ENABLE)
-    serialProto.add(batteryVoltageToByte(measureBatteryVoltage()));
+    serialProto.add(batteryVoltageToByte(measureBatteryVoltage(true)));
 #else
-    serialProto.add(checkBattery());
+    serialProto.add(checkBattery(false));
 #endif
     serialProto.add(mode);
  
