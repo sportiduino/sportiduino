@@ -113,24 +113,19 @@ Gerber файлы находятся в папке `hardware/BaseStation/prod/v3
 
 ![](/img/ProgrammerWire.jpg?raw=true "Преобразователь USB-UART")
 
-### Настройка Arduino IDE
-
-В меню Файл->Настройки изменяем размещение папки скетчей на `[Проект]/firmware`.
-
-Далее нам необходимо создать описание нашей платы Sportiduino.
-Для этого открываем файл `[Program Files]\Arduino\hardware\arduino\avr\boards.txt`
-и добавляем в конец файла содержимое файла `[Проект]\firmware\boards.txt`
-
-После этого копируем файлы \*.hex из папки `[Проект]\firmware\Optiboot` в папку `[Program Files]\Arduino\hardware\arduino\avr\bootloaders\optiboot`.
-
-Перезапускаем Arduino IDE. В меню Инструменты->Плата должна появиться наша плата Sportiduino.
-
 ### Прошивка микроконтроллера
 
-В Arduino IDE открываем скетч BaseStation (Файл->Папка со скетчами->BaseStation).
-В меню Инструменты->Плата устанавливаем `Sportiduino`. Далее в меню Инструменты->Программатор выбираем `Arduino as ISP`. 
+Выполняем предварительную [настройку Arduino IDE](ArduinoIde.md).
 
-![](/img/BaseStationProgConf.jpg?raw=true)
+В Arduino IDE открываем скетч BaseStation (Файл->Папка со скетчами->BaseStation).
+В меню Инструменты->Плата устанавливаем `Sportiduino Base Station`.
+Далее в меню Инструменты->Программатор выбираем `Arduino as ISP`. 
+
+![](/img/ArduinoIdeBoardSelection.png?raw=true)
+
+Рекомендуется выбрать загрузчик "Optiboot 19200 with LED" в меню Инструменты.
+
+Если на плате установлен активный зуммер, то выбираем "Buzzer frequency: 0 kHz (active buzzer)" в меню Инструменты->Программатор.
 
 Подключаем наш программатор к плате Sportiduino.
 Вставляем батарейки.
