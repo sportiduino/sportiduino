@@ -92,6 +92,7 @@ private:
     bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size);
     // data buffer size should be greater 4 bytes
     bool ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size);
+    bool ntagAuth(uint8_t *password, uint8_t *pack);
     // data buffer size should be greater 4 bytes
     bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size);
 

@@ -381,7 +381,7 @@ public:
 	StatusCode MIFARE_Transfer(byte blockAddr);
 	StatusCode MIFARE_GetValue(byte blockAddr, long *value);
 	StatusCode MIFARE_SetValue(byte blockAddr, long value);
-	StatusCode PCD_NTAG216_AUTH(byte *passWord, byte pACK[]);
+	StatusCode PCD_NTAG21x_Auth(byte *passWord, byte pACK[]);
 	
 	/////////////////////////////////////////////////////////////////////////////////////
 	// Support functions

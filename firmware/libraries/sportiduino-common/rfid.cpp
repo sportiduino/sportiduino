@@ -152,6 +152,16 @@ bool Rfid::mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
     return true;
 }
 
+bool Rfid::ntagAuth(uint8_t *password, uint8_t *pack) {
+    auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(password, pack);
+
+    if(status != MFRC522::STATUS_OK) {
+        return false;
+    }
+
+    return true;
+}
+
 bool Rfid::ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
     if(*size < 18) {
         return false;
