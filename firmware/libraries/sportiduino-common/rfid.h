@@ -11,15 +11,20 @@
 #define CARD_PAGE_INIT              4
 #define CARD_PAGE_INIT_TIME         5
 #define CARD_PAGE_LAST_RECORD_INFO  6
-#define CARD_PAGE_INFO1				6
-#define CARD_PAGE_INFO2				7
+#define CARD_PAGE_INFO1             6
+#define CARD_PAGE_INFO2             7
 #define CARD_PAGE_START             8
 
-#define CARD_PAGE_PASS				5
-#define CARD_PAGE_DATE				6
-#define CARD_PAGE_TIME				7
-#define CARD_PAGE_STATION_NUM		6
-#define CARD_PAGE_BACKUP_START		6
+#define CARD_PAGE_PASS              5
+#define CARD_PAGE_DATE              6
+#define CARD_PAGE_TIME              7
+#define CARD_PAGE_STATION_NUM       6
+#define CARD_PAGE_BACKUP_START      6
+
+#define PAGE_CFG0_OFFSET            2
+#define PAGE_CFG1_OFFSET            3
+#define PAGE_PWD_OFFSET             4
+#define PAGE_PACK_OFFSET            5
 
 enum class CardType : byte {
     UNKNOWN	    = 0,
@@ -30,7 +35,7 @@ enum class CardType : byte {
     MIFARE_4K   = 5,
     MIFARE_UL   = 6,
     MIFARE_PLUS	= 7,
-    TNP3XXX	    = 8,
+    TNP3XXX     = 8,
     NTAG213     = 9,
     NTAG215     = 10,
     NTAG216     = 11
@@ -40,6 +45,7 @@ class Rfid {
 public:
     void init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain = DEFAULT_ANTENNA_GAIN);
     void setAntennaGain(uint8_t newAntennaGain);
+    void setPassword(uint8_t *newKey, bool ntagWriteProtection = false, bool ntagReadProtection = false);
 
     /**
      * Begins to work with RFID module
@@ -85,6 +91,8 @@ public:
      */
     CardType getCardType();
 
+    bool cardEnableDisableAuthentication();
+
 private:
     // data buffer size should be greater 18 bytes
     bool mifareCardPageRead(uint8_t pageAdr, byte *data, byte *size);
@@ -92,7 +100,10 @@ private:
     bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size);
     // data buffer size should be greater 4 bytes
     bool ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size);
+    bool ntagAuthWithMifareKey(MFRC522::MIFARE_Key *key);
     bool ntagAuth(uint8_t *password, uint8_t *pack);
+    bool ntagSetPassword(uint8_t *password, uint8_t *pack, bool readAndWrite, uint8_t negAuthAttemptsLim, uint8_t startPage);
+    bool ntagDisableAuthentication();
     // data buffer size should be greater 4 bytes
     bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size);
 
@@ -103,6 +114,9 @@ private:
     uint8_t rfidRstPin = 0;
     uint8_t antennaGain = 0;
     CardType cardType = CardType::UNKNOWN;
+    bool ntagWriteProtection = false;
+    bool ntagReadProtection = false;
+    bool authenticated = false;
 };
 
 #endif // SPORTIDUINO_RFID_H

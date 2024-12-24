@@ -2,14 +2,30 @@
 #include <SPI.h>
 #include "rfid.h"
 
+#define DEBUG
+
 void Rfid::init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain) {
     rfidSsPin = ssPin;
     rfidRstPin = rstPin;
     antennaGain = constrain(newAntennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
+    memset(&key, 0xFF, sizeof(key)); // Default MIFARE key
 }
 
 void Rfid::setAntennaGain(uint8_t newAntennaGain) {
     antennaGain = constrain(newAntennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
+}
+
+void Rfid::setPassword(uint8_t* password, bool _ntagWriteProtection, bool _ntagReadProtection) {
+    if(!password) {
+        return;
+    }
+    // Use password[3] as key for MIFARE or Ntag authentication
+    key = {
+        password[0], password[1], password[2],
+        password[0], password[1], password[2]
+    };
+    ntagWriteProtection = _ntagWriteProtection;
+    ntagReadProtection = _ntagReadProtection && _ntagWriteProtection;
 }
 
 void Rfid::begin(uint8_t newAntennaGain) {
@@ -17,27 +33,26 @@ void Rfid::begin(uint8_t newAntennaGain) {
         antennaGain = newAntennaGain;
     }
     cardType = CardType::UNKNOWN;
-    
-    memset(&key, 0xFF, sizeof(key));
-    
+    authenticated = false;
+
     SPI.begin();
     mfrc522.PCD_Init(rfidSsPin, rfidRstPin);
     mfrc522.PCD_AntennaOff();
     mfrc522.PCD_SetAntennaGain(antennaGain<<4);
     mfrc522.PCD_AntennaOn();
-    
+
     delay(5);
-    
+
     if(!mfrc522.PICC_IsNewCardPresent()) {
         memset(&lastCardUid, 0, sizeof(lastCardUid));
         return;
     }
-    
+
     if(!mfrc522.PICC_ReadCardSerial()) {
         memset(&lastCardUid, 0, sizeof(lastCardUid));
         return;
     }
-    
+
     auto piccType = MFRC522::PICC_GetType(mfrc522.uid.sak);
     switch(piccType) {
         case MFRC522::PICC_TYPE_MIFARE_MINI:
@@ -152,18 +167,146 @@ bool Rfid::mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
     return true;
 }
 
-bool Rfid::ntagAuth(uint8_t *password, uint8_t *pack) {
-    auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(password, pack);
+bool Rfid::ntagSetPassword(uint8_t *password, uint8_t *pack, bool readAndWrite, uint8_t negAuthAttemptsLim, uint8_t startPage) {
+    if(negAuthAttemptsLim > 7) {
+        negAuthAttemptsLim = 7;
+    }
 
-    if(status != MFRC522::STATUS_OK) {
+    uint8_t maxPage = getCardMaxPage();
+    if(!ntagCardPageWrite(maxPage + PAGE_PWD_OFFSET, password, 4)) {
+        return false;
+    }
+
+    uint8_t packPageData[4] = {pack[0], pack[1], 0, 0};
+    if(!ntagCardPageWrite(maxPage + PAGE_PACK_OFFSET, packPageData, 4)) {
+        return false;
+    }
+
+    //uint8_t pageData[18];
+    //uint8_t dataSize = sizeof(pageData);
+    //if(!ntagCardPageRead(maxPage + PAGE_CFG1_OFFSET, pageData, &dataSize)) {
+    //    return false;
+    //}
+    uint8_t accessByteData = readAndWrite ? 0x80 : 0x00;
+    accessByteData |= negAuthAttemptsLim & 0x07;
+    uint8_t cfg1PageData[4] = {accessByteData, 0, 0, 0};
+    if(!ntagCardPageWrite(maxPage + PAGE_CFG1_OFFSET, cfg1PageData, 4)) {
+        return false;
+    }
+
+    // Set start page to enable the password verification at the end of the procedure
+    uint8_t cfg0PageData[4] = {0, 0, 0, startPage};
+    if(!ntagCardPageWrite(maxPage + PAGE_CFG0_OFFSET, cfg0PageData, 4)) {
         return false;
     }
 
     return true;
 }
 
+bool Rfid::ntagDisableAuthentication() {
+#ifdef DEBUG
+    Serial.println("ntagDisableAuthentication");
+#endif
+    uint8_t maxPage = getCardMaxPage();
+    uint8_t cfg0PageData[4] = {0, 0, 0, 0xff};
+    if(!ntagCardPageWrite(maxPage + PAGE_CFG0_OFFSET, cfg0PageData, 4)) {
+        return false;
+    }
+    return true;
+}
+
+bool Rfid::ntagAuth(uint8_t *password, uint8_t *pack) {
+    if(!password || !pack) {
+#ifdef DEBUG
+        Serial.println(F("ntagAuth password or pack is null"));
+#endif
+        return false;
+    }
+    if (!isCardDetected()) {
+#ifdef DEBUG
+        Serial.println(F("ntagAuth card is not detected"));
+#endif
+        return false;
+    }
+#ifdef DEBUG
+    Serial.println(F("Authenticating..."));
+    Serial.print(F("Password: "));
+    for(uint8_t i = 0; i < 4; i++) {
+        Serial.print(password[i], HEX);
+        Serial.print(F(" "));
+    }
+    Serial.println();
+    Serial.print(F("Pack: "));
+    for(uint8_t i = 0; i < 2; i++) {
+        Serial.print(pack[i], HEX);
+        Serial.print(F(" "));
+    }
+    Serial.println();
+#endif
+    auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(password, pack);
+
+    if(status != MFRC522::STATUS_OK) {
+#ifdef DEBUG
+        Serial.print(F("Auth failed, status: 0x"));
+        Serial.println(status, HEX);
+#endif
+        if (status == MFRC522::STATUS_TIMEOUT) {
+            byte atqa_answer[2];
+            byte atqa_size = 2;
+            mfrc522.PICC_WakeupA(atqa_answer, &atqa_size);
+
+            if (!mfrc522.PICC_ReadCardSerial()) {
+#ifdef DEBUG
+                Serial.println(F("ReadCardSerial failed"));
+#endif
+            }
+        }
+
+//#ifdef DEBUG
+//        Serial.println(F("Trying default password"));
+//#endif
+//        uint8_t defaultPassword[4] = {0xFF, 0xFF, 0xFF, 0xFF};
+//        uint8_t defaultPack[2] = {0, 0};
+//        auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(defaultPassword, defaultPack);
+//        if(status != MFRC522::STATUS_OK) {
+//            status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(password, pack);
+//#ifdef DEBUG
+//            Serial.print(F("Auth failed, status: 0x"));
+//            Serial.println(status, HEX);
+//#endif
+//            return false;
+//        }
+        return false;
+    }
+
+    return true;
+}
+
+bool Rfid::ntagAuthWithMifareKey(MFRC522::MIFARE_Key *key) {
+    if(!key) {
+#ifdef DEBUG
+        Serial.println(F("ntagAuthWithMifareKey key is null"));
+#endif
+        return false;
+    }
+    if(key->keyByte[0] != 0xFF || key->keyByte[1] != 0xFF || key->keyByte[2] != 0xFF || key->keyByte[3] != 0xFF) {
+        // Using first 4 bytes of MIFARE key as NTAG password and 2 last bytes as pack
+        if(!ntagAuth(&key->keyByte[0], &key->keyByte[4])) {
+#ifdef DEBUG
+            Serial.println(F("ntagAuthWithMifareKey failed, ignoring"));
+#endif
+        }
+    }
+    authenticated = true;
+    return true;
+}
+
 bool Rfid::ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
     if(*size < 18) {
+        return false;
+    }
+
+    if(pageAdr >= CARD_PAGE_INIT && !authenticated && !ntagAuthWithMifareKey(&key)) {
         return false;
     }
 
@@ -177,13 +320,27 @@ bool Rfid::ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
 }
 
 bool Rfid::ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
+#ifdef DEBUG
+    Serial.print(F("ntagCardPageWrite pageAdr: 0x"));
+    Serial.print(pageAdr, HEX);
+    Serial.print(F(" size: "));
+    Serial.println(size);
+#endif
     if(pageAdr < 2 || size < 4) {
+        return false;
+    }
+
+    if(!authenticated && !ntagAuthWithMifareKey(&key)) {
         return false;
     }
 
     auto status = (MFRC522::StatusCode)mfrc522.MIFARE_Ultralight_Write(pageAdr, data, size);
     
     if(status != MFRC522::STATUS_OK) {
+#ifdef DEBUG
+        Serial.print(F("ntagCardPageWrite failed, status: 0x"));
+        Serial.println(status, HEX);
+#endif
         return false;
     }
     
@@ -303,5 +460,30 @@ bool Rfid::cardErase(uint8_t beginPageAddr, uint8_t endPageAddr) {
 bool Rfid::cardPageErase(uint8_t pageAddr) {
     const byte emptyBlock[] = {0,0,0,0};
     return cardPageWrite(pageAddr, emptyBlock);
+}
+
+bool Rfid::cardEnableDisableAuthentication() {
+    if (!isCardDetected()) {
+        return false;
+    }
+    switch(cardType) {
+        case CardType::MIFARE_MINI:
+        case CardType::MIFARE_1K:
+        case CardType::MIFARE_4K: {
+            // TODO: not implemented yet 
+            return true;
+        }
+        case CardType::NTAG213:
+        case CardType::NTAG215:
+        case CardType::NTAG216: {
+            if(!ntagWriteProtection) {
+                return ntagDisableAuthentication();
+            }
+            // Enable authentication from page 4 and with unlimited negative password verification attempts
+            return ntagSetPassword(&key.keyByte[0], &key.keyByte[4], ntagReadProtection, 0, CARD_PAGE_INIT);
+        }
+        default:
+            return true;
+    }
 }
 
