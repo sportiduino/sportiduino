@@ -60,7 +60,7 @@ void Rfid::begin(uint8_t newAntennaGain) {
         case MFRC522::PICC_TYPE_MIFARE_UL: {
             byte pageData[18];
             byte dataSize = sizeof(pageData);
-            if(ntagCardPageRead(3, pageData, &dataSize)) {
+            if(ntagCard4PagesRead(3, pageData, &dataSize)) {
                 switch(pageData[2]) {
                     case 0x12:
                         cardType = CardType::NTAG213;
@@ -182,7 +182,7 @@ bool Rfid::ntagSetPassword(uint8_t *password, uint8_t *pack, bool readAndWrite, 
 
     //uint8_t pageData[18];
     //uint8_t dataSize = sizeof(pageData);
-    //if(!ntagCardPageRead(maxPage + PAGE_CFG1_OFFSET, pageData, &dataSize)) {
+    //if(!ntagCard4PagesRead(maxPage + PAGE_CFG1_OFFSET, pageData, &dataSize)) {
     //    return false;
     //}
     uint8_t accessByteData = readAndWrite ? 0x80 : 0x00;
@@ -306,7 +306,7 @@ bool Rfid::ntagAuthWithMifareKey(MFRC522::MIFARE_Key *key) {
     return true;
 }
 
-bool Rfid::ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
+bool Rfid::ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size) {
     if(*size < 18) {
         return false;
     }
@@ -326,8 +326,8 @@ bool Rfid::ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
 
 bool Rfid::ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
 #ifdef DEBUG
-    Serial.print(F("ntagCardPageWrite pageAdr: 0x"));
-    Serial.print(pageAdr, HEX);
+    Serial.print(F("ntagCardPageWrite pageAdr: "));
+    Serial.print(pageAdr);
     Serial.print(F(" size: "));
     Serial.println(size);
 #endif
@@ -400,7 +400,7 @@ bool Rfid::cardPageRead(uint8_t pageAdr, byte *data, uint8_t size) {
         case CardType::NTAG215:
         case CardType::NTAG216:
         default:
-            result = ntagCardPageRead(pageAdr, pageData, &dataSize);
+            result = ntagCard4PagesRead(pageAdr, pageData, &dataSize);
             break;
     }
     
@@ -463,8 +463,67 @@ bool Rfid::cardErase(uint8_t beginPageAddr, uint8_t endPageAddr) {
 }
 
 bool Rfid::cardPageErase(uint8_t pageAddr) {
-    const byte emptyBlock[] = {0,0,0,0};
-    return cardPageWrite(pageAddr, emptyBlock);
+#ifdef DEBUG
+    Serial.print(F("Erasing page "));
+    Serial.println(pageAddr);
+#endif
+    byte pageData[4];
+    if(!cardPageRead(pageAddr, pageData)) {
+        return false;
+    }
+    for(uint8_t i = 0; i < 4; ++i) {
+        if(pageData[i] != 0) {
+            const byte emptyBlock[] = {0,0,0,0};
+            return cardPageWrite(pageAddr, emptyBlock);
+        }
+    }
+    return true;
+}
+
+bool Rfid::cardErase4Pages(uint8_t pageAddr) {
+    if (!isCardDetected()) {
+        return false;
+    }
+    switch(cardType) {
+        case CardType::MIFARE_MINI:
+        case CardType::MIFARE_1K:
+        case CardType::MIFARE_4K: {
+            for(uint8_t i = 0; i < 4; ++i) {
+                if(!cardPageErase(pageAddr + 3 - i)) {
+                    return false;
+                }
+            }
+            return true;
+        }
+        case CardType::NTAG213:
+        case CardType::NTAG215:
+        case CardType::NTAG216: {
+#ifdef DEBUG
+            Serial.print(F("Checking pages at "));
+            Serial.println(pageAddr);
+#endif
+            byte pageData[18];
+            byte dataSize = sizeof(pageData);
+            if(!ntagCard4PagesRead(pageAddr, pageData, &dataSize)) {
+                return false;
+            }
+            for(uint8_t i = 0; i < 4; ++i) {
+                for(uint8_t j = 0; j < 4; ++j) {
+                    uint8_t offset = (3 - i);
+                    if(pageData[offset*4 + j] != 0) {
+                        const byte emptyBlock[] = {0,0,0,0};
+                        if(!ntagCardPageWrite(pageAddr + offset, emptyBlock, sizeof(emptyBlock))) {
+                            return false;
+                        }
+                        break;
+                    }
+                }
+            }
+            return true;
+        }
+        default:
+            return false;
+    }
 }
 
 bool Rfid::cardEnableDisableAuthentication() {

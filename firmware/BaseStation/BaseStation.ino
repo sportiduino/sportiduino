@@ -1325,18 +1325,39 @@ void clearParticipantCard() {
 
     digitalWrite(LED, HIGH);
     // Clear card from last page
-    for(uint8_t page = maxPage; page >= CARD_PAGE_INIT_TIME; --page) {
+    uint8_t c = 0;
+    for(uint8_t page = maxPage - 3; page > CARD_PAGE_INIT_TIME; page -= 4) {
         Watchdog.reset();
 
-        if(page % 10 == 0) {
+        if(c % 10 == 0) {
             digitalWrite(LED, HIGH);
-        } else if(page % 5 == 0) {
+        } else if(c % 5 == 0) {
             digitalWrite(LED, LOW);
         }
-        
-        if(!rfid.cardPageErase(page)) {
+        ++c;
+        if(!rfid.cardErase4Pages(page)) {
+#ifdef DEBUG
+            Serial.println(F("Failed to erase pages"));
+#endif
             result = false;
             break;
+        }
+    }
+
+    uint8_t tail = (maxPage - CARD_PAGE_INIT_TIME)%4;
+    // Erase the tail if necessary
+    if (result && tail > 0) {
+        Watchdog.reset();
+
+        // Erase the remaining pages individually
+        for (uint8_t i = tail; i > 0; --i) {
+            uint8_t pageToErase = CARD_PAGE_INIT_TIME + i;
+
+            // Attempt to erase a single page
+            if (!rfid.cardPageErase(pageToErase)) {
+                result = false;
+                break;
+            }
         }
     }
     digitalWrite(LED, LOW);
