@@ -65,6 +65,8 @@ public:
 
     bool cardPageErase(uint8_t pageAddr);
 
+    bool cardErase4Pages(uint8_t pageAddr);
+
     /**
      * Reads data from a card page. Buffer size should be 4 bytes!
      */
@@ -92,8 +94,8 @@ private:
     bool mifareCardPageRead(uint8_t pageAdr, byte *data, byte *size);
     // data buffer size should be greater 16 bytes
     bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size);
-    // data buffer size should be greater 4 bytes
-    bool ntagCardPageRead(uint8_t pageAdr, byte *data, byte *size);
+    // data buffer size should be greater 16 bytes
+    bool ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size);
     // data buffer size should be greater 4 bytes
     bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size);
 
