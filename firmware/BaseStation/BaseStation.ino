@@ -110,9 +110,9 @@ struct __attribute__((packed)) Configuration {
     uint8_t oldFastPunchMode: 1; // Deprecated
     uint8_t enableFastPunchForCard: 1; // Enable fast punch for card when clear
     uint8_t antennaGain: 3;
-    uint8_t writeProtection: 1; // Enable write protection by password
-    uint8_t readProtection: 1; // Enable read protection by password
-    uint8_t _reserved2: 3;
+    //uint8_t writeProtection: 1; // Enable write protection by password
+    //uint8_t readProtection: 1; // Enable read protection by password
+    uint8_t _reserved2: 5;
     uint8_t password[3];
 };
 
@@ -369,7 +369,7 @@ void setup() {
   
     serialProto.init(SERIAL_MSG_START);
     rfid.init(RC522_SS, RC522_RST, config.antennaGain);
-    rfid.setPassword(config.password, config.writeProtection, config.readProtection);
+    rfid.setPassword(config.password);
 
     delay(500);
 

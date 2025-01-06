@@ -13,7 +13,7 @@ void Rfid::setAntennaGain(uint8_t newAntennaGain) {
     antennaGain = constrain(newAntennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
 }
 
-void Rfid::setPassword(uint8_t* password, bool _ntagWriteProtection, bool _ntagReadProtection) {
+void Rfid::setPassword(uint8_t* password) {
     if(!password) {
         return;
     }
@@ -22,8 +22,6 @@ void Rfid::setPassword(uint8_t* password, bool _ntagWriteProtection, bool _ntagR
         password[0], password[1], password[2],
         password[0], password[1], password[2]
     };
-    ntagWriteProtection = _ntagWriteProtection;
-    ntagReadProtection = _ntagReadProtection && _ntagWriteProtection;
 }
 
 void Rfid::begin(uint8_t newAntennaGain) {
@@ -526,7 +524,7 @@ bool Rfid::cardErase4Pages(uint8_t pageAddr) {
     }
 }
 
-bool Rfid::cardEnableDisableAuthentication() {
+bool Rfid::cardEnableDisableAuthentication(bool writeProtection, bool readProtection) {
     if (!isCardDetected()) {
         return false;
     }
@@ -540,11 +538,11 @@ bool Rfid::cardEnableDisableAuthentication() {
         case CardType::NTAG213:
         case CardType::NTAG215:
         case CardType::NTAG216: {
-            if(!ntagWriteProtection) {
+            if(!writeProtection) {
                 return ntagDisableAuthentication();
             }
             // Enable authentication from page 4 and with unlimited negative password verification attempts
-            return ntagSetPassword(&key.keyByte[0], &key.keyByte[4], ntagReadProtection, 0, CARD_PAGE_INIT);
+            return ntagSetPassword(&key.keyByte[0], &key.keyByte[4], readProtection, 0, CARD_PAGE_INIT);
         }
         default:
             return true;

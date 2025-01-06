@@ -63,9 +63,9 @@ struct __attribute__((packed)) Configuration {
     uint8_t antennaGain;
     int8_t timezone; // timezone in 1/4 hours
     // v1.10 and later
-    uint8_t writeProtection: 1; // using MIFARE and Ntag authentication
-    uint8_t readProtection: 1; // using MIFARE and Ntag authentication
-    uint8_t _reserved: 6;
+    //uint8_t writeProtection: 1; // using MIFARE and Ntag authentication
+    //uint8_t readProtection: 1; // using MIFARE and Ntag authentication
+    //uint8_t _reserved: 6;
 };
 
 //-----------------------------------------------------------
@@ -112,7 +112,7 @@ void setup() {
     }
 
     rfid.init(RC522_SS_PIN, RC522_RST_PIN, config.antennaGain);
-    rfid.setPassword(password, config.writeProtection, config.readProtection);
+    rfid.setPassword(password);
     serialProto.init(SERIAL_START_BYTE, 38400);
 
     digitalWrite(LED_PIN, HIGH);
@@ -259,7 +259,7 @@ void funcWriteMasterPassword(uint8_t *serialData, uint8_t dataSize) {
 
 void funcApplyPassword(uint8_t *serialData, uint8_t dataSize) {
     memcpy(password, serialData, 3);
-    rfid.setPassword(password, config.writeProtection, config.readProtection);
+    rfid.setPassword(password);
     signalOK();
 }
 
@@ -283,17 +283,28 @@ void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
     memcpy(&config, newConfig, sizeof(Configuration));
     writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
     rfid.setAntennaGain(config.antennaGain);
-    rfid.setPassword(password, config.writeProtection, config.readProtection);
+    rfid.setPassword(password);
     signalOK();
 }
 
 void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize < 14) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
     if(!rfid.isCardDetected()) {
         signalError(ERROR_CARD_NOT_FOUND);
         return;
     }
 
-    if(!rfid.cardEnableDisableAuthentication()) {
+    bool writeProtection = false;
+    bool readProtection = false;
+    if(dataSize > 14) {
+        uint8_t flags = serialData[14];
+        writeProtection = (flags & 1);
+        readProtection = (flags & 2);
+    }
+    if(!rfid.cardEnableDisableAuthentication(writeProtection, readProtection)) {
         signalError(ERROR_CARD_WRITE);
         return;
     }

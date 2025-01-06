@@ -45,7 +45,7 @@ class Rfid {
 public:
     void init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain = DEFAULT_ANTENNA_GAIN);
     void setAntennaGain(uint8_t newAntennaGain);
-    void setPassword(uint8_t *newKey, bool ntagWriteProtection = false, bool ntagReadProtection = false);
+    void setPassword(uint8_t *newKey);
 
     /**
      * Begins to work with RFID module
@@ -93,7 +93,7 @@ public:
      */
     CardType getCardType();
 
-    bool cardEnableDisableAuthentication();
+    bool cardEnableDisableAuthentication(bool writeProtection, bool readProtection = false);
 
 private:
     // data buffer size should be greater 18 bytes
@@ -116,8 +116,6 @@ private:
     uint8_t rfidRstPin = 0;
     uint8_t antennaGain = 0;
     CardType cardType = CardType::UNKNOWN;
-    bool ntagWriteProtection = false;
-    bool ntagReadProtection = false;
     bool authenticated = false;
 };
 
