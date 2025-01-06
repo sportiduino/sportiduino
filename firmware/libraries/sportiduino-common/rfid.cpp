@@ -2,8 +2,6 @@
 #include <SPI.h>
 #include "rfid.h"
 
-#define DEBUG
-
 void Rfid::init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain) {
     rfidSsPin = ssPin;
     rfidRstPin = rstPin;
@@ -43,12 +41,7 @@ void Rfid::begin(uint8_t newAntennaGain) {
 
     delay(5);
 
-    if(!mfrc522.PICC_IsNewCardPresent()) {
-        memset(&lastCardUid, 0, sizeof(lastCardUid));
-        return;
-    }
-
-    if(!mfrc522.PICC_ReadCardSerial()) {
+    if(!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
         memset(&lastCardUid, 0, sizeof(lastCardUid));
         return;
     }
@@ -112,10 +105,15 @@ bool Rfid::isNewCardDetected() {
                 return true;
             }
         }
+#ifdef DEBUG
+        Serial.println("Same UID");
+#endif
     }
     
     return false;
 }
+
+MFRC522::MIFARE_Key defaultMifareKey = {0xFF, 0xFF, 0xFF, 0xFF, 0xFF, 0xFF};
 
 bool Rfid::mifareCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
     // data size should be at least 18 bytes!
@@ -127,7 +125,7 @@ bool Rfid::mifareCardPageRead(uint8_t pageAdr, byte *data, byte *size) {
     byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
     byte trailerBlock = blockAddr + (3-blockAddr%4);
 
-    auto status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
+    auto status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &defaultMifareKey, &(mfrc522.uid));
     
     if(status != MFRC522::STATUS_OK) {
         return false;
@@ -152,7 +150,7 @@ bool Rfid::mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
     byte blockAddr = pageAdr-3 + ((pageAdr-3)/3);
     byte trailerBlock = blockAddr + (3-blockAddr%4);
 
-    auto status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &key, &(mfrc522.uid));
+    auto status = mfrc522.PCD_Authenticate(MFRC522::PICC_CMD_MF_AUTH_KEY_A, trailerBlock, &defaultMifareKey, &(mfrc522.uid));
     
     if(status != MFRC522::STATUS_OK) {
         return false;
@@ -243,7 +241,14 @@ bool Rfid::ntagAuth(uint8_t *password, uint8_t *pack) {
     }
     Serial.println();
 #endif
-    auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(password, pack);
+    uint8_t packReturn[2] = {0, 0};
+    auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(password, packReturn);
+#ifdef DEBUG
+    Serial.print(F("Pack from card: 0x"));
+    Serial.print(packReturn[0], HEX);
+    Serial.print(F(" 0x"));
+    Serial.println(packReturn[1], HEX);
+#endif
 
     if(status != MFRC522::STATUS_OK) {
 #ifdef DEBUG

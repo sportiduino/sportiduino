@@ -415,7 +415,7 @@ void loop() {
             sleep(activeModePollPeriod);
 
 #ifdef DEBUG
-            digitalWrite(LED,HIGH);
+            //digitalWrite(LED,HIGH);
 #endif
 
             if(config.activeModeDuration == SETTINGS_ALWAYS_ACTIVE) {
@@ -429,7 +429,7 @@ void loop() {
             sleep(MODE_WAIT_CARD_CHECK_PERIOD);
 
 #ifdef DEBUG
-            digitalWrite(LED,HIGH);
+            //digitalWrite(LED,HIGH);
 #endif
 
             if(config.activeModeDuration == SETTINGS_ALWAYS_WAIT) {
@@ -457,7 +457,7 @@ void loop() {
             disableInterruptReedSwitch();
 
 #ifdef DEBUG
-            digitalWrite(LED,HIGH);
+            //digitalWrite(LED,HIGH);
 #endif
             
             break;
@@ -750,14 +750,20 @@ void i2cEepromErase() {
 
 #if defined(ADC_IN) && defined(ADC_ENABLE)
 uint16_t measureBatteryVoltage(bool silent) {
+#ifdef DEBUG
+    Serial.println(F("measureBatteryVoltage"));
+#endif
     analogReference(INTERNAL);
     pinMode(ADC_ENABLE, OUTPUT);
     digitalWrite(ADC_ENABLE, LOW);
     pinMode(ADC_IN, INPUT);
     ADCSRA |= bit(ADEN);
 
+#ifdef DEBUG
+    Serial.println(F("delay"));
+#endif
     if (silent) {
-        delay(500);
+        delay(100);
     } else {
         // Turn on led to increase current
         digitalWrite(LED, HIGH);
@@ -766,6 +772,9 @@ uint16_t measureBatteryVoltage(bool silent) {
         delay(3000);
     }
 
+#ifdef DEBUG
+    Serial.println(F("measure"));
+#endif
     // Drop first measure, it's wrong
     analogRead(ADC_IN);
 
@@ -780,6 +789,10 @@ uint16_t measureBatteryVoltage(bool silent) {
     if (!silent) {
         digitalWrite(LED, LOW);
     }
+#ifdef DEBUG
+    Serial.print(F("value: "));
+    Serial.println(value);
+#endif
     pinMode(ADC_ENABLE, INPUT);
     const uint32_t R_HIGH = 270000; // Ohm
     const uint32_t R_LOW = 68000; // Ohm
@@ -1165,7 +1178,9 @@ void processStateMasterCard(byte *data, byte dataSize) {
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     // Disable RFID to prevent bad impact on measurements
     rfid.end();
+    digitalWrite(LED, HIGH);
     byte batteryByte = batteryVoltageToByte(measureBatteryVoltage(true));
+    digitalWrite(LED, LOW);
     rfid.begin(config.antennaGain);
 #else
     byte batteryByte = checkBattery(false);
@@ -1211,7 +1226,7 @@ void processStateMasterCard(byte *data, byte dataSize) {
     result &= rfid.cardPageWrite(page++, pageData);
     
     Watchdog.reset();
-    delay(250);
+    delay(10);
 
     if(result) {
         beepMasterCardOk();
