@@ -57,9 +57,7 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
 }
 
 void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
-#ifdef DEBUG
-    Serial.println(F("findNewPage"));
-#endif
+    DEBUG_PRINTLN(F("findNewPage"));
     uint8_t startPage = CARD_PAGE_START;
     uint8_t endPage = rfid->getCardMaxPage() + 1; // page after last page
     uint8_t page = startPage;
@@ -71,15 +69,11 @@ void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
 
     while(startPage < endPage) {   
         page = (startPage + endPage)/2;
-#ifdef DEBUG
-        Serial.print(F("page: "));
-        Serial.println(page);
-#endif
+        DEBUG_PRINT(F("page: "));
+        DEBUG_PRINTLN(page);
 
         if(!rfid->cardPageRead(page, pageData)) {
-#ifdef DEBUG
-            Serial.println(F("page read failed"));
-#endif
+            DEBUG_PRINTLN(F("page read failed"));
             return;
         }
 
@@ -95,12 +89,10 @@ void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
     if(num > 0) {
         ++page;
     }
-#ifdef DEBUG
-    Serial.print(F("new page: "));
-    Serial.print(page);
-    Serial.print(F(", num: "));
-    Serial.println(num);
-#endif
+    DEBUG_PRINT(F("new page: "));
+    DEBUG_PRINT(page);
+    DEBUG_PRINT(F(", num: "));
+    DEBUG_PRINTLN(num);
 
     *newPage = page;
     *lastNum = num;

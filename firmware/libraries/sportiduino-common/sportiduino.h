@@ -2,6 +2,7 @@
 #define SPORTIDUINO_H
 
 #include <Arduino.h>
+#include "debug.h"
 #include "rfid.h"
 
 enum StationNum {

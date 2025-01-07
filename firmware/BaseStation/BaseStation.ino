@@ -415,7 +415,7 @@ void loop() {
             sleep(activeModePollPeriod);
 
 #ifdef DEBUG
-            //digitalWrite(LED,HIGH);
+            digitalWrite(LED,HIGH);
 #endif
 
             if(config.activeModeDuration == SETTINGS_ALWAYS_ACTIVE) {
@@ -429,7 +429,7 @@ void loop() {
             sleep(MODE_WAIT_CARD_CHECK_PERIOD);
 
 #ifdef DEBUG
-            //digitalWrite(LED,HIGH);
+            digitalWrite(LED,HIGH);
 #endif
 
             if(config.activeModeDuration == SETTINGS_ALWAYS_WAIT) {
@@ -457,7 +457,7 @@ void loop() {
             disableInterruptReedSwitch();
 
 #ifdef DEBUG
-            //digitalWrite(LED,HIGH);
+            digitalWrite(LED,HIGH);
 #endif
             
             break;
@@ -750,18 +750,14 @@ void i2cEepromErase() {
 
 #if defined(ADC_IN) && defined(ADC_ENABLE)
 uint16_t measureBatteryVoltage(bool silent) {
-#ifdef DEBUG
-    Serial.println(F("measureBatteryVoltage"));
-#endif
+    DEBUG_PRINTLN(F("measureBatteryVoltage"));
     analogReference(INTERNAL);
     pinMode(ADC_ENABLE, OUTPUT);
     digitalWrite(ADC_ENABLE, LOW);
     pinMode(ADC_IN, INPUT);
     ADCSRA |= bit(ADEN);
 
-#ifdef DEBUG
-    Serial.println(F("delay"));
-#endif
+    DEBUG_PRINTLN(F("delay"));
     if (silent) {
         delay(100);
     } else {
@@ -772,9 +768,7 @@ uint16_t measureBatteryVoltage(bool silent) {
         delay(3000);
     }
 
-#ifdef DEBUG
-    Serial.println(F("measure"));
-#endif
+    DEBUG_PRINTLN(F("measure"));
     // Drop first measure, it's wrong
     analogRead(ADC_IN);
 
@@ -789,10 +783,8 @@ uint16_t measureBatteryVoltage(bool silent) {
     if (!silent) {
         digitalWrite(LED, LOW);
     }
-#ifdef DEBUG
-    Serial.print(F("value: "));
-    Serial.println(value);
-#endif
+    DEBUG_PRINT(F("value: "));
+    DEBUG_PRINTLN(value);
     pinMode(ADC_ENABLE, INPUT);
     const uint32_t R_HIGH = 270000; // Ohm
     const uint32_t R_LOW = 68000; // Ohm
@@ -905,9 +897,7 @@ void processCard() {
     memset(pageData, 0, sizeof(pageData));
     
     if(!rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
-#ifdef DEBUG
-        Serial.println(F("PAGE_INIT read failed"));
-#endif
+        DEBUG_PRINTLN(F("PAGE_INIT read failed"));
         return;
     }
     // Check the card role
@@ -1253,9 +1243,7 @@ void processParticipantCard(uint16_t cardNum) {
     if(rfid.cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
         fastPunch = (pageData[3] == FAST_PUNCH_SIGN);
     } else {
-#ifdef DEBUG
-        Serial.println(F("Page6 read failed"));
-#endif
+        DEBUG_PRINTLN(F("Page6 read failed"));
         return;
     }
     if(fastPunch) {
@@ -1342,9 +1330,7 @@ void clearParticipantCard() {
         }
         ++c;
         if(!rfid.cardErase4Pages(page)) {
-#ifdef DEBUG
-            Serial.println(F("Failed to erase pages"));
-#endif
+            DEBUG_PRINTLN(F("Failed to erase pages"));
             result = false;
             break;
         }

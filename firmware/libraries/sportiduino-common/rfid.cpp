@@ -1,5 +1,6 @@
 #include <Arduino.h>
 #include <SPI.h>
+#include "debug.h"
 #include "rfid.h"
 
 void Rfid::init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain) {
@@ -103,9 +104,7 @@ bool Rfid::isNewCardDetected() {
                 return true;
             }
         }
-#ifdef DEBUG
-        Serial.println("Same UID");
-#endif
+        DEBUG_PRINTLN("Same UID");
     }
     
     return false;
@@ -200,9 +199,7 @@ bool Rfid::ntagSetPassword(uint8_t *password, uint8_t *pack, bool readAndWrite, 
 }
 
 bool Rfid::ntagDisableAuthentication() {
-#ifdef DEBUG
-    Serial.println("ntagDisableAuthentication");
-#endif
+    DEBUG_PRINTLN("ntagDisableAuthentication");
     uint8_t maxPage = getCardMaxPage();
     uint8_t cfg0PageData[4] = {0, 0, 0, 0xff};
     if(!ntagCardPageWrite(maxPage + PAGE_CFG0_OFFSET, cfg0PageData, 4)) {
@@ -213,72 +210,47 @@ bool Rfid::ntagDisableAuthentication() {
 
 bool Rfid::ntagAuth(uint8_t *password, uint8_t *pack) {
     if(!password || !pack) {
-#ifdef DEBUG
-        Serial.println(F("ntagAuth password or pack is null"));
-#endif
+        DEBUG_PRINTLN(F("ntagAuth password or pack is null"));
         return false;
     }
     if (!isCardDetected()) {
-#ifdef DEBUG
-        Serial.println(F("ntagAuth card is not detected"));
-#endif
+        DEBUG_PRINTLN(F("ntagAuth card is not detected"));
         return false;
     }
 #ifdef DEBUG
-    Serial.println(F("Authenticating..."));
-    Serial.print(F("Password: "));
+    DEBUG_PRINTLN(F("Authenticating..."));
+    DEBUG_PRINT(F("Password: "));
     for(uint8_t i = 0; i < 4; i++) {
-        Serial.print(password[i], HEX);
-        Serial.print(F(" "));
+        DEBUG_PRINT_FORMAT(password[i], HEX);
+        DEBUG_PRINT(F(" "));
     }
-    Serial.println();
-    Serial.print(F("Pack: "));
+    DEBUG_PRINTLN("");
+    DEBUG_PRINT(F("Pack: "));
     for(uint8_t i = 0; i < 2; i++) {
-        Serial.print(pack[i], HEX);
-        Serial.print(F(" "));
+        DEBUG_PRINT_FORMAT(pack[i], HEX);
+        DEBUG_PRINT(F(" "));
     }
-    Serial.println();
+    DEBUG_PRINTLN("");
 #endif
     uint8_t packReturn[2] = {0, 0};
     auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(password, packReturn);
-#ifdef DEBUG
-    Serial.print(F("Pack from card: 0x"));
-    Serial.print(packReturn[0], HEX);
-    Serial.print(F(" 0x"));
-    Serial.println(packReturn[1], HEX);
-#endif
+    DEBUG_PRINT(F("Pack from card: 0x"));
+    DEBUG_PRINTLN_FORMAT(packReturn[0], HEX);
+    DEBUG_PRINT(F(" 0x"));
+    DEBUG_PRINTLN_FORMAT(packReturn[1], HEX);
 
     if(status != MFRC522::STATUS_OK) {
-#ifdef DEBUG
-        Serial.print(F("Auth failed, status: 0x"));
-        Serial.println(status, HEX);
-#endif
+        DEBUG_PRINT(F("Auth failed, status: 0x"));
+        DEBUG_PRINTLN_FORMAT(status, HEX);
         if (status == MFRC522::STATUS_TIMEOUT) {
             byte atqa_answer[2];
             byte atqa_size = 2;
             mfrc522.PICC_WakeupA(atqa_answer, &atqa_size);
 
             if (!mfrc522.PICC_ReadCardSerial()) {
-#ifdef DEBUG
-                Serial.println(F("ReadCardSerial failed"));
-#endif
+                DEBUG_PRINTLN(F("ReadCardSerial failed"));
             }
         }
-
-//#ifdef DEBUG
-//        Serial.println(F("Trying default password"));
-//#endif
-//        uint8_t defaultPassword[4] = {0xFF, 0xFF, 0xFF, 0xFF};
-//        uint8_t defaultPack[2] = {0, 0};
-//        auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(defaultPassword, defaultPack);
-//        if(status != MFRC522::STATUS_OK) {
-//            status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(password, pack);
-//#ifdef DEBUG
-//            Serial.print(F("Auth failed, status: 0x"));
-//            Serial.println(status, HEX);
-//#endif
-//            return false;
-//        }
         return false;
     }
 
@@ -287,17 +259,13 @@ bool Rfid::ntagAuth(uint8_t *password, uint8_t *pack) {
 
 bool Rfid::ntagAuthWithMifareKey(MFRC522::MIFARE_Key *key) {
     if(!key) {
-#ifdef DEBUG
-        Serial.println(F("ntagAuthWithMifareKey key is null"));
-#endif
+        DEBUG_PRINTLN(F("ntagAuthWithMifareKey key is null"));
         return false;
     }
     if(key->keyByte[0] != 0xFF || key->keyByte[1] != 0xFF || key->keyByte[2] != 0xFF || key->keyByte[3] != 0xFF) {
         // Using first 4 bytes of MIFARE key as NTAG password and 2 last bytes as pack
         if(!ntagAuth(&key->keyByte[0], &key->keyByte[4])) {
-#ifdef DEBUG
-            Serial.println(F("ntagAuthWithMifareKey failed, ignoring"));
-#endif
+            DEBUG_PRINTLN(F("ntagAuthWithMifareKey failed, ignoring"));
         }
     }
     authenticated = true;
@@ -323,12 +291,10 @@ bool Rfid::ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size) {
 }
 
 bool Rfid::ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
-#ifdef DEBUG
-    Serial.print(F("ntagCardPageWrite pageAdr: "));
-    Serial.print(pageAdr);
-    Serial.print(F(" size: "));
-    Serial.println(size);
-#endif
+    DEBUG_PRINT(F("ntagCardPageWrite pageAdr: "));
+    DEBUG_PRINTLN(pageAdr);
+    DEBUG_PRINT(F(" size: "));
+    DEBUG_PRINTLN(size);
     if(pageAdr < 2 || size < 4) {
         return false;
     }
@@ -340,10 +306,8 @@ bool Rfid::ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
     auto status = (MFRC522::StatusCode)mfrc522.MIFARE_Ultralight_Write(pageAdr, data, size);
     
     if(status != MFRC522::STATUS_OK) {
-#ifdef DEBUG
-        Serial.print(F("ntagCardPageWrite failed, status: 0x"));
-        Serial.println(status, HEX);
-#endif
+        DEBUG_PRINT(F("ntagCardPageWrite failed, status: 0x"));
+        DEBUG_PRINTLN_FORMAT(status, HEX);
         return false;
     }
     
@@ -461,10 +425,8 @@ bool Rfid::cardErase(uint8_t beginPageAddr, uint8_t endPageAddr) {
 }
 
 bool Rfid::cardPageErase(uint8_t pageAddr) {
-#ifdef DEBUG
-    Serial.print(F("Erasing page "));
-    Serial.println(pageAddr);
-#endif
+    DEBUG_PRINT(F("Erasing page "));
+    DEBUG_PRINTLN(pageAddr);
     byte pageData[4];
     if(!cardPageRead(pageAddr, pageData)) {
         return false;
@@ -496,10 +458,8 @@ bool Rfid::cardErase4Pages(uint8_t pageAddr) {
         case CardType::NTAG213:
         case CardType::NTAG215:
         case CardType::NTAG216: {
-#ifdef DEBUG
-            Serial.print(F("Checking pages at "));
-            Serial.println(pageAddr);
-#endif
+            DEBUG_PRINT(F("Checking pages at "));
+            DEBUG_PRINTLN(pageAddr);
             byte pageData[18];
             byte dataSize = sizeof(pageData);
             if(!ntagCard4PagesRead(pageAddr, pageData, &dataSize)) {
@@ -509,7 +469,7 @@ bool Rfid::cardErase4Pages(uint8_t pageAddr) {
                 for(uint8_t j = 0; j < 4; ++j) {
                     uint8_t offset = (3 - i);
                     if(pageData[offset*4 + j] != 0) {
-                        const byte emptyBlock[] = {0,0,0,0};
+                        byte emptyBlock[] = {0,0,0,0};
                         if(!ntagCardPageWrite(pageAddr + offset, emptyBlock, sizeof(emptyBlock))) {
                             return false;
                         }
