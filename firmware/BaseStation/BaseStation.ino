@@ -905,6 +905,9 @@ void processCard() {
     memset(pageData, 0, sizeof(pageData));
     
     if(!rfid.cardPageRead(CARD_PAGE_INIT, pageData)) {
+#ifdef DEBUG
+        Serial.println(F("PAGE_INIT read failed"));
+#endif
         return;
     }
     // Check the card role
@@ -1250,6 +1253,9 @@ void processParticipantCard(uint16_t cardNum) {
     if(rfid.cardPageRead(CARD_PAGE_LAST_RECORD_INFO, pageData)) {
         fastPunch = (pageData[3] == FAST_PUNCH_SIGN);
     } else {
+#ifdef DEBUG
+        Serial.println(F("Page6 read failed"));
+#endif
         return;
     }
     if(fastPunch) {
