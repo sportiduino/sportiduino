@@ -41,11 +41,16 @@ enum class CardType : byte {
     NTAG216     = 11
 };
 
+typedef struct {
+    byte pass[4];
+    byte pack[2];
+} NtagAuthPassword;
+
 class Rfid {
 public:
     void init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain = DEFAULT_ANTENNA_GAIN);
     void setAntennaGain(uint8_t newAntennaGain);
-    void setPassword(uint8_t *newKey);
+    void setAuthPassword(uint8_t *password);
 
     /**
      * Begins to work with RFID module
@@ -102,15 +107,15 @@ private:
     bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size);
     // data buffer size should be greater 4 bytes
     bool ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size);
-    bool ntagAuthWithMifareKey(MFRC522::MIFARE_Key *key);
-    bool ntagAuth(uint8_t *password, uint8_t *pack);
-    bool ntagSetPassword(uint8_t *password, uint8_t *pack, bool readAndWrite, uint8_t negAuthAttemptsLim, uint8_t startPage);
+    bool ntagTryAuth();
+    bool ntagAuth(NtagAuthPassword *password);
+    bool ntagSetPassword(NtagAuthPassword *password, bool readAndWrite, uint8_t negAuthAttemptsLim, uint8_t startPage);
     bool ntagDisableAuthentication();
     // data buffer size should be greater 4 bytes
     bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size);
 
     MFRC522 mfrc522;
-    MFRC522::MIFARE_Key key;
+    NtagAuthPassword authPwd;
     MFRC522::Uid lastCardUid;
     uint8_t rfidSsPin = 0;
     uint8_t rfidRstPin = 0;

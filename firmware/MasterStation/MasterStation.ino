@@ -63,9 +63,7 @@ struct __attribute__((packed)) Configuration {
     uint8_t antennaGain;
     int8_t timezone; // timezone in 1/4 hours
     // v1.10 and later
-    //uint8_t writeProtection: 1; // using MIFARE and Ntag authentication
-    //uint8_t readProtection: 1; // using MIFARE and Ntag authentication
-    //uint8_t _reserved: 6;
+    uint8_t ntagAuthPassword[4];
 };
 
 //-----------------------------------------------------------
@@ -109,10 +107,13 @@ void setup() {
     if(config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
         config.antennaGain = DEFAULT_ANTENNA_GAIN;
         config.timezone = 0;
+        for (uint8_t i = 0; i < 4; ++i) {
+            config.ntagAuthPassword[i] = 0xFF;
+        }
     }
 
     rfid.init(RC522_SS_PIN, RC522_RST_PIN, config.antennaGain);
-    rfid.setPassword(password);
+    rfid.setAuthPassword(config.ntagAuthPassword);
     serialProto.init(SERIAL_START_BYTE, 38400);
 
     digitalWrite(LED_PIN, HIGH);
@@ -259,13 +260,13 @@ void funcWriteMasterPassword(uint8_t *serialData, uint8_t dataSize) {
 
 void funcApplyPassword(uint8_t *serialData, uint8_t dataSize) {
     memcpy(password, serialData, 3);
-    rfid.setPassword(password);
     signalOK();
 }
 
 void funcReadSettings(uint8_t *serialData, uint8_t dataSize) {
     serialProto.start(RESP_FUNC_SETTINGS);
-    serialProto.add((uint8_t*)&config, sizeof(Configuration));
+    // Send first 2 bytes of configuration (without ntagAuthPassword)
+    serialProto.add((uint8_t*)&config, 2);
     serialProto.send();
 }
 
@@ -283,7 +284,7 @@ void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
     memcpy(&config, newConfig, sizeof(Configuration));
     writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
     rfid.setAntennaGain(config.antennaGain);
-    rfid.setPassword(password);
+    rfid.setAuthPassword(config.ntagAuthPassword);
     signalOK();
 }
 

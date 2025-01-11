@@ -7,22 +7,21 @@ void Rfid::init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain) {
     rfidSsPin = ssPin;
     rfidRstPin = rstPin;
     antennaGain = constrain(newAntennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
-    memset(&key, 0xFF, sizeof(key)); // Default MIFARE key
+    memset(authPwd.pass, 0xFF, 4);
+    memset(authPwd.pack, 0, 2);
 }
 
 void Rfid::setAntennaGain(uint8_t newAntennaGain) {
     antennaGain = constrain(newAntennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
 }
 
-void Rfid::setPassword(uint8_t* password) {
+void Rfid::setAuthPassword(uint8_t* password) {
     if(!password) {
         return;
     }
-    // Use password[3] as key for MIFARE or Ntag authentication
-    key = {
-        password[0], password[1], password[2],
-        password[0], password[1], password[2]
-    };
+    for (uint8_t i = 0; i < 4; i++) {
+        authPwd.pass[i] = password[i];
+    }
 }
 
 void Rfid::begin(uint8_t newAntennaGain) {
@@ -162,17 +161,17 @@ bool Rfid::mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
     return true;
 }
 
-bool Rfid::ntagSetPassword(uint8_t *password, uint8_t *pack, bool readAndWrite, uint8_t negAuthAttemptsLim, uint8_t startPage) {
+bool Rfid::ntagSetPassword(NtagAuthPassword *password, bool readAndWrite, uint8_t negAuthAttemptsLim, uint8_t startPage) {
     if(negAuthAttemptsLim > 7) {
         negAuthAttemptsLim = 7;
     }
 
     uint8_t maxPage = getCardMaxPage();
-    if(!ntagCardPageWrite(maxPage + PAGE_PWD_OFFSET, password, 4)) {
+    if(!ntagCardPageWrite(maxPage + PAGE_PWD_OFFSET, password->pass, 4)) {
         return false;
     }
 
-    uint8_t packPageData[4] = {pack[0], pack[1], 0, 0};
+    uint8_t packPageData[4] = {password->pack[0], password->pack[1], 0, 0};
     if(!ntagCardPageWrite(maxPage + PAGE_PACK_OFFSET, packPageData, 4)) {
         return false;
     }
@@ -208,9 +207,9 @@ bool Rfid::ntagDisableAuthentication() {
     return true;
 }
 
-bool Rfid::ntagAuth(uint8_t *password, uint8_t *pack) {
-    if(!password || !pack) {
-        DEBUG_PRINTLN(F("ntagAuth password or pack is null"));
+bool Rfid::ntagAuth(NtagAuthPassword *password) {
+    if(!password) {
+        DEBUG_PRINTLN(F("ntagAuth password is null"));
         return false;
     }
     if (!isCardDetected()) {
@@ -221,21 +220,21 @@ bool Rfid::ntagAuth(uint8_t *password, uint8_t *pack) {
     DEBUG_PRINTLN(F("Authenticating..."));
     DEBUG_PRINT(F("Password: "));
     for(uint8_t i = 0; i < 4; i++) {
-        DEBUG_PRINT_FORMAT(password[i], HEX);
+        DEBUG_PRINT_FORMAT(password->pass[i], HEX);
         DEBUG_PRINT(F(" "));
     }
     DEBUG_PRINTLN("");
     DEBUG_PRINT(F("Pack: "));
     for(uint8_t i = 0; i < 2; i++) {
-        DEBUG_PRINT_FORMAT(pack[i], HEX);
+        DEBUG_PRINT_FORMAT(password->pack[i], HEX);
         DEBUG_PRINT(F(" "));
     }
     DEBUG_PRINTLN("");
 #endif
     uint8_t packReturn[2] = {0, 0};
-    auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(password, packReturn);
+    auto status = (MFRC522::StatusCode)mfrc522.PCD_NTAG21x_Auth(&password->pass[0], packReturn);
     DEBUG_PRINT(F("Pack from card: 0x"));
-    DEBUG_PRINTLN_FORMAT(packReturn[0], HEX);
+    DEBUG_PRINT_FORMAT(packReturn[0], HEX);
     DEBUG_PRINT(F(" 0x"));
     DEBUG_PRINTLN_FORMAT(packReturn[1], HEX);
 
@@ -257,15 +256,10 @@ bool Rfid::ntagAuth(uint8_t *password, uint8_t *pack) {
     return true;
 }
 
-bool Rfid::ntagAuthWithMifareKey(MFRC522::MIFARE_Key *key) {
-    if(!key) {
-        DEBUG_PRINTLN(F("ntagAuthWithMifareKey key is null"));
-        return false;
-    }
-    if(key->keyByte[0] != 0xFF || key->keyByte[1] != 0xFF || key->keyByte[2] != 0xFF || key->keyByte[3] != 0xFF) {
-        // Using first 4 bytes of MIFARE key as NTAG password and 2 last bytes as pack
-        if(!ntagAuth(&key->keyByte[0], &key->keyByte[4])) {
-            DEBUG_PRINTLN(F("ntagAuthWithMifareKey failed, ignoring"));
+bool Rfid::ntagTryAuth() {
+    if(authPwd.pass[0] != 0xFF || authPwd.pass[1] != 0xFF || authPwd.pass[2] != 0xFF || authPwd.pass[3] != 0xFF) {
+        if(!ntagAuth(&authPwd)) {
+            DEBUG_PRINTLN(F("ntagAuth failed, ignoring"));
         }
     }
     authenticated = true;
@@ -277,7 +271,7 @@ bool Rfid::ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size) {
         return false;
     }
 
-    if(pageAdr >= CARD_PAGE_INIT && !authenticated && !ntagAuthWithMifareKey(&key)) {
+    if(pageAdr >= CARD_PAGE_INIT && !authenticated && !ntagTryAuth()) {
         return false;
     }
 
@@ -299,7 +293,7 @@ bool Rfid::ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
         return false;
     }
 
-    if(!authenticated && !ntagAuthWithMifareKey(&key)) {
+    if(!authenticated && !ntagTryAuth()) {
         return false;
     }
 
@@ -502,7 +496,7 @@ bool Rfid::cardEnableDisableAuthentication(bool writeProtection, bool readProtec
                 return ntagDisableAuthentication();
             }
             // Enable authentication from page 4 and with unlimited negative password verification attempts
-            return ntagSetPassword(&key.keyByte[0], &key.keyByte[4], readProtection, 0, CARD_PAGE_INIT);
+            return ntagSetPassword(&authPwd, readProtection, 0, CARD_PAGE_INIT);
         }
         default:
             return true;
