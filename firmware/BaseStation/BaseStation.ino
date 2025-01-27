@@ -253,9 +253,9 @@ void rtcAlarmIrq();
 bool checkCardInitTime();
 void checkParticipantCard();
 void processSerial();
-void serialFuncReadInfo(byte *data, byte dataSize);
+void serialFuncReadInfo(byte dataSize);
 void serialFuncWriteSettings(byte *data, byte dataSize);
-void serialFuncEraseLog(byte *data, byte dataSize);
+void serialFuncEraseLog();
 void serialRespStatus(uint8_t code);
 void wakeupByUartRx();
 void setStationNum(uint8_t num);
@@ -277,13 +277,13 @@ bool checkBattery(bool beepEnabled = false);
 void checkRtc();
 void processCard();
 void processMasterCard(uint8_t pageInitData[]);
-void processTimeMasterCard(byte *data, byte dataSize);
-void processStationMasterCard(byte *data, byte dataSize);
-void processSleepMasterCard(byte *data, byte dataSize);
-void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
-void processSettingsMasterCard(byte *data, byte dataSize);
-void processPasswordMasterCard(byte *data, byte dataSize);
-void processStateMasterCard(byte *data, byte dataSize);
+void processTimeMasterCard(byte *data);
+void processStationMasterCard(byte *data);
+void processSleepMasterCard(byte *data);
+void processBackupMasterCardWithTimestamps(byte *data);
+void processSettingsMasterCard(byte *data);
+void processPasswordMasterCard(byte *data);
+void processStateMasterCard();
 void processParticipantCard(uint16_t cardNum);
 bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch);
 void clearParticipantCard();
@@ -944,27 +944,27 @@ void processMasterCard(uint8_t pageInitData[]) {
 
     switch(masterCardData[1]) {
         case MASTER_CARD_SET_TIME:
-            processTimeMasterCard(masterCardData, sizeof(masterCardData));
+            processTimeMasterCard(masterCardData);
             break;
         case MASTER_CARD_SET_NUMBER:
-            processStationMasterCard(masterCardData, sizeof(masterCardData));
+            processStationMasterCard(masterCardData);
             break;
         case MASTER_CARD_SLEEP:
-            processSleepMasterCard(masterCardData, sizeof(masterCardData));
+            processSleepMasterCard(masterCardData);
             break;
         case MASTER_CARD_READ_BACKUP:
 #ifdef USE_I2C_EEPROM
-            processBackupMasterCardWithTimestamps(masterCardData, sizeof(masterCardData));
+            processBackupMasterCardWithTimestamps(masterCardData);
 #endif
             break;
         case MASTER_CARD_CONFIG:
-            processSettingsMasterCard(masterCardData, sizeof(masterCardData));
+            processSettingsMasterCard(masterCardData);
             break;
         case MASTER_CARD_PASSWORD:
-            processPasswordMasterCard(masterCardData, sizeof(masterCardData));
+            processPasswordMasterCard(masterCardData);
             break;
         case MASTER_CARD_STATE:
-            processStateMasterCard(masterCardData, sizeof(masterCardData));
+            processStateMasterCard();
             break;
         default:
             beepMasterCardReadError();
@@ -976,11 +976,7 @@ void deinitCard() {
     rfid.cardPageErase(CARD_PAGE_INIT);
 }
 
-void processTimeMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        return;
-    }
-
+void processTimeMasterCard(byte *data) {
     // Note: time is UTC
     setTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
 
@@ -993,12 +989,7 @@ void processTimeMasterCard(byte *data, byte dataSize) {
     }
 }
 
-void processStationMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        beepMasterCardError();
-        return;
-    }
-
+void processStationMasterCard(byte *data) {
     uint8_t newNum = data[8];
 
     if(newNum > 0) {
@@ -1013,11 +1004,7 @@ void processStationMasterCard(byte *data, byte dataSize) {
     }
 }
 
-void processSleepMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        return;
-    }
-
+void processSleepMasterCard(byte *data) {
     setMode(MODE_SLEEP);
 
     // Config alarm
@@ -1027,12 +1014,7 @@ void processSleepMasterCard(byte *data, byte dataSize) {
 }
 
 #ifdef USE_I2C_EEPROM
-void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        beepMasterCardError();
-        return;
-    }
-
+void processBackupMasterCardWithTimestamps(byte *data) {
     byte pageData[4];
     memcpy(pageData, data, 4);
     pageData[0] = config.stationNumber;
@@ -1135,17 +1117,12 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
 }
 #endif
 
-void processSettingsMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        return;
-    }
-
+void processSettingsMasterCard(byte *data) {
     setNewConfig((Configuration*)&data[8]);
-
     beepMasterCardOk();
 }
 
-void processPasswordMasterCard(byte *data, byte dataSize) {
+void processPasswordMasterCard(byte *data) {
     config.password[0] = data[8];
     config.password[1] = data[9];
     config.password[2] = data[10];
@@ -1153,12 +1130,7 @@ void processPasswordMasterCard(byte *data, byte dataSize) {
     beepMasterCardOk();
 }
 
-void processStateMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        beepMasterCardError();
-        return;
-    }  
-
+void processStateMasterCard() {
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     // Disable RFID to prevent bad impact on measurements
     rfid.end();
@@ -1429,13 +1401,13 @@ void processSerial() {
     if(data) {
         switch(cmdCode) {
             case SERIAL_FUNC_READ_INFO:
-                serialFuncReadInfo(data, dataSize);
+                serialFuncReadInfo(dataSize);
                 break;
             case SERIAL_FUNC_WRITE_SETTINGS:
                 serialFuncWriteSettings(data, dataSize);
                 break;
             case SERIAL_FUNC_ERASE_LOG:
-                serialFuncEraseLog(data, dataSize);
+                serialFuncEraseLog();
                 break;
             default:
                 serialRespStatus(SERIAL_ERROR_UNKNOWN_FUNC);
@@ -1448,7 +1420,7 @@ void processSerial() {
     }
 }
 
-void serialFuncReadInfo(byte *data, byte dataSize) {
+void serialFuncReadInfo(byte dataSize) {
     if(dataSize < 3) {
         serialRespStatus(SERIAL_ERROR_SIZE);
         return;
@@ -1509,7 +1481,7 @@ void serialFuncWriteSettings(byte *data, byte dataSize) {
     serialRespStatus(SERIAL_OK);
 }
 
-void serialFuncEraseLog(byte *data, byte dataSize) {
+void serialFuncEraseLog() {
 #ifdef USE_I2C_EEPROM
     i2cEepromErase();
 #endif
