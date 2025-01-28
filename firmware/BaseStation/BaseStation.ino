@@ -382,7 +382,6 @@ void wakeupIfNeed() {
             return;
         }
         if(t.unixtime >= alarmTimestamp) {
-            alarmTimestamp = DEFAULT_ALARM_TIME;
             setModeIfAllowed(MODE_ACTIVE);
         }
     }
