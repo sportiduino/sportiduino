@@ -864,9 +864,11 @@ void checkRtc() {
         return;
     }
     // Check current time
-    if(t.year == 1970) {
-        setTime(2000, 1, 1, 0, 0, 0);
+    if(t.year < 2025) {
         beepTimeError();
+        if(t.year == 1970) {
+            setTime(2000, 1, 1, 0, 0, 0);
+        }
     }
 }
 
