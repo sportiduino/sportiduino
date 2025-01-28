@@ -64,6 +64,7 @@ public:
     void end();
     void start(uint8_t code);
     void add(uint8_t dataByte);
+    void addUint32(uint32_t data);
     void add(const uint8_t *data, uint8_t size);
     void send();
     uint8_t *read(bool *error, uint8_t *code, uint8_t *dataSize);

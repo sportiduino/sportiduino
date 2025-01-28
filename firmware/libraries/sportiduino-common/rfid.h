@@ -75,6 +75,8 @@ public:
      */
     bool cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size = 4);
 
+    bool cardPageWrite(uint8_t pageAdr, uint32_t value);
+
     /**
      * Returns max page address of the presented card
      */

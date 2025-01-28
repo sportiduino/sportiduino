@@ -186,6 +186,12 @@ void SerialProtocol::add(uint8_t dataByte) {
     serialDataPos++;
 }
 
+void SerialProtocol::addUint32(uint32_t data) {
+    uint8_t b[4];
+    uint32ToByteArray(data, b);
+    add(b, 4);
+}
+
 void SerialProtocol::add(const uint8_t *data, uint8_t size) {
     for(uint8_t i = 0; i < size; ++i) {
         add(data[i]);

@@ -264,6 +264,15 @@ bool Rfid::cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size) {
     }
 }
 
+bool Rfid::cardPageWrite(uint8_t pageAdr, uint32_t value) {
+    byte data[4];
+    data[0] = (value >> 24) & 0xFF;
+    data[1] = (value >> 16) & 0xFF;
+    data[2] = (value >> 8) & 0xFF;
+    data[3] = value & 0xFF;
+    return cardPageWrite(pageAdr, data, 4);
+}
+
 bool Rfid::cardWrite(uint8_t startPageAdr, const byte *data, uint16_t size) {
     uint8_t pageAddr = startPageAdr;
     for(uint8_t i = 0; i < size/4; ++i) {

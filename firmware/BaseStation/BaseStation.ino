@@ -150,7 +150,8 @@ const uint32_t AUTOSLEEP_TIME = 48UL*3600*1000;
 // do punch fast
 #define DEFAULT_MODE                    MODE_WAIT
 #define DEFAULT_STATION_NUM             CHECK_STATION_NUM
-#define DEFAULT_ACTIVE_MODE_DURATION    1 // 2 hours
+#define DEFAULT_ACTIVE_MODE_DURATION    1  // 2 hours
+#define DEFAULT_ALARM_TIME              946684800  // 2000-01-01 00:00:00
 
 #define SETTINGS_ALWAYS_ACTIVE          0x06
 #define SETTINGS_ALWAYS_WAIT            0x07
@@ -183,11 +184,7 @@ Rfid rfid;
 SerialProtocol serialProto;
 // date/time
 static ts t;
-// We need this variable because DS321 doesn't have Year for Alarms
-int16_t alarmYear = 2021;
-// We need this variable because DS321 doesn't have Month for Alarms
-uint8_t alarmMonth = 1;
-uint32_t alarmTimestamp = 0;
+uint32_t alarmTimestamp = DEFAULT_ALARM_TIME;
 // This flag is true when it's DS3231 interrupt
 uint8_t rtcAlarmFlag = 0;
 uint8_t reedSwitchFlag = 0;
@@ -380,12 +377,12 @@ void setup() {
 }
 
 void wakeupIfNeed() {
-    if(alarmTimestamp > 0) {
+    if(alarmTimestamp > DEFAULT_ALARM_TIME) {
         if(!DS3231_get(&t)) {
             return;
         }
         if(t.unixtime >= alarmTimestamp) {
-            alarmTimestamp = 0;
+            alarmTimestamp = DEFAULT_ALARM_TIME;
             setModeIfAllowed(MODE_ACTIVE);
         }
     }
@@ -483,36 +480,41 @@ void setStationNum(uint8_t num) {
     config.stationNumber = num;
 }
 
-void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
+void setTime(int16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
     memset(&t, 0, sizeof(t));
 
-    t.mon = mon;
     t.year = year;
+    t.mon = month;
     t.mday = day;
     t.hour = hour;
-    t.min = mi;
-    t.sec = sec;
+    t.min = minute;
+    t.sec = second;
 
     DS3231_set(t);  
 }
 
-void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
+void setWakeupTime(int16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
     uint8_t flags[5] = {0,0,0,0,0};
     DS3231_get(&t);
     uint32_t currentTimestamp = t.unixtime;
     memset(&t, 0, sizeof(t));
-    alarmMonth = t.mon = mon;
-    alarmYear = t.year = year;
+    t.year = year;
+    t.mon = month;
     t.mday = day;
     t.hour = hour;
-    t.min = mi;
-    t.sec = sec;
+    t.min = minute;
+    t.sec = second;
     alarmTimestamp = get_unixtime(t);
     if(alarmTimestamp < currentTimestamp) {
-        alarmTimestamp = 0;
+        alarmTimestamp = DEFAULT_ALARM_TIME;
+        t.mday = 1;
+        t.hour = 0;
+        t.min = 0;
+        t.sec = 0;
     }
 
     DS3231_clear_a1f();
+    // Set alarm
     DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
 }
 
@@ -863,7 +865,8 @@ void checkRtc() {
         return;
     }
     // Check current time
-    if(t.year < 2024) {
+    if(t.year == 1970) {
+        setTime(2000, 1, 1, 0, 0, 0);
         beepTimeError();
     }
 }
@@ -1162,22 +1165,10 @@ void processStateMasterCard() {
     // Get actual time and date
     DS3231_get(&t);
     // Write current time and date
-    pageData[0] = t.unixtime >> 24;
-    pageData[1] = t.unixtime >> 16;
-    pageData[2] = t.unixtime >> 8;
-    pageData[3] = t.unixtime & 0xFF;
-    result &= rfid.cardPageWrite(page++, pageData);
+    result &= rfid.cardPageWrite(page++, t.unixtime);
 
     // Write wake-up time
-    DS3231_get_a1(&t);
-    t.mon = alarmMonth;
-    t.year = alarmYear;
-    t.unixtime = get_unixtime(t);
-    pageData[0] = t.unixtime >> 24;
-    pageData[1] = t.unixtime >> 16;
-    pageData[2] = t.unixtime >> 8;
-    pageData[3] = t.unixtime & 0xFF;
-    result &= rfid.cardPageWrite(page++, pageData);
+    result &= rfid.cardPageWrite(page++, alarmTimestamp);
     
     Watchdog.reset();
     delay(250);
@@ -1256,9 +1247,9 @@ bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch) {
     DS3231_get(&t);
 
     pageData[0] = config.stationNumber;
-    pageData[1] = (t.unixtime & 0x00FF0000)>>16;
-    pageData[2] = (t.unixtime & 0x0000FF00)>>8;
-    pageData[3] = (t.unixtime & 0x000000FF);
+    pageData[1] = (t.unixtime >> 16) & 0xFF;
+    pageData[2] = (t.unixtime >> 8) & 0xFF;
+    pageData[3] = t.unixtime & 0xFF;
             
     bool result = rfid.cardPageWrite(newPage, pageData);
 
@@ -1297,16 +1288,10 @@ void clearParticipantCard() {
 
     if(result) {
         DS3231_get(&t);
-        
-        byte pageData[4];
-        pageData[0] = t.unixtime >> 24;
-        pageData[1] = t.unixtime >> 16;
-        pageData[2] = t.unixtime >> 8;
-        pageData[3] = t.unixtime & 0xFF;
-
-        result &= rfid.cardPageWrite(CARD_PAGE_INIT_TIME, pageData);
+        result &= rfid.cardPageWrite(CARD_PAGE_INIT_TIME, t.unixtime);
 
         if(config.enableFastPunchForCard) {
+            byte pageData[4];
             pageData[0] = config.stationNumber;
             pageData[1] = 0;
             pageData[2] = 0;
@@ -1439,26 +1424,12 @@ void serialFuncReadInfo(byte dataSize) {
 #endif
     serialProto.add(mode);
  
-    // Get actual date and time
+    // Write current time
     DS3231_get(&t);
+    serialProto.addUint32(t.unixtime);
 
-    // Write current time
-    serialProto.add(t.unixtime >> 24);
-    serialProto.add(t.unixtime >> 16);
-    serialProto.add(t.unixtime >> 8);
-    serialProto.add(t.unixtime & 0xFF);
-
-    DS3231_get_a1(&t);
     // Write wake-up time
-    t.mon = alarmMonth;
-    t.year = alarmYear;
-    t.unixtime = get_unixtime(t);
-
-    // Write current time
-    serialProto.add(t.unixtime >> 24);
-    serialProto.add(t.unixtime >> 16);
-    serialProto.add(t.unixtime >> 8);
-    serialProto.add(t.unixtime & 0xFF);
+    serialProto.addUint32(alarmTimestamp);
 
     serialProto.send();
 
