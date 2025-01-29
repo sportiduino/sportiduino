@@ -122,8 +122,8 @@ struct __attribute__((packed)) Configuration {
 
 #define UNKNOWN_PIN 0xFF
 
-// 31 days = 2678400 (seconds)
-#define CARD_EXPIRE_TIME 2678400L
+// 194.18 days after card initialization or clearing the new punches will have incorrect time
+const uint32_t CARD_EXPIRE_TIME = 180UL*24*3600;  // 180 days
 
 #define EEPROM_CONFIG_ADDR  0x3EE
 
@@ -866,7 +866,7 @@ void checkRtc() {
     // Check current time
     if(t.year < 2025) {
         beepTimeError();
-        if(t.year == 1970) {
+        if(t.unixtime == 0) {
             setTime(2000, 1, 1, 0, 0, 0);
         }
     }
@@ -1344,15 +1344,10 @@ bool checkCardInitTime() {
 
     uint32_t cardTime = byteArrayToUint32(pageData);
 
-    if(cardTime < 1577826000) { // 01-01-2020
+    DS3231_get(&t);
+    if(t.unixtime > cardTime &&
+            t.unixtime - cardTime > CARD_EXPIRE_TIME) {
         return false;
-    }
-
-    if(config.checkCardInitTime) {
-        DS3231_get(&t);
-        if(t.unixtime - cardTime > CARD_EXPIRE_TIME) {
-            return false;
-        }
     }
 
     return true;
