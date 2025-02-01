@@ -863,9 +863,21 @@ void processRfid() {
 #endif
     reedSwitchFlag = 0;
 
+    // Visual feedback to display rfid works via reed switch
+    if(mode == MODE_SLEEP) {
+        digitalWrite(LED, HIGH);
+    }
+
     rfid.begin(config.antennaGain);
     processCard();
     rfid.end();
+
+    if(mode == MODE_SLEEP) {
+        digitalWrite(LED, LOW);
+
+        // Clear uid to process it more than once in sleep mode
+        rfid.clearLastCardUid();
+    }
 }
     
 void processCard() {
