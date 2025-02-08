@@ -5,7 +5,7 @@
 #define FW_MAJOR_VERS     9
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     0
+#define FW_MINOR_VERS     1
 
 
 //-----------------------------------------------------------
@@ -805,7 +805,8 @@ uint32_t getPunchTime(const byte *pageData, uint32_t initTime) {
     return punchTime;
 }
 
-uint32_t readStartTime(uint32_t initTime, uint8_t *pageStartPunch) {
+bool readStart(uint32_t initTime, uint32_t *startTime, uint8_t *pageStartPunch) {
+    *startTime = 0;
     *pageStartPunch = CARD_PAGE_START;
     const uint8_t beginPage = CARD_PAGE_START;
     const uint8_t endPage = beginPage + 10; // read only first 10 punches
@@ -813,25 +814,27 @@ uint32_t readStartTime(uint32_t initTime, uint8_t *pageStartPunch) {
 
     for(uint8_t page = beginPage; page < endPage; ++page) {
         if(!rfid.cardPageRead(page, pageData)) {
-            return 0;
+            return false;
         }
 
         uint8_t cp = pageData[0];
         if(cp == START_STATION_NUM) {
+            *startTime = getPunchTime(pageData, initTime);
             *pageStartPunch = page;
-            return getPunchTime(pageData, initTime);
+            return true;
         }
     }
-    return 0;
+    // no start punch found
+    return true;
 }
 
-uint32_t readFinishTime(uint32_t initTime, uint8_t *pageFinishPunch) {
+bool readFinish(uint32_t initTime, uint32_t *finishTime, uint8_t *pageFinishPunch) {
+    *finishTime = 0;
     *pageFinishPunch = 0;
     uint8_t newPage = 0;
     uint8_t lastNum;
-    findNewPage(&rfid, &newPage, &lastNum);
-    if(!newPage || newPage <= CARD_PAGE_START) {
-        return 0;
+    if(!findNewPage(&rfid, &newPage, &lastNum)) {
+        return false;
     }
     *pageFinishPunch = newPage;
     uint8_t endPage = newPage;
@@ -840,16 +843,18 @@ uint32_t readFinishTime(uint32_t initTime, uint8_t *pageFinishPunch) {
 
     for(uint8_t page = endPage - 1; page >= beginPage; --page) {
         if(!rfid.cardPageRead(page, pageData)) {
-            return 0;
+            return false;
         }
 
         uint8_t cp = pageData[0];
         if(cp == FINISH_STATION_NUM) {
+            *finishTime = getPunchTime(pageData, initTime);
             *pageFinishPunch = page;
-            return getPunchTime(pageData, initTime);
+            return true;
         }
     }
-    return 0;
+    // no finish punch found
+    return true;
 }
 
 uint8_t *currentCardNumber = nullptr;
@@ -911,7 +916,7 @@ void sieCardReadError() {
 
 bool sieSendDataBlock(uint8_t blockNumber) {
     if(!currentCardNumber || !rfid.isCardDetected()) {
-        siProto.error();
+        //siProto.error();
         return false;
     }
 
@@ -937,7 +942,10 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         clear.cn = 0;
 
         uint8_t finishPunchOrEmptyPage = 0;
-        uint32_t finishTime = readFinishTime(currentCardInitTime, &finishPunchOrEmptyPage);
+        uint32_t finishTime = 0;
+        if(!readFinish(currentCardInitTime, &finishTime, &finishPunchOrEmptyPage)) {
+            return false;
+        }
         if(finishTime) {
             finish.fromUnixtime(finishTime, config.timezone);
             finish.cn = 0;
@@ -947,7 +955,10 @@ bool sieSendDataBlock(uint8_t blockNumber) {
         }
 
         uint8_t pageStartPunch = 0;
-        uint32_t startTime = readStartTime(currentCardInitTime, &pageStartPunch); 
+        uint32_t startTime = 0;
+        if(!readStart(currentCardInitTime, &startTime, &pageStartPunch)) {
+            return false;
+        }
         if(startTime) {
             start.fromUnixtime(startTime, config.timezone);
             start.cn = 0;
