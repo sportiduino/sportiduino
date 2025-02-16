@@ -861,12 +861,13 @@ void processRfid() {
         return;
     }
 #endif
-    reedSwitchFlag = 0;
 
     // Visual feedback to display rfid works via reed switch
-    if(mode == MODE_SLEEP) {
+    if(mode == MODE_SLEEP && reedSwitchFlag) {
         digitalWrite(LED, HIGH);
     }
+
+    reedSwitchFlag = 0;
 
     rfid.begin(config.antennaGain);
     processCard();
