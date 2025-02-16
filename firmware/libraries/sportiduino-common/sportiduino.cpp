@@ -56,7 +56,7 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
     }
 }
 
-void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
+bool findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
     uint8_t startPage = CARD_PAGE_START;
     uint8_t endPage = rfid->getCardMaxPage() + 1; // page after last page
     uint8_t page = startPage;
@@ -70,7 +70,7 @@ void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
         page = (startPage + endPage)/2;
 
         if(!rfid->cardPageRead(page, pageData)) {
-            return;
+            return false;
         }
 
         num = pageData[0];
@@ -88,6 +88,7 @@ void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
 
     *newPage = page;
     *lastNum = num;
+    return true;
 }
 
 bool pageIsEmpty(const byte *pageData) {
