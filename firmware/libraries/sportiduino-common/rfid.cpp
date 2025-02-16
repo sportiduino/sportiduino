@@ -8,6 +8,10 @@ void Rfid::init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain) {
     antennaGain = constrain(newAntennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
 }
 
+void Rfid::clearLastCardUid() {
+    memset(&lastCardUid, 0, sizeof(lastCardUid));
+}
+
 void Rfid::setAntennaGain(uint8_t newAntennaGain) {
     antennaGain = constrain(newAntennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
 }
@@ -28,13 +32,8 @@ void Rfid::begin(uint8_t newAntennaGain) {
     
     delay(5);
     
-    if(!mfrc522.PICC_IsNewCardPresent()) {
-        memset(&lastCardUid, 0, sizeof(lastCardUid));
-        return;
-    }
-    
-    if(!mfrc522.PICC_ReadCardSerial()) {
-        memset(&lastCardUid, 0, sizeof(lastCardUid));
+    if(!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
+        clearLastCardUid();
         return;
     }
     

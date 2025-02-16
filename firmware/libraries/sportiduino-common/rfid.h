@@ -39,6 +39,9 @@ enum class CardType : byte {
 class Rfid {
 public:
     void init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain = DEFAULT_ANTENNA_GAIN);
+
+    void clearLastCardUid();
+
     void setAntennaGain(uint8_t newAntennaGain);
 
     /**
