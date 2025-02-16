@@ -18,7 +18,7 @@
 #define FW_MAJOR_VERS   11
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 3)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 4)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -1148,6 +1148,7 @@ void processPasswordMasterCard(byte *data) {
 }
 
 void processStateMasterCard() {
+    digitalWrite(LED, HIGH);
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     // Disable RFID to prevent bad impact on measurements
     rfid.end();
@@ -1192,6 +1193,7 @@ void processStateMasterCard() {
     } else {
         beepMasterCardError();
     }
+    digitalWrite(LED, LOW);
 }
 
 void processParticipantCard(uint16_t cardNum) {
