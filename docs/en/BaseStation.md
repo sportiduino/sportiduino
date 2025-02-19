@@ -41,7 +41,7 @@ Thus during operation an integral consumption of about 1.7 mA can be expected.
 Fully charged batteries last for 45 days of continuous operation.
 
 To reduce consumption while waiting for the competition, the Sleep mode is implemented.
-Consumption is about 15 mkA.
+Consumption is about 15 µA.
 Fully charged batteries last for 5 years.
 To achieve this, on the RFID board the LED and pull-up resistors must be accurately removed (see [Base Station Assembly](BaseStationAssembly.md)).
 
