@@ -27,8 +27,9 @@ Gerber files are placed in the folder `hardware/BaseStation/prod/v3`.
    - Capacitor 4.7 uF, 2 pcs.
    - Inductor 2.2 uH, max current > 500 mA (e.g. LQH32MN2R2K) 2 pcs, optional.
 5. Through-hole components
-   - PLS-8 pins. Come with RFID board.
-   - Connector BH-10 (aka DS1013-10S or IDC-10MS). It can be replaced by any male connector 2x5 pins 2.54 mm.
+   - Connector 8 pins PLS-8. Come with RFID board.
+   - Connector 10 pins BH-10 (aka DS1013-10S or IDC-10MS). It can be replaced by any male connector 2x5 pins 2.54 mm.
+   - Connector 2 pins JST XH 2.54 mm.
    - LED 3 mm. Any color for your choice.
    - Passive buzzer 12085 16 ohm, TR1205Y or HCM1203A.
    - Reed switch normally open 2x14 mm (optional, not in the photo).
