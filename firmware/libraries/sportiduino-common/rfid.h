@@ -49,6 +49,9 @@ typedef struct {
 class Rfid {
 public:
     void init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain = DEFAULT_ANTENNA_GAIN);
+
+    void clearLastCardUid();
+
     void setAntennaGain(uint8_t newAntennaGain);
     void setAuthPassword(uint8_t *password);
 
@@ -88,6 +91,8 @@ public:
      */
     bool cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size = 4);
 
+    bool cardPageWrite(uint8_t pageAdr, uint32_t value);
+
     /**
      * Returns max page address of the presented card
      */
@@ -105,7 +110,7 @@ private:
     bool mifareCardPageRead(uint8_t pageAdr, byte *data, byte *size);
     // data buffer size should be greater 16 bytes
     bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size);
-    // data buffer size should be greater 4 bytes
+    // data buffer size should be greater 18 bytes
     bool ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size);
     bool ntagTryAuth();
     bool ntagAuth(NtagAuthPassword *password);

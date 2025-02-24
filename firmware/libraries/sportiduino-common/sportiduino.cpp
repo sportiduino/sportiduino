@@ -56,7 +56,7 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
     }
 }
 
-void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
+bool findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
     DEBUG_PRINTLN(F("findNewPage"));
     uint8_t startPage = CARD_PAGE_START;
     uint8_t endPage = rfid->getCardMaxPage() + 1; // page after last page
@@ -74,7 +74,7 @@ void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
 
         if(!rfid->cardPageRead(page, pageData)) {
             DEBUG_PRINTLN(F("page read failed"));
-            return;
+            return false;
         }
 
         num = pageData[0];
@@ -96,6 +96,7 @@ void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
 
     *newPage = page;
     *lastNum = num;
+    return true;
 }
 
 bool pageIsEmpty(const byte *pageData) {
@@ -192,6 +193,12 @@ void SerialProtocol::add(uint8_t dataByte) {
 
     serialBuffer[serialDataPos] = dataByte;
     serialDataPos++;
+}
+
+void SerialProtocol::addUint32(uint32_t data) {
+    uint8_t b[4];
+    uint32ToByteArray(data, b);
+    add(b, 4);
 }
 
 void SerialProtocol::add(const uint8_t *data, uint8_t size) {

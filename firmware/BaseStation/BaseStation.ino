@@ -18,7 +18,7 @@
 #define FW_MAJOR_VERS   11
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 3)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 4)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -124,8 +124,8 @@ struct __attribute__((packed)) Configuration {
 
 #define UNKNOWN_PIN 0xFF
 
-// 31 days = 2678400 (seconds)
-#define CARD_EXPIRE_TIME 2678400L
+// 194.18 days after card initialization or clearing the new punches will have incorrect time
+const uint32_t CARD_EXPIRE_TIME = 180UL*24*3600;  // 180 days
 
 #define EEPROM_CONFIG_ADDR  0x3EE
 
@@ -152,7 +152,8 @@ const uint32_t AUTOSLEEP_TIME = 48UL*3600*1000;
 // do punch fast
 #define DEFAULT_MODE                    MODE_WAIT
 #define DEFAULT_STATION_NUM             CHECK_STATION_NUM
-#define DEFAULT_ACTIVE_MODE_DURATION    1 // 2 hours
+#define DEFAULT_ACTIVE_MODE_DURATION    1  // 2 hours
+#define DEFAULT_ALARM_TIME              946684800  // 2000-01-01 00:00:00
 
 #define SETTINGS_ALWAYS_ACTIVE          0x06
 #define SETTINGS_ALWAYS_WAIT            0x07
@@ -185,11 +186,7 @@ Rfid rfid;
 SerialProtocol serialProto;
 // date/time
 static ts t;
-// We need this variable because DS321 doesn't have Year for Alarms
-int16_t alarmYear = 2021;
-// We need this variable because DS321 doesn't have Month for Alarms
-uint8_t alarmMonth = 1;
-uint32_t alarmTimestamp = 0;
+uint32_t alarmTimestamp = DEFAULT_ALARM_TIME;
 // This flag is true when it's DS3231 interrupt
 uint8_t rtcAlarmFlag = 0;
 uint8_t reedSwitchFlag = 0;
@@ -255,9 +252,9 @@ void rtcAlarmIrq();
 bool checkCardInitTime();
 void checkParticipantCard();
 void processSerial();
-void serialFuncReadInfo(byte *data, byte dataSize);
+void serialFuncReadInfo(byte dataSize);
 void serialFuncWriteSettings(byte *data, byte dataSize);
-void serialFuncEraseLog(byte *data, byte dataSize);
+void serialFuncEraseLog();
 void serialRespStatus(uint8_t code);
 void wakeupByUartRx();
 void setStationNum(uint8_t num);
@@ -279,13 +276,13 @@ bool checkBattery(bool beepEnabled = false);
 void checkRtc();
 void processCard();
 void processMasterCard(uint8_t pageInitData[]);
-void processTimeMasterCard(byte *data, byte dataSize);
-void processStationMasterCard(byte *data, byte dataSize);
-void processSleepMasterCard(byte *data, byte dataSize);
-void processBackupMasterCardWithTimestamps(byte *data, byte dataSize);
-void processSettingsMasterCard(byte *data, byte dataSize);
-void processPasswordMasterCard(byte *data, byte dataSize);
-void processStateMasterCard(byte *data, byte dataSize);
+void processTimeMasterCard(byte *data);
+void processStationMasterCard(byte *data);
+void processSleepMasterCard(byte *data);
+void processBackupMasterCardWithTimestamps(byte *data);
+void processSettingsMasterCard(byte *data);
+void processPasswordMasterCard(byte *data);
+void processStateMasterCard();
 void processParticipantCard(uint16_t cardNum);
 bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch);
 void clearParticipantCard();
@@ -383,12 +380,11 @@ void setup() {
 }
 
 void wakeupIfNeed() {
-    if(alarmTimestamp > 0) {
+    if(alarmTimestamp > DEFAULT_ALARM_TIME) {
         if(!DS3231_get(&t)) {
             return;
         }
         if(t.unixtime >= alarmTimestamp) {
-            alarmTimestamp = 0;
             setModeIfAllowed(MODE_ACTIVE);
         }
     }
@@ -486,36 +482,41 @@ void setStationNum(uint8_t num) {
     config.stationNumber = num;
 }
 
-void setTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
+void setTime(int16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
     memset(&t, 0, sizeof(t));
 
-    t.mon = mon;
     t.year = year;
+    t.mon = month;
     t.mday = day;
     t.hour = hour;
-    t.min = mi;
-    t.sec = sec;
+    t.min = minute;
+    t.sec = second;
 
     DS3231_set(t);  
 }
 
-void setWakeupTime(int16_t year, uint8_t mon, uint8_t day, uint8_t hour, uint8_t mi, uint8_t sec) {
+void setWakeupTime(int16_t year, uint8_t month, uint8_t day, uint8_t hour, uint8_t minute, uint8_t second) {
     uint8_t flags[5] = {0,0,0,0,0};
     DS3231_get(&t);
     uint32_t currentTimestamp = t.unixtime;
     memset(&t, 0, sizeof(t));
-    alarmMonth = t.mon = mon;
-    alarmYear = t.year = year;
+    t.year = year;
+    t.mon = month;
     t.mday = day;
     t.hour = hour;
-    t.min = mi;
-    t.sec = sec;
+    t.min = minute;
+    t.sec = second;
     alarmTimestamp = get_unixtime(t);
     if(alarmTimestamp < currentTimestamp) {
-        alarmTimestamp = 0;
+        alarmTimestamp = DEFAULT_ALARM_TIME;
+        t.mday = 1;
+        t.hour = 0;
+        t.min = 0;
+        t.sec = 0;
     }
 
     DS3231_clear_a1f();
+    // Set alarm
     DS3231_set_a1(t.sec, t.min, t.hour, t.mday, flags);
 }
 
@@ -871,8 +872,11 @@ void checkRtc() {
         return;
     }
     // Check current time
-    if(t.year < 2024) {
+    if(t.year < 2025) {
         beepTimeError();
+        if(t.unixtime == 0) {
+            setTime(2000, 1, 1, 0, 0, 0);
+        }
     }
 }
 
@@ -882,11 +886,24 @@ void processRfid() {
         return;
     }
 #endif
+
+    // Visual feedback to display rfid works via reed switch
+    if(mode == MODE_SLEEP && reedSwitchFlag) {
+        digitalWrite(LED, HIGH);
+    }
+
     reedSwitchFlag = 0;
 
     rfid.begin(config.antennaGain);
     processCard();
     rfid.end();
+
+    if(mode == MODE_SLEEP) {
+        digitalWrite(LED, LOW);
+
+        // Clear uid to process it more than once in sleep mode
+        rfid.clearLastCardUid();
+    }
 }
     
 void processCard() {
@@ -953,27 +970,27 @@ void processMasterCard(uint8_t pageInitData[]) {
 
     switch(masterCardData[1]) {
         case MASTER_CARD_SET_TIME:
-            processTimeMasterCard(masterCardData, sizeof(masterCardData));
+            processTimeMasterCard(masterCardData);
             break;
         case MASTER_CARD_SET_NUMBER:
-            processStationMasterCard(masterCardData, sizeof(masterCardData));
+            processStationMasterCard(masterCardData);
             break;
         case MASTER_CARD_SLEEP:
-            processSleepMasterCard(masterCardData, sizeof(masterCardData));
+            processSleepMasterCard(masterCardData);
             break;
         case MASTER_CARD_READ_BACKUP:
 #ifdef USE_I2C_EEPROM
-            processBackupMasterCardWithTimestamps(masterCardData, sizeof(masterCardData));
+            processBackupMasterCardWithTimestamps(masterCardData);
 #endif
             break;
         case MASTER_CARD_CONFIG:
-            processSettingsMasterCard(masterCardData, sizeof(masterCardData));
+            processSettingsMasterCard(masterCardData);
             break;
         case MASTER_CARD_PASSWORD:
-            processPasswordMasterCard(masterCardData, sizeof(masterCardData));
+            processPasswordMasterCard(masterCardData);
             break;
         case MASTER_CARD_STATE:
-            processStateMasterCard(masterCardData, sizeof(masterCardData));
+            processStateMasterCard();
             break;
         default:
             beepMasterCardReadError();
@@ -985,11 +1002,7 @@ void deinitCard() {
     rfid.cardPageErase(CARD_PAGE_INIT);
 }
 
-void processTimeMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        return;
-    }
-
+void processTimeMasterCard(byte *data) {
     // Note: time is UTC
     setTime(data[9] + 2000, data[8], data[10], data[12], data[13], data[14]);
 
@@ -1002,12 +1015,7 @@ void processTimeMasterCard(byte *data, byte dataSize) {
     }
 }
 
-void processStationMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        beepMasterCardError();
-        return;
-    }
-
+void processStationMasterCard(byte *data) {
     uint8_t newNum = data[8];
 
     if(newNum > 0) {
@@ -1022,11 +1030,7 @@ void processStationMasterCard(byte *data, byte dataSize) {
     }
 }
 
-void processSleepMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        return;
-    }
-
+void processSleepMasterCard(byte *data) {
     setMode(MODE_SLEEP);
 
     // Config alarm
@@ -1036,12 +1040,7 @@ void processSleepMasterCard(byte *data, byte dataSize) {
 }
 
 #ifdef USE_I2C_EEPROM
-void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        beepMasterCardError();
-        return;
-    }
-
+void processBackupMasterCardWithTimestamps(byte *data) {
     byte pageData[4];
     memcpy(pageData, data, 4);
     pageData[0] = config.stationNumber;
@@ -1144,17 +1143,12 @@ void processBackupMasterCardWithTimestamps(byte *data, byte dataSize) {
 }
 #endif
 
-void processSettingsMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        return;
-    }
-
+void processSettingsMasterCard(byte *data) {
     setNewConfig((Configuration*)&data[8]);
-
     beepMasterCardOk();
 }
 
-void processPasswordMasterCard(byte *data, byte dataSize) {
+void processPasswordMasterCard(byte *data) {
     config.password[0] = data[8];
     config.password[1] = data[9];
     config.password[2] = data[10];
@@ -1162,12 +1156,8 @@ void processPasswordMasterCard(byte *data, byte dataSize) {
     beepMasterCardOk();
 }
 
-void processStateMasterCard(byte *data, byte dataSize) {
-    if(dataSize < 16) {
-        beepMasterCardError();
-        return;
-    }  
-
+void processStateMasterCard() {
+    digitalWrite(LED, HIGH);
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     // Disable RFID to prevent bad impact on measurements
     rfid.end();
@@ -1201,22 +1191,10 @@ void processStateMasterCard(byte *data, byte dataSize) {
     // Get actual time and date
     DS3231_get(&t);
     // Write current time and date
-    pageData[0] = t.unixtime >> 24;
-    pageData[1] = t.unixtime >> 16;
-    pageData[2] = t.unixtime >> 8;
-    pageData[3] = t.unixtime & 0xFF;
-    result &= rfid.cardPageWrite(page++, pageData);
+    result &= rfid.cardPageWrite(page++, t.unixtime);
 
     // Write wake-up time
-    DS3231_get_a1(&t);
-    t.mon = alarmMonth;
-    t.year = alarmYear;
-    t.unixtime = get_unixtime(t);
-    pageData[0] = t.unixtime >> 24;
-    pageData[1] = t.unixtime >> 16;
-    pageData[2] = t.unixtime >> 8;
-    pageData[3] = t.unixtime & 0xFF;
-    result &= rfid.cardPageWrite(page++, pageData);
+    result &= rfid.cardPageWrite(page++, alarmTimestamp);
     
     Watchdog.reset();
     delay(10);
@@ -1226,6 +1204,7 @@ void processStateMasterCard(byte *data, byte dataSize) {
     } else {
         beepMasterCardError();
     }
+    digitalWrite(LED, LOW);
 }
 
 void processParticipantCard(uint16_t cardNum) {
@@ -1296,9 +1275,9 @@ bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch) {
     DS3231_get(&t);
 
     pageData[0] = config.stationNumber;
-    pageData[1] = (t.unixtime & 0x00FF0000)>>16;
-    pageData[2] = (t.unixtime & 0x0000FF00)>>8;
-    pageData[3] = (t.unixtime & 0x000000FF);
+    pageData[1] = (t.unixtime >> 16) & 0xFF;
+    pageData[2] = (t.unixtime >> 8) & 0xFF;
+    pageData[3] = t.unixtime & 0xFF;
             
     bool result = rfid.cardPageWrite(newPage, pageData);
 
@@ -1356,16 +1335,10 @@ void clearParticipantCard() {
 
     if(result) {
         DS3231_get(&t);
-        
-        byte pageData[4];
-        pageData[0] = t.unixtime >> 24;
-        pageData[1] = t.unixtime >> 16;
-        pageData[2] = t.unixtime >> 8;
-        pageData[3] = t.unixtime & 0xFF;
-
-        result &= rfid.cardPageWrite(CARD_PAGE_INIT_TIME, pageData);
+        result &= rfid.cardPageWrite(CARD_PAGE_INIT_TIME, t.unixtime);
 
         if(config.enableFastPunchForCard) {
+            byte pageData[4];
             pageData[0] = config.stationNumber;
             pageData[1] = 0;
             pageData[2] = 0;
@@ -1417,15 +1390,10 @@ bool checkCardInitTime() {
 
     uint32_t cardTime = byteArrayToUint32(pageData);
 
-    if(cardTime < 1577826000) { // 01-01-2020
+    DS3231_get(&t);
+    if(t.unixtime > cardTime &&
+            t.unixtime - cardTime > CARD_EXPIRE_TIME) {
         return false;
-    }
-
-    if(config.checkCardInitTime) {
-        DS3231_get(&t);
-        if(t.unixtime - cardTime > CARD_EXPIRE_TIME) {
-            return false;
-        }
     }
 
     return true;
@@ -1460,13 +1428,13 @@ void processSerial() {
     if(data) {
         switch(cmdCode) {
             case SERIAL_FUNC_READ_INFO:
-                serialFuncReadInfo(data, dataSize);
+                serialFuncReadInfo(dataSize);
                 break;
             case SERIAL_FUNC_WRITE_SETTINGS:
                 serialFuncWriteSettings(data, dataSize);
                 break;
             case SERIAL_FUNC_ERASE_LOG:
-                serialFuncEraseLog(data, dataSize);
+                serialFuncEraseLog();
                 break;
             default:
                 serialRespStatus(SERIAL_ERROR_UNKNOWN_FUNC);
@@ -1479,7 +1447,7 @@ void processSerial() {
     }
 }
 
-void serialFuncReadInfo(byte *data, byte dataSize) {
+void serialFuncReadInfo(byte dataSize) {
     if(dataSize < 3) {
         serialRespStatus(SERIAL_ERROR_SIZE);
         return;
@@ -1498,26 +1466,12 @@ void serialFuncReadInfo(byte *data, byte dataSize) {
 #endif
     serialProto.add(mode);
  
-    // Get actual date and time
+    // Write current time
     DS3231_get(&t);
+    serialProto.addUint32(t.unixtime);
 
-    // Write current time
-    serialProto.add(t.unixtime >> 24);
-    serialProto.add(t.unixtime >> 16);
-    serialProto.add(t.unixtime >> 8);
-    serialProto.add(t.unixtime & 0xFF);
-
-    DS3231_get_a1(&t);
     // Write wake-up time
-    t.mon = alarmMonth;
-    t.year = alarmYear;
-    t.unixtime = get_unixtime(t);
-
-    // Write current time
-    serialProto.add(t.unixtime >> 24);
-    serialProto.add(t.unixtime >> 16);
-    serialProto.add(t.unixtime >> 8);
-    serialProto.add(t.unixtime & 0xFF);
+    serialProto.addUint32(alarmTimestamp);
 
     serialProto.send();
 
@@ -1540,7 +1494,7 @@ void serialFuncWriteSettings(byte *data, byte dataSize) {
     serialRespStatus(SERIAL_OK);
 }
 
-void serialFuncEraseLog(byte *data, byte dataSize) {
+void serialFuncEraseLog() {
 #ifdef USE_I2C_EEPROM
     i2cEepromErase();
 #endif

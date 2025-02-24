@@ -45,7 +45,7 @@ uint8_t majEepromRead(uint16_t adr);
  */
 void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t ms, uint8_t n, uint16_t pause = 0);
 
-void findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum);
+bool findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum);
 bool pageIsEmpty(const byte *pageData);
 
 bool uint32ToByteArray(uint32_t value, byte *byteArray);
@@ -65,6 +65,7 @@ public:
     void end();
     void start(uint8_t code);
     void add(uint8_t dataByte);
+    void addUint32(uint32_t data);
     void add(const uint8_t *data, uint8_t size);
     void send();
     uint8_t *read(bool *error, uint8_t *code, uint8_t *dataSize);

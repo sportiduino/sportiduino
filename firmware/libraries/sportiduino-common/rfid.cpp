@@ -11,6 +11,10 @@ void Rfid::init(uint8_t ssPin, uint8_t rstPin, uint8_t newAntennaGain) {
     memset(authPwd.pack, 0, 2);
 }
 
+void Rfid::clearLastCardUid() {
+    memset(&lastCardUid, 0, sizeof(lastCardUid));
+}
+
 void Rfid::setAntennaGain(uint8_t newAntennaGain) {
     antennaGain = constrain(newAntennaGain, MIN_ANTENNA_GAIN, MAX_ANTENNA_GAIN);
 }
@@ -40,7 +44,7 @@ void Rfid::begin(uint8_t newAntennaGain) {
     delay(5);
 
     if(!mfrc522.PICC_IsNewCardPresent() || !mfrc522.PICC_ReadCardSerial()) {
-        memset(&lastCardUid, 0, sizeof(lastCardUid));
+        clearLastCardUid();
         return;
     }
 
@@ -392,6 +396,15 @@ bool Rfid::cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size) {
     }
 }
 
+bool Rfid::cardPageWrite(uint8_t pageAdr, uint32_t value) {
+    byte data[4];
+    data[0] = (value >> 24) & 0xFF;
+    data[1] = (value >> 16) & 0xFF;
+    data[2] = (value >> 8) & 0xFF;
+    data[3] = value & 0xFF;
+    return cardPageWrite(pageAdr, data, 4);
+}
+
 bool Rfid::cardWrite(uint8_t startPageAdr, const byte *data, uint16_t size) {
     uint8_t pageAddr = startPageAdr;
     for(uint8_t i = 0; i < size/4; ++i) {
@@ -463,7 +476,7 @@ bool Rfid::cardErase4Pages(uint8_t pageAddr) {
                 for(uint8_t j = 0; j < 4; ++j) {
                     uint8_t offset = (3 - i);
                     if(pageData[offset*4 + j] != 0) {
-                        byte emptyBlock[] = {0,0,0,0};
+                        const byte emptyBlock[] = {0,0,0,0};
                         if(!ntagCardPageWrite(pageAddr + offset, emptyBlock, sizeof(emptyBlock))) {
                             return false;
                         }
