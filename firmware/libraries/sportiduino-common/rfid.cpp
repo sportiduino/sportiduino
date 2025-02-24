@@ -263,7 +263,8 @@ bool Rfid::ntagAuth(NtagAuthPassword *password) {
 bool Rfid::ntagTryAuth() {
     if(authPwd.pass[0] != 0xFF || authPwd.pass[1] != 0xFF || authPwd.pass[2] != 0xFF || authPwd.pass[3] != 0xFF) {
         if(!ntagAuth(&authPwd)) {
-            DEBUG_PRINTLN(F("ntagAuth failed, ignoring"));
+            DEBUG_PRINTLN(F("ntagAuth failed"));
+            return false;
         }
     }
     authenticated = true;

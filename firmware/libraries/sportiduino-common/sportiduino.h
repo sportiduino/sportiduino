@@ -13,6 +13,7 @@ enum StationNum {
 };
 
 enum MasterCard {
+    MASTER_CARD_AUTH_PASSWORD = 248,
     MASTER_CARD_STATE         = 249,
     MASTER_CARD_SET_TIME      = 250,
     MASTER_CARD_SET_NUMBER    = 251,
@@ -52,10 +53,8 @@ bool uint32ToByteArray(uint32_t value, byte *byteArray);
 uint32_t byteArrayToUint32(const byte *byteArray);
 bool pageIsEmpty(const byte *pageData);
 
-struct Configuration;
-
-bool readConfig(Configuration *config, uint8_t configSize, uint16_t eepromConfigAddress);
-bool writeConfig(Configuration *newConfig, uint8_t configSize, uint16_t eepromConfigAddress);
+bool readConfig(uint8_t *config, uint8_t configSize, uint16_t eepromConfigAddress);
+bool writeConfig(uint8_t *newConfig, uint8_t configSize, uint16_t eepromConfigAddress);
 
 
 class SerialProtocol {

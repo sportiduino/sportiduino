@@ -63,7 +63,7 @@ struct __attribute__((packed)) Configuration {
     uint8_t antennaGain;
     int8_t timezone; // timezone in 1/4 hours
     // v1.10 and later
-    uint8_t ntagAuthPassword[4];
+    uint32_t ntagAuthPassword;
 };
 
 //-----------------------------------------------------------
@@ -103,17 +103,15 @@ void setup() {
     digitalWrite(BUZZ_PIN, LOW);
     digitalWrite(RC522_RST_PIN, LOW);
 
-    readConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    readConfig((uint8_t*)&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
     if(config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
         config.antennaGain = DEFAULT_ANTENNA_GAIN;
         config.timezone = 0;
-        for (uint8_t i = 0; i < 4; ++i) {
-            config.ntagAuthPassword[i] = 0xFF;
-        }
+        config.ntagAuthPassword = 0xFFFFFFFF;
     }
 
     rfid.init(RC522_SS_PIN, RC522_RST_PIN, config.antennaGain);
-    rfid.setAuthPassword(config.ntagAuthPassword);
+    rfid.setAuthPassword((uint8_t*)&config.ntagAuthPassword);
     serialProto.init(SERIAL_START_BYTE, 38400);
 
     digitalWrite(LED_PIN, HIGH);
@@ -282,9 +280,9 @@ void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
         return;
     }
     memcpy(&config, newConfig, sizeof(Configuration));
-    writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    writeConfig((uint8_t*)&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
     rfid.setAntennaGain(config.antennaGain);
-    rfid.setAuthPassword(config.ntagAuthPassword);
+    rfid.setAuthPassword((uint8_t*)&config.ntagAuthPassword);
     signalOK();
 }
 

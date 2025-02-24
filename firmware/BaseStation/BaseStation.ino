@@ -18,7 +18,7 @@
 #define FW_MAJOR_VERS   11
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MAJOR_VERS.0-beta.X
 // where X = (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 4)
+#define FW_MINOR_VERS   (MAX_FW_MINOR_VERS + 5)
 
 // If PCB has reed switch and you don't want RC522 powered every 25 secs uncomment option bellow 
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
@@ -110,11 +110,11 @@ struct __attribute__((packed)) Configuration {
     uint8_t oldFastPunchMode: 1; // Deprecated
     uint8_t enableFastPunchForCard: 1; // Enable fast punch for card when clear
     uint8_t antennaGain: 3;
-    //uint8_t writeProtection: 1; // Enable write protection by password
-    //uint8_t readProtection: 1; // Enable read protection by password
     uint8_t _reserved2: 5;
     uint8_t password[3];
 };
+
+uint32_t ntagAuthPassword;
 
 
 #ifdef I2C_EEPROM_VCC
@@ -128,6 +128,7 @@ struct __attribute__((packed)) Configuration {
 const uint32_t CARD_EXPIRE_TIME = 180UL*24*3600;  // 180 days
 
 #define EEPROM_CONFIG_ADDR  0x3EE
+#define EEPROM_AUTH_PASSWORD_ADDR  0x3E2  // EEPROM_CONFIG_ADDR - sizeof(Configuration)*3
 
 #define LOG_RECORD_SIZE 8  // bytes
 const uint16_t I2C_EEPROM_MEMORY_SIZE = (uint16_t)32*1024;  // bytes
@@ -282,11 +283,14 @@ void processSleepMasterCard(byte *data);
 void processBackupMasterCardWithTimestamps(byte *data);
 void processSettingsMasterCard(byte *data);
 void processPasswordMasterCard(byte *data);
+void processAuthPasswordMasterCard(byte *data);
 void processStateMasterCard();
 void processParticipantCard(uint16_t cardNum);
 bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch);
 void clearParticipantCard();
 void checkParticipantCard();
+void storeConfig();
+void storeAuthPassword();
 
 // Note: DS3231 works by UTC time!
 
@@ -346,7 +350,8 @@ void setup() {
 #endif
 
     // Read settings from EEPROM
-    readConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    readConfig((uint8_t*)&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    readConfig((uint8_t*)&ntagAuthPassword, sizeof(uint32_t), EEPROM_AUTH_PASSWORD_ADDR);
 
     if(config.stationNumber == 0 || config.stationNumber == 0xff ||
        config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
@@ -355,8 +360,9 @@ void setup() {
         config.stationNumber = DEFAULT_STATION_NUM;
         config.antennaGain = DEFAULT_ANTENNA_GAIN;
         config.activeModeDuration = DEFAULT_ACTIVE_MODE_DURATION;
-        config.password[0] = config.password[1] = config.password[2] = 0;
-        writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+        storeConfig();
+        ntagAuthPassword = 0xFFFFFFFF;
+        storeAuthPassword();
 #ifdef USE_I2C_EEPROM
         i2cEepromErase();
 #endif
@@ -366,7 +372,7 @@ void setup() {
   
     serialProto.init(SERIAL_MSG_START);
     rfid.init(RC522_SS, RC522_RST, config.antennaGain);
-    rfid.setPassword(config.password);
+    rfid.setAuthPassword((uint8_t*)&ntagAuthPassword);
 
     delay(500);
 
@@ -471,7 +477,7 @@ void setNewConfig(Configuration *newConfig) {
     }
 
     memcpy(&config, newConfig, sizeof(Configuration));
-    writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    storeConfig();
 }
 
 void setStationNum(uint8_t num) {
@@ -992,6 +998,9 @@ void processMasterCard(uint8_t pageInitData[]) {
         case MASTER_CARD_STATE:
             processStateMasterCard();
             break;
+        case MASTER_CARD_AUTH_PASSWORD:
+            processAuthPasswordMasterCard(masterCardData);
+            break;
         default:
             beepMasterCardReadError();
             break;
@@ -1021,7 +1030,7 @@ void processStationMasterCard(byte *data) {
     if(newNum > 0) {
         if(config.stationNumber != newNum) {
             setStationNum(newNum);
-            writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+            storeConfig();
         }
         deinitCard();
         beepMasterCardOk();
@@ -1152,12 +1161,20 @@ void processPasswordMasterCard(byte *data) {
     config.password[0] = data[8];
     config.password[1] = data[9];
     config.password[2] = data[10];
-    writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    storeConfig();
+    beepMasterCardOk();
+}
+
+void processAuthPasswordMasterCard(byte *data) {
+    ntagAuthPassword = byteArrayToUint32(data);
+    rfid.setAuthPassword((uint8_t*)&ntagAuthPassword);
+    storeAuthPassword();
     beepMasterCardOk();
 }
 
 void processStateMasterCard() {
     digitalWrite(LED, HIGH);
+
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     // Disable RFID to prevent bad impact on measurements
     rfid.end();
@@ -1178,8 +1195,10 @@ void processStateMasterCard() {
     pageData[3] = 0;
     bool result = rfid.cardPageWrite(page++, pageData);
 
-    // Write station config
-    result &= rfid.cardPageWrite(page++, (byte*)&config);
+    // Write first 3 bytes of station config (without password)
+    memcpy(pageData, &config, 3);
+    pageData[3] = 0;
+    result &= rfid.cardPageWrite(page++, pageData);
 
     // Write station state
     pageData[0] = batteryByte;
@@ -1512,5 +1531,13 @@ void serialRespStatus(uint8_t code) {
     } else {
         beepSerialOk();
     }
+}
+
+void storeConfig() {
+    writeConfig((uint8_t*)&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+}
+
+void storeAuthPassword() {
+    writeConfig((uint8_t*)&ntagAuthPassword, sizeof(uint32_t), EEPROM_AUTH_PASSWORD_ADDR);
 }
 
