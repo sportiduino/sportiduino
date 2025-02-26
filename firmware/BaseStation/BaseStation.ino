@@ -1298,14 +1298,14 @@ bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch) {
     pageData[2] = (t.unixtime >> 8) & 0xFF;
     pageData[3] = t.unixtime & 0xFF;
             
-    bool result = rfid.cardPageWrite(newPage, pageData);
+    bool result = rfid.cardPageWrite(newPage, pageData, false);
 
     if(fastPunch && result) {
         pageData[0] = config.stationNumber;
         pageData[1] = newPage;
         pageData[2] = 0;
         pageData[3] = FAST_PUNCH_SIGN;
-        result &= rfid.cardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData);
+        result &= rfid.cardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData, false);
     }
 
     return result;

@@ -271,13 +271,15 @@ bool Rfid::ntagTryAuth() {
     return true;
 }
 
-bool Rfid::ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size) {
+bool Rfid::ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size, bool ignoreAuthError) {
     if(*size < 18) {
         return false;
     }
 
     if(pageAdr >= CARD_PAGE_INIT && !authenticated && !ntagTryAuth()) {
-        return false;
+        if (!ignoreAuthError) {
+            return false;
+        }
     }
 
     auto status = (MFRC522::StatusCode)mfrc522.MIFARE_Read(pageAdr, data, size);
@@ -289,7 +291,7 @@ bool Rfid::ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size) {
     return true;
 }
 
-bool Rfid::ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
+bool Rfid::ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size, bool ignoreAuthError) {
     DEBUG_PRINT(F("ntagCardPageWrite pageAdr: "));
     DEBUG_PRINTLN(pageAdr);
     DEBUG_PRINT(F(" size: "));
@@ -299,7 +301,9 @@ bool Rfid::ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size) {
     }
 
     if(!authenticated && !ntagTryAuth()) {
-        return false;
+        if(!ignoreAuthError) {
+            return false;
+        }
     }
 
     auto status = (MFRC522::StatusCode)mfrc522.MIFARE_Ultralight_Write(pageAdr, data, size);
@@ -340,7 +344,7 @@ CardType Rfid::getCardType() {
     return cardType;
 }
 
-bool Rfid::cardPageRead(uint8_t pageAdr, byte *data, uint8_t size) {
+bool Rfid::cardPageRead(uint8_t pageAdr, byte *data, uint8_t size, bool ignoreAuthError) {
     uint8_t maxPage = getCardMaxPage();
 
     if(pageAdr > maxPage) {
@@ -361,7 +365,7 @@ bool Rfid::cardPageRead(uint8_t pageAdr, byte *data, uint8_t size) {
         case CardType::NTAG215:
         case CardType::NTAG216:
         default:
-            result = ntagCard4PagesRead(pageAdr, pageData, &dataSize);
+            result = ntagCard4PagesRead(pageAdr, pageData, &dataSize, ignoreAuthError);
             break;
     }
     
@@ -372,7 +376,7 @@ bool Rfid::cardPageRead(uint8_t pageAdr, byte *data, uint8_t size) {
     return result;
 }
 
-bool Rfid::cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size) {
+bool Rfid::cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size, bool ignoreAuthError) {
     uint8_t maxPage = getCardMaxPage();
 
     if(pageAdr > maxPage) {
@@ -393,7 +397,7 @@ bool Rfid::cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size) {
         case CardType::NTAG215:
         case CardType::NTAG216:
         default:
-            return ntagCardPageWrite(pageAdr, pageData, sizeof(pageData));
+            return ntagCardPageWrite(pageAdr, pageData, sizeof(pageData), ignoreAuthError);
     }
 }
 

@@ -84,12 +84,12 @@ public:
     /**
      * Reads data from a card page. Buffer size should be 4 bytes!
      */
-    bool cardPageRead(uint8_t pageAdr, byte *data, uint8_t size = 4);
+    bool cardPageRead(uint8_t pageAdr, byte *data, uint8_t size = 4, bool ignoreAuthError = true);
 
     /**
      * Writes data to a card page. Buffer size should be 4 bytes!
      */
-    bool cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size = 4);
+    bool cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size = 4, bool ignoreAuthError = true);
 
     bool cardPageWrite(uint8_t pageAdr, uint32_t value);
 
@@ -111,13 +111,13 @@ private:
     // data buffer size should be greater 16 bytes
     bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size);
     // data buffer size should be greater 18 bytes
-    bool ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size);
+    bool ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size, bool ignoreAuthError = true);
     bool ntagTryAuth();
     bool ntagAuth(NtagAuthPassword *password);
     bool ntagSetPassword(NtagAuthPassword *password, bool readAndWrite, uint8_t negAuthAttemptsLim, uint8_t startPage);
     bool ntagDisableAuthentication();
     // data buffer size should be greater 4 bytes
-    bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size);
+    bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size, bool ignoreAuthError = true);
 
     MFRC522 mfrc522;
     NtagAuthPassword authPwd;

@@ -268,6 +268,20 @@ void funcReadSettings(uint8_t *serialData, uint8_t dataSize) {
     serialProto.send();
 }
 
+void funcWriteMasterAuthPassword(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize != 4) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
+
+    uint8_t error = writeMasterCard(MASTER_CARD_AUTH_PASSWORD, serialData, dataSize);
+    if(error) {
+        signalError(error);
+    } else {
+        signalOK();
+    }
+}
+
 void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
     if(dataSize != sizeof(Configuration)) {
         signalError(ERROR_BAD_DATASIZE);
@@ -286,7 +300,42 @@ void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
     signalOK();
 }
 
-void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
+bool clearCard() {
+    uint8_t maxPage = rfid.getCardMaxPage();
+
+    // Clear card from last page
+    uint8_t c = 0;
+    for(uint8_t page = maxPage - 3; page > CARD_PAGE_INIT_TIME; page -= 4) {
+        if(c % 10 == 0) {
+            digitalWrite(LED_PIN, HIGH);
+        } else if(c % 5 == 0) {
+            digitalWrite(LED_PIN, LOW);
+        }
+        ++c;
+
+        if(!rfid.cardErase4Pages(page)) {
+            return false;
+        }
+    }
+
+    uint8_t tail = (maxPage - CARD_PAGE_INIT_TIME)%4;
+    // Erase the tail if necessary
+    if (tail > 0) {
+        // Erase the remaining pages individually
+        for (uint8_t i = tail; i > 0; --i) {
+            uint8_t pageToErase = CARD_PAGE_INIT_TIME + i;
+
+            // Attempt to erase a single page
+            if (!rfid.cardPageErase(pageToErase)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+void funcInitParticipantCard(uint8_t *serialData, uint8_t dataSize) {
     if(dataSize < 14) {
         signalError(ERROR_BAD_DATASIZE);
         return;
@@ -308,13 +357,14 @@ void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
         return;
     }
 
-    uint8_t maxPage = rfid.getCardMaxPage();
     digitalWrite(LED_PIN, HIGH);
-    if(!rfid.cardErase(CARD_PAGE_START, maxPage)) {
+
+    if(!clearCard()) {
         signalError(ERROR_CARD_WRITE);
         digitalWrite(LED_PIN, LOW);
         return;
     }
+
     digitalWrite(LED_PIN, LOW);
 
     byte data[] = {
@@ -624,8 +674,11 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
         case 0x5A:
             callRfidFunction(funcWriteMasterConfig, data, dataSize);
             break;
+        case 0x5B:
+            callRfidFunction(funcWriteMasterAuthPassword, data, dataSize);
+            break;
         case 0x44:
-            callRfidFunction(funcInitPaticipantCard, data, dataSize);
+            callRfidFunction(funcInitParticipantCard, data, dataSize);
             break;
         case 0x45:
             callRfidFunction(funcWriteInfo, data, dataSize);
