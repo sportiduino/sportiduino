@@ -260,11 +260,13 @@ bool Rfid::ntagAuth(NtagAuthPassword *password) {
     return true;
 }
 
-bool Rfid::ntagTryAuth() {
+bool Rfid::ntagTryAuth(bool ignoreAuthError) {
     if(authPwd.pass[0] != 0xFF || authPwd.pass[1] != 0xFF || authPwd.pass[2] != 0xFF || authPwd.pass[3] != 0xFF) {
         if(!ntagAuth(&authPwd)) {
-            DEBUG_PRINTLN(F("ntagAuth failed"));
-            return false;
+            if(!ignoreAuthError) {
+                return false;
+            }
+            DEBUG_PRINTLN(F("ignore auth error"));
         }
     }
     authenticated = true;
@@ -276,8 +278,8 @@ bool Rfid::ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size, bool igno
         return false;
     }
 
-    if(pageAdr >= CARD_PAGE_INIT && !authenticated && !ntagTryAuth()) {
-        if (!ignoreAuthError) {
+    if(pageAdr >= CARD_PAGE_INIT && !authenticated) {
+        if (!ntagTryAuth(ignoreAuthError)) {
             return false;
         }
     }
@@ -293,21 +295,21 @@ bool Rfid::ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size, bool igno
 
 bool Rfid::ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size, bool ignoreAuthError) {
     DEBUG_PRINT(F("ntagCardPageWrite pageAdr: "));
-    DEBUG_PRINTLN(pageAdr);
+    DEBUG_PRINT(pageAdr);
     DEBUG_PRINT(F(" size: "));
     DEBUG_PRINTLN(size);
     if(pageAdr < 2 || size < 4) {
         return false;
     }
 
-    if(!authenticated && !ntagTryAuth()) {
-        if(!ignoreAuthError) {
+    if(!authenticated || !ignoreAuthError) {
+        if(!ntagTryAuth(ignoreAuthError)) {
             return false;
         }
     }
 
     auto status = (MFRC522::StatusCode)mfrc522.MIFARE_Ultralight_Write(pageAdr, data, size);
-    
+
     if(status != MFRC522::STATUS_OK) {
         DEBUG_PRINT(F("ntagCardPageWrite failed, status: 0x"));
         DEBUG_PRINTLN_FORMAT(status, HEX);

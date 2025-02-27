@@ -114,7 +114,7 @@ struct __attribute__((packed)) Configuration {
     uint8_t password[3];
 };
 
-uint32_t ntagAuthPassword;
+uint8_t ntagAuthPassword[4];
 
 
 #ifdef I2C_EEPROM_VCC
@@ -351,7 +351,7 @@ void setup() {
 
     // Read settings from EEPROM
     readConfig((uint8_t*)&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
-    readConfig((uint8_t*)&ntagAuthPassword, sizeof(uint32_t), EEPROM_AUTH_PASSWORD_ADDR);
+    readConfig(ntagAuthPassword, 4, EEPROM_AUTH_PASSWORD_ADDR);
 
     if(config.stationNumber == 0 || config.stationNumber == 0xff ||
        config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
@@ -361,7 +361,7 @@ void setup() {
         config.antennaGain = DEFAULT_ANTENNA_GAIN;
         config.activeModeDuration = DEFAULT_ACTIVE_MODE_DURATION;
         storeConfig();
-        ntagAuthPassword = 0xFFFFFFFF;
+        memset(ntagAuthPassword, 0xFF, 4);
         storeAuthPassword();
 #ifdef USE_I2C_EEPROM
         i2cEepromErase();
@@ -372,7 +372,7 @@ void setup() {
   
     serialProto.init(SERIAL_MSG_START);
     rfid.init(RC522_SS, RC522_RST, config.antennaGain);
-    rfid.setAuthPassword((uint8_t*)&ntagAuthPassword);
+    rfid.setAuthPassword(ntagAuthPassword);
 
     delay(500);
 
@@ -1166,8 +1166,8 @@ void processPasswordMasterCard(byte *data) {
 }
 
 void processAuthPasswordMasterCard(byte *data) {
-    ntagAuthPassword = byteArrayToUint32(data);
-    rfid.setAuthPassword((uint8_t*)&ntagAuthPassword);
+    memcpy(ntagAuthPassword, &data[8], 4);
+    rfid.setAuthPassword(ntagAuthPassword);
     storeAuthPassword();
     beepMasterCardOk();
 }
@@ -1298,14 +1298,14 @@ bool writePunchToParticipantCard(uint8_t newPage, bool fastPunch) {
     pageData[2] = (t.unixtime >> 8) & 0xFF;
     pageData[3] = t.unixtime & 0xFF;
             
-    bool result = rfid.cardPageWrite(newPage, pageData, false);
+    bool result = rfid.cardPageWrite(newPage, pageData, 4, false);
 
     if(fastPunch && result) {
         pageData[0] = config.stationNumber;
         pageData[1] = newPage;
         pageData[2] = 0;
         pageData[3] = FAST_PUNCH_SIGN;
-        result &= rfid.cardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData, false);
+        result &= rfid.cardPageWrite(CARD_PAGE_LAST_RECORD_INFO, pageData);
     }
 
     return result;
@@ -1538,6 +1538,6 @@ void storeConfig() {
 }
 
 void storeAuthPassword() {
-    writeConfig((uint8_t*)&ntagAuthPassword, sizeof(uint32_t), EEPROM_AUTH_PASSWORD_ADDR);
+    writeConfig(ntagAuthPassword, sizeof(uint32_t), EEPROM_AUTH_PASSWORD_ADDR);
 }
 

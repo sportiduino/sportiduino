@@ -112,7 +112,7 @@ private:
     bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size);
     // data buffer size should be greater 18 bytes
     bool ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size, bool ignoreAuthError = true);
-    bool ntagTryAuth();
+    bool ntagTryAuth(bool ignoreAuthError);
     bool ntagAuth(NtagAuthPassword *password);
     bool ntagSetPassword(NtagAuthPassword *password, bool readAndWrite, uint8_t negAuthAttemptsLim, uint8_t startPage);
     bool ntagDisableAuthentication();
