@@ -62,7 +62,7 @@ using SiProto = SportidentProtocol;
 struct __attribute__((packed)) Configuration {
     uint8_t antennaGain;
     int8_t timezone; // timezone in 1/4 hours
-    // v1.10 and later
+    // v1.11 and later
     uint32_t ntagAuthPassword;
 };
 
@@ -283,7 +283,7 @@ void funcWriteMasterAuthPassword(uint8_t *serialData, uint8_t dataSize) {
 }
 
 void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
-    if(dataSize != sizeof(Configuration)) {
+    if(dataSize != sizeof(Configuration) || dataSize != 2 /*old config format*/) {
         signalError(ERROR_BAD_DATASIZE);
         return;
     }
@@ -293,7 +293,7 @@ void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
         signalError(ERROR_BAD_SETTINGS);
         return;
     }
-    memcpy(&config, newConfig, sizeof(Configuration));
+    memcpy(&config, newConfig, dataSize);
     writeConfig((uint8_t*)&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
     rfid.setAntennaGain(config.antennaGain);
     rfid.setAuthPassword((uint8_t*)&config.ntagAuthPassword);
