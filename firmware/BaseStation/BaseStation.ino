@@ -24,7 +24,7 @@
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
 // You can also run "make nopoll=1 ..."
 
-// Uncomment for BS check battery every 10 min in Sleep Mode and beep SOS if voltage < 3.5V
+// Uncomment for BS check battery every 10 min in Sleep Mode and beep SOS if voltage < 3.6V
 //#define CHECK_BATTERY_IN_SLEEP
 // You can also run "make check_battery=1 ..."
 
@@ -139,6 +139,8 @@ const uint16_t MAX_LOG_RECORDS = I2C_EEPROM_MEMORY_SIZE/LOG_RECORD_SIZE;
 #define MODE_SLEEP_CARD_CHECK_PERIOD      25000
 
 const uint32_t AUTOSLEEP_TIME = 48UL*3600*1000;
+
+const uint16_t MIN_BATTERY_VOLTAGE 3600;
 
 #define MODE_ACTIVE   0
 #define MODE_WAIT     1
@@ -444,7 +446,7 @@ void loop() {
 #if defined(CHECK_BATTERY_IN_SLEEP) && defined(ADC_IN) && defined(ADC_ENABLE)
             if(sleepCount % 20 == 0) {
                 uint16_t voltage = measureBatteryVoltage(true);
-                if (voltage < 3500) {
+                if (voltage < MIN_BATTERY_VOLTAGE) {
                     beepSos();
                 }
             }
@@ -833,7 +835,7 @@ uint8_t batteryVoltageToByte(uint16_t voltage) {
 bool checkBattery(bool beepEnabled) {
 #if defined(ADC_IN) && defined(ADC_ENABLE)
     uint16_t voltage = measureBatteryVoltage();
-    const uint16_t minVoltage = 3600;
+    const uint16_t minVoltage = MIN_BATTERY_VOLTAGE;
 #else
     uint16_t voltage = measureVcc();
     const uint16_t minVoltage = 3100;
@@ -842,7 +844,7 @@ bool checkBattery(bool beepEnabled) {
     Watchdog.reset();
     delay(250);
 
-    if(voltage > minVoltage) {
+    if(voltage >= minVoltage) {
         if(beepEnabled) {
             beepBatteryOk();
         }
