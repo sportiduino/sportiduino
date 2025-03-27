@@ -24,7 +24,7 @@
 //#define NO_POLL_CARDS_IN_SLEEP_MODE
 // You can also run "make nopoll=1 ..."
 
-// Uncomment for BS check battery every 10 min in Sleep Mode and beep SOS if voltage < 3.5V
+// Uncomment for BS check battery every 10 min in Sleep Mode and beep SOS if voltage < 3.3V
 //#define CHECK_BATTERY_IN_SLEEP
 // You can also run "make check_battery=1 ..."
 
@@ -439,7 +439,7 @@ void loop() {
 #if defined(CHECK_BATTERY_IN_SLEEP) && defined(ADC_IN) && defined(ADC_ENABLE)
             if(sleepCount % 20 == 0) {
                 uint16_t voltage = measureBatteryVoltage(true);
-                if (voltage < 3500) {
+                if (voltage < 3300) {
                     beepSos();
                 }
             }
