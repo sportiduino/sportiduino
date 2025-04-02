@@ -1,5 +1,5 @@
 Comment,Designator,Footprint,LCSC
-Passive Buzzer 12085 (12x8.5mm) 16 Ohm,BZ1,Passive Buzzer 12085 (12x8.5mm) 16 Ohm,
+Passive Buzzer 12085 (12x8.5mm) 16 ohm,BZ1,Passive Buzzer 12085 (12x8.5mm) 16 ohm,
 10 uF,"C11,C12",Capacitor_SMD:C_0805_2012Metric_Pad1.18x1.45mm_HandSolder,
 4.7 uF,"C2,C3",Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,
 100 nF,"C1,C4,C5,C6,C7,C9,C10",Capacitor_SMD:C_0805_2012Metric_Pad1.15x1.40mm_HandSolder,

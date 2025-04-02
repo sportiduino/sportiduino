@@ -172,7 +172,7 @@ L Device:Buzzer BZ1
 U 1 1 5BE5F766
 P 7900 5300
 F 0 "BZ1" H 8053 5329 50  0000 L CNN
-F 1 "Passive Buzzer 12085 (12x8.5mm) 16 Ohm" H 8053 5238 50  0001 L CNN
+F 1 "Passive Buzzer 12085 (12x8.5mm) 16 ohm" H 8053 5238 50  0001 L CNN
 F 2 "Buzzer_Beeper:MagneticBuzzer_ProSignal_ABT-410-RC" V 7875 5400 50  0001 C CNN
 F 3 "~" V 7875 5400 50  0001 C CNN
 	1    7900 5300

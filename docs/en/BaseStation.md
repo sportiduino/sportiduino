@@ -102,7 +102,7 @@ With checking the start and finish punches, the Start station (number 240) will 
 Other stations will respond to the cards only with a punch of the Start station.
 And after the Finish station (number 245), the card can no longer be punched at other stations before cleaning.
 This will avoid any mistakes and accidents.
-By default all these checks are disabled, the password is 0, 0, 0.
+By default all these checks are disabled, the password is 0,0,0.
 
 ### The Clearing station
 
@@ -130,7 +130,7 @@ The time of checking is approximately the same as the time of punching, so parti
 A password system is used to protect against unauthorized resetting of installed stations.
 
 The password consists of three numbers from 0 to 255 (three bytes).
-The default password is 0, 0, 0.
+The default password is 0,0,0.
 All master cards work only with the correct password in the first data block.
 A Config master card is used to send the password to the base station.
 The password is stored in the EEPROM memory.

@@ -97,14 +97,13 @@ It is needed to configure base stations, write and read cards.
 
 ## Instructions for participants
 
-* For punching, you should to bring the card approximately to the center of the white circle on the front side of the station.
+* For punching, you should to bring the card to the center of the white circle on the front side of the station.
 * In case of successful punching the station will emit a sound signal and blink once with the LED.
-* Optimum response range 0.5 — 2 cm.
-* If the card is far from the station, the punch may not work the first time.
+* Optimum response range 0.5 — 2 cm. If the card is far from the station, the punch may not work the first time.
 * When punching, you do not need to move the card from side to side, this makes it difficult to read and write the card.
 * If you fail to punch remove the card and bring it up again, slowly lowering it to the center of the white circle at the station.
 * Time of punching is from 0.06 to 0.4 seconds if the station is in Active mode.
-* If you came to the station first it may need to be woken up station. The time of punching in this case will be from 0.06 to 1.2 seconds.
+* If you came to the control point (CP) first it may need to be woken up station. The time of punching in this case will be from 0.06 to 1.2 seconds.
 * When you try to re-punch, the station will emit two short beeps without recording a new punch.
 If you are not sure whether you punched in the first time, it’s worth repeating.
 * Without a mark at the Start station the card may not work. In this case you need to return to the start.
@@ -251,7 +250,7 @@ and record to the station using the master card.
 ![](/img/SportiduinoPQ-OtherSettings.jpg?raw=true)
 
 Using passwords protects unauthorized change of the stations settings.
-After the build, the default password is 0, 0, 0.
+After the build, the default password is 0,0,0.
 If you set a new password and forget it then to reset the password you will need to update the settings by UART.
 It is recommended that you keep your password in a safe place.
 

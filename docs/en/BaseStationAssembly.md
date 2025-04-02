@@ -7,7 +7,7 @@ This instruction for assembling Base station v3.
 ![](/img/s01.jpg?raw=true)
 
 1. RFID module RC522.
-2. PCB. Can be ordered via [EasyEDA](https://easyeda.com/order) or [JLCPCB](https://jlcpcb.com/).
+2. PCB. Can be ordered via [EasyEDA](https://easyeda.com/order), [JLCPCB](https://jlcpcb.com/) or AliExpress.
 Gerber files are placed in the folder `hardware/BaseStation/prod/v3`.
 *It is not in the photo PCB v1.*
 3. Chips
@@ -61,7 +61,7 @@ Contact pads JP1 and JP2 are closed with a drop of solder or jumpers, as shown i
 At the end solder buzzer, RFID connector and battery box (or connector 1x2 pins).
 Solder a LED on the back of the board.
 Instead of the output LED, you can solder the SMD LED from the RFID module.
-The RC-522 module is not soldered yet.
+The RC522 module is not soldered yet.
 
 **Warning!** Do not confuse the polarity of the LED and the buzzer when soldering.
 

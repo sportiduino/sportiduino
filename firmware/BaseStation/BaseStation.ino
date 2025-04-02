@@ -779,8 +779,8 @@ uint16_t measureBatteryVoltage(bool silent) {
         digitalWrite(LED, LOW);
     }
     pinMode(ADC_ENABLE, INPUT);
-    const uint32_t R_HIGH = 270000; // Ohm
-    const uint32_t R_LOW = 68000; // Ohm
+    const uint32_t R_HIGH = 270000; // ohm
+    const uint32_t R_LOW = 68000; // ohm
     const uint32_t k = 1100*(R_HIGH + R_LOW)/R_LOW;
     return value*k/1023;
 }
