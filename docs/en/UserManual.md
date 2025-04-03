@@ -106,7 +106,6 @@ It is needed to configure base stations, write and read cards.
 * If you came to the control point (CP) first it may need to be woken up station. The time of punching in this case will be from 0.06 to 1.2 seconds.
 * When you try to re-punch, the station will emit two short beeps without recording a new punch.
 If you are not sure whether you punched in the first time, it’s worth repeating.
-* Without a mark at the Start station the card may not work. In this case you need to return to the start.
 * If you came to the CP at the same time as another participant then you need to punch one at a time.
 It is impossible to simultaneously bring two or more cards to the station. In this case the punch will be recorded only on one of the cards.
 
@@ -183,7 +182,7 @@ The station will remain in current mode.
 
 **Warning!**
 Set the current password correctly in the SportduinoPQ program.
-After the station is assembled the default password is 0,0,0.
+After the station is assembled the default password is 0-0-0.
 If you do not correctly set the password, the base station will not accept settings from the master card.
 You can reset password by writing new settings by UART.
 
@@ -250,7 +249,7 @@ and record to the station using the master card.
 ![](/img/SportiduinoPQ-OtherSettings.jpg?raw=true)
 
 Using passwords protects unauthorized change of the stations settings.
-After the build, the default password is 0,0,0.
+After the build, the default password is 0-0-0.
 If you set a new password and forget it then to reset the password you will need to update the settings by UART.
 It is recommended that you keep your password in a safe place.
 
