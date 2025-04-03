@@ -1,4 +1,4 @@
-## Cards
+# Cards
 
 The system supports these cards (RFID tags):
 
@@ -12,7 +12,6 @@ One station can work with various cards simultaneously
 without any changes in firmware or hardware.
 
 One is advised to use NTAG213/215/216.
-They cost USD $0.1, 0.2, 0.4 as stickers and twice as much as key fobs.
 
 ![](/img/chip.jpg?raw=true "Key fobs tags")
 

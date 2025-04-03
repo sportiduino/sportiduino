@@ -1,12 +1,14 @@
-A wireless master station is implemented in the system. Schematic diagram and board is in [Upverter](https://upverter.com/AlexanderVolikov/55b140a993222192/Sportiduino-BTstantion/)
+# Wireless master station
+
+A wireless master station is implemented in the system. Schematic diagram and board is in [Upverter](https://upverter.com/AlexanderVolikov/55b140a993222192/Sportiduino-BTstantion/).
 
 ![](/hardware/MasterStation/bluetooth/BTstation.png)
 
-The circuit uses Arduino Pro mini, DS3231, RC522 and Bluettoth HC-05 boards.
+The circuit uses Arduino Pro mini, DS3231, RC522 and Bluetooth HC-05 boards.
 In addition, there is space for SPI-flash memory, in this repository it is not used and the space can be left blank, but if someone wants to implement additional functionality, you can use this memory.
 Similarly, the DS3231 clock is not used and their space can be left blank.
 
-Gerber for ordering the board is placed in the `hardware/MasterStation/bluetooth`.
+Gerber for ordering the board is placed in the [`hardware/MasterStation/bluetooth`](https://github.com/sportiduino/sportiduino/tree/master/hardware/MasterStation/bluetooth).
 
 ![](/hardware/MasterStation/bluetooth/PCB_BTstation.PNG)
 

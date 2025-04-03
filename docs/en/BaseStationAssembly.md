@@ -1,4 +1,4 @@
-# Base Station Assembly
+# Base station assembly
 
 This instruction for assembling Base station v3.
 

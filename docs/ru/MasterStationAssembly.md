@@ -12,7 +12,6 @@
 3. Плата для спайки ([вариант 1](https://upverter.com/AlexanderVolikov/3fc0efdb2586988d/Sportiduino-reading-stantion/) и
 [вариант 2](https://upverter.com/design/syakimov/4f7ec0e2d3b9c4e9/sportiduino-master-station/)).
 Можно заказать изготовление плат в Китае. Например, на [JLCPCB](https://jlcpcb.com/).
-Стоимость зависит от партии, минимальное число 5.
 Целесообразно заказывать платы для станции сопряжения одновременно с платами для станций отметки. 
 4. Штыревой разъём "гребёнка", светодиод и зуммер (электромагнитный или прьезоизлучатель).
 5. Корпус Gainta 1020BF или 1015. Продаются в России.
@@ -50,7 +49,7 @@
 
 Для активного зуммера изменяем частоту на 0 кГц ("Buzzer frequency: 0 kHz (active buzzer)").
 
-Выбираем нужный COM порт и заливаем скетч MasterStation на плату (Файл->Папка со скетчами->MasterStation).
+Выбираем нужный COM-порт и заливаем скетч MasterStation на плату (Файл->Папка со скетчами->MasterStation).
 
 ![](/img/ArduinoIdeMasterSelect.png?raw=true)
 

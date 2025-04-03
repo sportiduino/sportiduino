@@ -13,7 +13,7 @@
 
 1. RFID-модуль RC522.
 2. Печатная плата. Можно заказать через [EasyEDA](https://easyeda.com/order), [JLCPCB](https://jlcpcb.com/) или AliExpress.
-Gerber файлы находятся в папке `hardware/BaseStation/prod/v3`. *На фото представлена печатная плата версии 1.*
+Gerber-файлы находятся в папке `hardware/BaseStation/prod/v3`. *На фото представлена печатная плата версии 1.*
 3. Микросхемы
    - Микроконтроллер ATmega328P-AU 
    - Часы DS3231SN 
