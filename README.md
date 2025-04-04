@@ -15,7 +15,6 @@ Links to data processing software are placed [below](#software).
 [Manual](/docs/en.md)
 
 This project is open and free. Anyone can reproduce it yourself. Just follow the instructions from the Manual.
-The low cost of the components can be worth your efforts (about USD $10 for one base station and $0.2 per RFID tag).
 
 This development is a hobby.
 No guarantees are given, various kinds of problems are possible during reproduction.
@@ -64,8 +63,6 @@ You can also help by improving documentation and its translation.
 ## Cards
 
 The system uses cards NTAG213/215/216.
-As stickers on Chinese web marketplaces they cost about $0.1, 0.2 and 0.4, respectively.
-As key fobs the cost is doubled.
 Memory of these cards can keep 32, 120 and 216 marks, respectively.
 
 Also it is possible to use Mifare Classic 1K and 4K cards.
@@ -74,17 +71,15 @@ The memory of these chips is enough for 42 marks. They work a little slower than
 
 The system automatically detects the type of used cards.
 
-[Read more](/docs/en/Card.md)
+[Read more](/docs/en/Cards.md)
 
 ## Base stations
 
-The main components of the station are the ATmega328P microcontroller and the MFRC522 module,
+The main components of the station are the ATmega328P-AU microcontroller and the MFRC522 module,
 which operates at a frequency of 13.56 MHz, real-time clock DS3231SN.
 All powered by 3 AA batteries through the MCP1700T-33 stabilizer.
 The capacity of the kit of three alkaline AA batteries should be enough for a year of active use.
 Tested at ambient temperatures from -20 to +50 degrees Celcius.
-
-Totally, the initial components for one base station and the consumables cost about $10 (in 2019).
 
 [Read more](/docs/en/BaseStation.md)
 

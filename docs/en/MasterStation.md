@@ -1,4 +1,4 @@
-# Master Station
+# Master station
 
 The Master station can be made in various boxes.
 

@@ -1,4 +1,4 @@
-# Base Station
+# Base station
 
 ### Scheme
 
@@ -11,7 +11,6 @@ The scheme and PCB are made in KiCad program.
 The components are mounted on a printed circuit board.
 Connection with an RFID board is via soldered connection with a pin connector.
 You can order the manufacture of PCB in China (e.g. [JLCPCB](https://jlcpcb.com/)).
-It will cost around 0.9-1$ per piece with delivery.
 
 ![](/hardware/BaseStation/prod/v3/sportiduino-base-v3-pcb.png?raw=true "PCB")
 

@@ -1,4 +1,4 @@
-# Чипы
+# Чипы отметки
 
 Система отметки поддерживает следующие типы чипов:
 - [Mifare Ultralight C](http://www.nxp.com/documents/data_sheet/MF0ICU2.pdf) на 36 отметок

@@ -1,4 +1,4 @@
-# Master Station Assembly
+# Master station assembly
 
 ### Master station components
 
@@ -12,7 +12,6 @@ To connect the second you need to install the driver on Windows.
 3. The PCB for soldering ([variant 1](https://upverter.com/AlexanderVolikov/3fc0efdb2586988d/Sportiduino-reading-stantion/) or
 [variant 2](https://upverter.com/design/syakimov/4f7ec0e2d3b9c4e9/sportiduino-master-station/)).
 You can order the manufacture of PCB in China (e.g. [JLCPCB](https://jlcpcb.com/)).
-The cost depends on the lot, the minimum number is 5.
 It is advisable to order boards for the master station simultaneously with the PCB for the base stations.
 4. Pins, LED and buzzer. 
 5. The case is Gainta 1020BF or 1015. Sold in Russia. 
