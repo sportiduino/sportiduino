@@ -65,7 +65,7 @@ Card is polled every 1 second.
 Battery will last for a half of year.
 * **Active mode.**
 Card is polled every 0.25 seconds.
-Fastest mark mode. Battery will last for 45 days.
+Fastest punch mode. Battery will last for 45 days.
 
 Base stations, depending on the number assigned to them (from 1 to 255), can perform different functions:
 
@@ -256,9 +256,9 @@ It is recommended that you keep your password in a safe place.
 Settings details:
 - `Active Time` — the working time in active mode.
 If during this time no one punch at the station the station will go to the Waiting mode.
-- `Start/Finish` — enables checking Start and Finish punches at the participants' cards.
+- `Start as Check` — enables checking no punches before start on participants' cards.
 - `Check InitTime` — enables checking the initialization time of card.
-- `Fast Mark` — enables quick punching mode.
+- `Fast Punch` — enables quick punching mode.
 This reduces the time spent by the participant when the base station records the punch on the participant's card.
 But it also reduces the resource life of the cards and its will fail faster.
 - `Antenna Gain` - gain of MFRC522 module.

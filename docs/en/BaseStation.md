@@ -80,7 +80,7 @@ Search and record time depend on the card volume:
 
 Factor in the Wait or Active mode delay - up to 1000 or 250 ms accordingly.
 
-A Fast mark mode exists.
+A Fast Punch mode exists.
 The last station number is always recorded into the sixth page on a card.
 It reduced the card lifetime.
 
@@ -91,17 +91,15 @@ During operation, a watch-dog is running which restarts the station should the s
 Using the Config master card, you can set:
 
 - the duration of the Active mode,
-- checking start and finish punches,
+- Start as Check mode,
 - checking the initialization time of the cards,
-- Fast mark mode,
+- Fast Punch mode,
 - antenna gain,
 - password.
 
-With checking the start and finish punches, the Start station (number 240) will only accept cleared cards.
-Other stations will respond to the cards only with a punch of the Start station.
-And after the Finish station (number 245), the card can no longer be punched at other stations before cleaning.
-This will avoid any mistakes and accidents.
-By default all these checks are disabled, the password is 0-0-0.
+With Start as Check mode, the Start station (number 240) will only accept cleared cards.
+
+By default all special modes are disabled, the password is 0-0-0.
 
 ### The Clearing station
 
