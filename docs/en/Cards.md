@@ -46,10 +46,12 @@ Time is then restored using the initialization time recorded in the 5th page.
 
 Master cards which set up the stations have a different structure.
 The station recognizes them by the number 255, recorded in the 3rd byte of the 4th page.
-There are 6 different master cards: Time, Number, Sleep, Config, Backup and State.
+There are 8 different master cards: Time, Number, Sleep, Config, Password, Auth password, Backup and State.
 Their structure is below.
 
-![](/img/master-card.png?raw=true)
+![](/img/master-card1.png?raw=true)
+
+![](/img/master-card2.png?raw=true)
 
 #### Time Master Card
 
@@ -75,6 +77,18 @@ This card is reusable.
 #### Config Master Card
 
 Writes the number (if > 0), settings byte, antenna gain (if ≥ 2 and ≤ 7) and new password to the station.
+
+This card is reusable.
+
+#### Password Master Card
+
+Writes the new password to the station.
+
+This card is reusable.
+
+#### Authentication Password Master Card
+
+Writes the password (4 bytes) for Ntag authentication to the station.
 
 This card is reusable.
 
