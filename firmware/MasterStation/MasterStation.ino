@@ -2,13 +2,13 @@
 #include "sportidentprotocol.h"
 
 #ifndef HW_VERS
-    #define HW_VERS           1
+    #define HW_VERS       1
 #endif
 
-#define FW_MAJOR_VERS     9
+#define FW_MAJOR_VERS     11
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     1
+#define FW_MINOR_VERS     (MAX_FW_MINOR_VERS + 1)
 
 
 //-----------------------------------------------------------
@@ -62,6 +62,8 @@ using SiProto = SportidentProtocol;
 struct __attribute__((packed)) Configuration {
     uint8_t antennaGain;
     int8_t timezone; // timezone in 1/4 hours
+    // v1.11 and later
+    uint32_t ntagAuthPassword;
 };
 
 //-----------------------------------------------------------
@@ -81,13 +83,12 @@ void sieCardRemoved();
 void sieCardReadError();
 bool sieSendDataBlock(uint8_t blockNumber);
 bool sieSendAllDataBlocks(bool shortFormat);
-void setPwd(uint8_t newPwd[]);
-uint8_t getPwd(uint8_t i);
 
 //-----------------------------------------------------------
 // VARIABLES
 static Configuration config;
 static Rfid rfid;
+static uint8_t password[3] = {0, 0, 0};
 static SerialProtocol serialProto;
 static SiProto siProto;
 static bool sieMode = true; // Sportident emulation mode (continuos readout)
@@ -102,13 +103,15 @@ void setup() {
     digitalWrite(BUZZ_PIN, LOW);
     digitalWrite(RC522_RST_PIN, LOW);
 
-    readConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    readConfig((uint8_t*)&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
     if(config.antennaGain > MAX_ANTENNA_GAIN || config.antennaGain < MIN_ANTENNA_GAIN) {
         config.antennaGain = DEFAULT_ANTENNA_GAIN;
         config.timezone = 0;
+        config.ntagAuthPassword = 0xFFFFFFFF;
     }
 
     rfid.init(RC522_SS_PIN, RC522_RST_PIN, config.antennaGain);
+    rfid.setAuthPassword((uint8_t*)&config.ntagAuthPassword);
     serialProto.init(SERIAL_START_BYTE, 38400);
 
     digitalWrite(LED_PIN, HIGH);
@@ -179,7 +182,7 @@ uint8_t writeMasterCard(uint8_t masterCode, byte *data = NULL, uint16_t size = 0
 
     byte head[] = {
         0, masterCode, 255, FW_MAJOR_VERS,
-        getPwd(0), getPwd(1), getPwd(2), 0
+        password[0], password[1], password[2], 0
     };
 
     if(!rfid.cardWrite(CARD_PAGE_INIT, head, sizeof(head))) {
@@ -254,18 +257,33 @@ void funcWriteMasterPassword(uint8_t *serialData, uint8_t dataSize) {
 }
 
 void funcApplyPassword(uint8_t *serialData, uint8_t dataSize) {
-    setPwd(serialData);
+    memcpy(password, serialData, 3);
     signalOK();
 }
 
 void funcReadSettings(uint8_t *serialData, uint8_t dataSize) {
     serialProto.start(RESP_FUNC_SETTINGS);
-    serialProto.add((uint8_t*)&config, sizeof(Configuration));
+    // Send first 2 bytes of configuration (without ntagAuthPassword)
+    serialProto.add((uint8_t*)&config, 2);
     serialProto.send();
 }
 
+void funcWriteMasterAuthPassword(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize != 4) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
+
+    uint8_t error = writeMasterCard(MASTER_CARD_AUTH_PASSWORD, serialData, dataSize);
+    if(error) {
+        signalError(error);
+    } else {
+        signalOK();
+    }
+}
+
 void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
-    if(dataSize != sizeof(Configuration)) {
+    if(dataSize != sizeof(Configuration) || dataSize != 2 /*old config format*/) {
         signalError(ERROR_BAD_DATASIZE);
         return;
     }
@@ -275,24 +293,78 @@ void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
         signalError(ERROR_BAD_SETTINGS);
         return;
     }
-    memcpy(&config, newConfig, sizeof(Configuration));
-    writeConfig(&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    memcpy(&config, newConfig, dataSize);
+    writeConfig((uint8_t*)&config, sizeof(Configuration), EEPROM_CONFIG_ADDR);
+    rfid.setAntennaGain(config.antennaGain);
+    rfid.setAuthPassword((uint8_t*)&config.ntagAuthPassword);
     signalOK();
 }
 
-void funcInitPaticipantCard(uint8_t *serialData, uint8_t dataSize) {
+bool clearCard() {
+    uint8_t maxPage = rfid.getCardMaxPage();
+
+    // Clear card from last page
+    uint8_t c = 0;
+    for(uint8_t page = maxPage - 3; page > CARD_PAGE_INIT_TIME; page -= 4) {
+        if(c % 10 == 0) {
+            digitalWrite(LED_PIN, HIGH);
+        } else if(c % 5 == 0) {
+            digitalWrite(LED_PIN, LOW);
+        }
+        ++c;
+
+        if(!rfid.cardErase4Pages(page)) {
+            return false;
+        }
+    }
+
+    uint8_t tail = (maxPage - CARD_PAGE_INIT_TIME)%4;
+    // Erase the tail if necessary
+    if (tail > 0) {
+        // Erase the remaining pages individually
+        for (uint8_t i = tail; i > 0; --i) {
+            uint8_t pageToErase = CARD_PAGE_INIT_TIME + i;
+
+            // Attempt to erase a single page
+            if (!rfid.cardPageErase(pageToErase)) {
+                return false;
+            }
+        }
+    }
+
+    return true;
+}
+
+void funcInitParticipantCard(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize < 14) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
     if(!rfid.isCardDetected()) {
         signalError(ERROR_CARD_NOT_FOUND);
         return;
     }
 
-    uint8_t maxPage = rfid.getCardMaxPage();
+    bool writeProtection = false;
+    bool readProtection = false;
+    if(dataSize > 14) {
+        uint8_t flags = serialData[14];
+        writeProtection = (flags & 1);
+        readProtection = (flags & 2);
+    }
+    if(!rfid.cardEnableDisableAuthentication(writeProtection, readProtection)) {
+        signalError(ERROR_CARD_WRITE);
+        return;
+    }
+
     digitalWrite(LED_PIN, HIGH);
-    if(!rfid.cardErase(CARD_PAGE_START, maxPage)) {
+
+    if(!clearCard()) {
         signalError(ERROR_CARD_WRITE);
         digitalWrite(LED_PIN, LOW);
         return;
     }
+
     digitalWrite(LED_PIN, LOW);
 
     byte data[] = {
@@ -583,7 +655,7 @@ void funcGetVersion(uint8_t*, uint8_t) {
 }
 
 void callRfidFunction(void (*func)(uint8_t*, uint8_t), uint8_t *data, uint8_t dataSize) {
-    rfid.begin(config.antennaGain);
+    rfid.begin();
     func(data, dataSize);
     rfid.end();
 }
@@ -602,8 +674,11 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
         case 0x5A:
             callRfidFunction(funcWriteMasterConfig, data, dataSize);
             break;
+        case 0x5B:
+            callRfidFunction(funcWriteMasterAuthPassword, data, dataSize);
+            break;
         case 0x44:
-            callRfidFunction(funcInitPaticipantCard, data, dataSize);
+            callRfidFunction(funcInitParticipantCard, data, dataSize);
             break;
         case 0x45:
             callRfidFunction(funcWriteInfo, data, dataSize);
@@ -741,7 +816,7 @@ void handleSiCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
         case SiProto::CMD_READ_SI6:
             {
                 uint8_t blockNumber = data[0];
-                rfid.begin(config.antennaGain);
+                rfid.begin();
                 bool autosend = false; // not implemented
                 if(blockNumber == 0x00 && autosend) {
                     if(!sieSendAllDataBlocks(true)) {
@@ -1077,15 +1152,5 @@ bool sieSendAllDataBlocks(bool shortFormat) {
         }
     }
     return true;
-}
-
-uint8_t pwd[] = {0, 0, 0};
-
-void setPwd(uint8_t newPwd[]) {
-    memcpy(pwd, newPwd, 3);
-}
-
-uint8_t getPwd(uint8_t i) {
-    return pwd[i];
 }
 

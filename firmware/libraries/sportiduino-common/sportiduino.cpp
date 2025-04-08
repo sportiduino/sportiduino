@@ -57,6 +57,7 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
 }
 
 bool findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
+    DEBUG_PRINTLN(F("findNewPage"));
     uint8_t startPage = CARD_PAGE_START;
     uint8_t endPage = rfid->getCardMaxPage() + 1; // page after last page
     uint8_t page = startPage;
@@ -68,8 +69,11 @@ bool findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
 
     while(startPage < endPage) {   
         page = (startPage + endPage)/2;
+        DEBUG_PRINT(F("page: "));
+        DEBUG_PRINTLN(page);
 
         if(!rfid->cardPageRead(page, pageData)) {
+            DEBUG_PRINTLN(F("page read failed"));
             return false;
         }
 
@@ -85,6 +89,10 @@ bool findNewPage(Rfid *rfid, uint8_t *newPage, uint8_t *lastNum) {
     if(num > 0) {
         ++page;
     }
+    DEBUG_PRINT(F("new page: "));
+    DEBUG_PRINT(page);
+    DEBUG_PRINT(F(", num: "));
+    DEBUG_PRINTLN(num);
 
     *newPage = page;
     *lastNum = num;
@@ -113,7 +121,7 @@ uint32_t byteArrayToUint32(const byte *byteArray) {
     return value;
 }
 
-bool readConfig(Configuration *config, uint8_t configSize, uint16_t eepromConfigAddress) {
+bool readConfig(uint8_t *config, uint8_t configSize, uint16_t eepromConfigAddress) {
     uint16_t eepromAdr = eepromConfigAddress;
     for(uint8_t i = 0; i < configSize; ++i) {
         *((uint8_t*)config + i) = majEepromRead(eepromAdr);
@@ -123,7 +131,7 @@ bool readConfig(Configuration *config, uint8_t configSize, uint16_t eepromConfig
     return true;
 }
 
-bool writeConfig(Configuration *newConfig, uint8_t configSize, uint16_t eepromConfigAddress) {
+bool writeConfig(uint8_t *newConfig, uint8_t configSize, uint16_t eepromConfigAddress) {
     uint16_t eepromAdr = eepromConfigAddress;
     for(uint8_t i = 0; i < configSize; ++i) {
         majEepromWrite(eepromAdr, *((uint8_t*)newConfig + i));

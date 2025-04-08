@@ -1359,20 +1359,20 @@ MFRC522::StatusCode MFRC522::MIFARE_SetValue(byte blockAddr, long value) {
 } // End MIFARE_SetValue()
 
 /**
- * Authenticate with a NTAG216.
+ * Authenticate with a NTAG21x.
  * 
  * Only for NTAG216. First implemented by Gargantuanman.
  * 
- * @param[in]   passWord   password.
- * @param[in]   pACK       result success???.
+ * @param[in]   passWord   Password (4 bytes).
+ * @param[out]  pACK       Result success???.
  * @return STATUS_OK on success, STATUS_??? otherwise.
  */
-MFRC522::StatusCode MFRC522::PCD_NTAG216_AUTH(byte* passWord, byte pACK[]) //Authenticate with 32bit password
+MFRC522::StatusCode MFRC522::PCD_NTAG21x_Auth(byte* passWord, byte pACK[]) //Authenticate with 32bit password
 {
 	MFRC522::StatusCode result;
 	byte				cmdBuffer[18]; // We need room for 16 bytes data and 2 bytes CRC_A.
 	
-	cmdBuffer[0] = 0x1B; //Comando de autentificacion
+	cmdBuffer[0] = 0x1B; // PWD_AUTH command
 	
 	for (byte i = 0; i<4; i++)
 		cmdBuffer[i+1] = passWord[i];

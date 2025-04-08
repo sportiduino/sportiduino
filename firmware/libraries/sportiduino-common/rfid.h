@@ -11,15 +11,20 @@
 #define CARD_PAGE_INIT              4
 #define CARD_PAGE_INIT_TIME         5
 #define CARD_PAGE_LAST_RECORD_INFO  6
-#define CARD_PAGE_INFO1				6
-#define CARD_PAGE_INFO2				7
+#define CARD_PAGE_INFO1             6
+#define CARD_PAGE_INFO2             7
 #define CARD_PAGE_START             8
 
-#define CARD_PAGE_PASS				5
-#define CARD_PAGE_DATE				6
-#define CARD_PAGE_TIME				7
-#define CARD_PAGE_STATION_NUM		6
-#define CARD_PAGE_BACKUP_START		6
+#define CARD_PAGE_PASS              5
+#define CARD_PAGE_DATE              6
+#define CARD_PAGE_TIME              7
+#define CARD_PAGE_STATION_NUM       6
+#define CARD_PAGE_BACKUP_START      6
+
+#define PAGE_CFG0_OFFSET            2
+#define PAGE_CFG1_OFFSET            3
+#define PAGE_PWD_OFFSET             4
+#define PAGE_PACK_OFFSET            5
 
 enum class CardType : byte {
     UNKNOWN	    = 0,
@@ -30,11 +35,16 @@ enum class CardType : byte {
     MIFARE_4K   = 5,
     MIFARE_UL   = 6,
     MIFARE_PLUS	= 7,
-    TNP3XXX	    = 8,
+    TNP3XXX     = 8,
     NTAG213     = 9,
     NTAG215     = 10,
     NTAG216     = 11
 };
+
+typedef struct {
+    byte pass[4];
+    byte pack[2];
+} NtagAuthPassword;
 
 class Rfid {
 public:
@@ -43,6 +53,7 @@ public:
     void clearLastCardUid();
 
     void setAntennaGain(uint8_t newAntennaGain);
+    void setAuthPassword(uint8_t *password);
 
     /**
      * Begins to work with RFID module
@@ -73,12 +84,12 @@ public:
     /**
      * Reads data from a card page. Buffer size should be 4 bytes!
      */
-    bool cardPageRead(uint8_t pageAdr, byte *data, uint8_t size = 4);
+    bool cardPageRead(uint8_t pageAdr, byte *data, uint8_t size = 4, bool ignoreAuthError = true);
 
     /**
      * Writes data to a card page. Buffer size should be 4 bytes!
      */
-    bool cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size = 4);
+    bool cardPageWrite(uint8_t pageAdr, const byte *data, uint8_t size = 4, bool ignoreAuthError = true);
 
     bool cardPageWrite(uint8_t pageAdr, uint32_t value);
 
@@ -92,23 +103,30 @@ public:
      */
     CardType getCardType();
 
+    bool cardEnableDisableAuthentication(bool writeProtection, bool readProtection = false);
+
 private:
     // data buffer size should be greater 18 bytes
     bool mifareCardPageRead(uint8_t pageAdr, byte *data, byte *size);
     // data buffer size should be greater 16 bytes
     bool mifareCardPageWrite(uint8_t pageAdr, byte *data, byte size);
-    // data buffer size should be greater 16 bytes
-    bool ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size);
+    // data buffer size should be greater 18 bytes
+    bool ntagCard4PagesRead(uint8_t pageAdr, byte *data, byte *size, bool ignoreAuthError = true);
+    bool ntagTryAuth(bool ignoreAuthError);
+    bool ntagAuth(NtagAuthPassword *password);
+    bool ntagSetPassword(NtagAuthPassword *password, bool readAndWrite, uint8_t negAuthAttemptsLim, uint8_t startPage);
+    bool ntagDisableAuthentication();
     // data buffer size should be greater 4 bytes
-    bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size);
+    bool ntagCardPageWrite(uint8_t pageAdr, byte *data, byte size, bool ignoreAuthError = true);
 
     MFRC522 mfrc522;
-    MFRC522::MIFARE_Key key;
+    NtagAuthPassword authPwd;
     MFRC522::Uid lastCardUid;
     uint8_t rfidSsPin = 0;
     uint8_t rfidRstPin = 0;
     uint8_t antennaGain = 0;
     CardType cardType = CardType::UNKNOWN;
+    bool authenticated = false;
 };
 
 #endif // SPORTIDUINO_RFID_H
