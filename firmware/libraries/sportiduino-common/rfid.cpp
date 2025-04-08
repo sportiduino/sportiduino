@@ -204,6 +204,13 @@ bool Rfid::ntagSetPassword(NtagAuthPassword *password, bool readAndWrite, uint8_
 bool Rfid::ntagDisableAuthentication() {
     DEBUG_PRINTLN("ntagDisableAuthentication");
     uint8_t maxPage = getCardMaxPage();
+
+    uint8_t defaultPassword[4] = {0xff, 0xff, 0xff, 0xff};
+    // Reset password
+    if(!ntagCardPageWrite(maxPage + PAGE_PWD_OFFSET, defaultPassword, 4)) {
+        return false;
+    }
+
     uint8_t cfg0PageData[4] = {0, 0, 0, 0xff};
     if(!ntagCardPageWrite(maxPage + PAGE_CFG0_OFFSET, cfg0PageData, 4)) {
         return false;
