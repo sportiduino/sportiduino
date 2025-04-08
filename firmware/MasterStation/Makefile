@@ -32,6 +32,10 @@ ifdef buzzfreq
 	CXXFLAGS += -DBUZZER_FREQUENCY=$(buzzfreq)
 endif
 
+ifdef silent
+	CXXFLAGS += -DSILENT_BEEP
+endif
+
 $(info CXXFLAGS = $(CXXFLAGS))
 
 include $(ARDMK_DIR)/Arduino.mk

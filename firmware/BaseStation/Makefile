@@ -45,6 +45,10 @@ ifdef check_battery
 	CXXFLAGS += -DCHECK_BATTERY_IN_SLEEP
 endif
 
+ifdef silent
+	CXXFLAGS += -DSILENT_BEEP
+endif
+
 $(info CXXFLAGS = $(CXXFLAGS))
 
 include $(ARDMK_DIR)/Arduino.mk

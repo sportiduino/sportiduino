@@ -37,11 +37,13 @@ void beep_w(const uint8_t ledPin, const uint8_t buzPin, uint16_t freq, uint16_t 
         Watchdog.reset();
         
         digitalWrite(ledPin, HIGH);
+#if !defined(SILENT_BEEP)
         if(freq > 0) {
             tone(buzPin, freq, ms);
         } else {
             digitalWrite(buzPin, HIGH);
         }
+#endif
         
         delay(ms);
         Watchdog.reset();
