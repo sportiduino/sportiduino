@@ -8,7 +8,7 @@
 #define FW_MAJOR_VERS     11
 // If FW_MINOR_VERS more than MAX_FW_MINOR_VERS this is beta version HW_VERS.FW_MINOR_VERS.0-beta.X
 // where X is (FW_MINOR_VERS - MAX_FW_MINOR_VERS)
-#define FW_MINOR_VERS     (MAX_FW_MINOR_VERS + 1)
+#define FW_MINOR_VERS     (MAX_FW_MINOR_VERS + 2)
 
 
 //-----------------------------------------------------------
@@ -54,6 +54,9 @@ enum Resp {
 };
 
 #define EEPROM_CONFIG_ADDR 0x3EE
+
+const uint8_t NTAG213_PAGE4_FACTORY_DATA[] = {0x01, 0x03, 0xa0, 0x0c};
+const uint8_t NTAG215_216_PAGE4_FACTORY_DATA[] = {0x03, 0x00, 0xfe, 0x00};
 
 //-----------------------------------------------------------
 
@@ -199,6 +202,11 @@ uint8_t writeMasterCard(uint8_t masterCode, byte *data = NULL, uint16_t size = 0
 }
 
 void funcWriteMasterTime(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize < 6) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
+
     byte data[] = {
         serialData[1], serialData[0], serialData[2], 0,  // month, year, day, 0
         serialData[3], serialData[4], serialData[5], 0   // hour, minute, second, 0
@@ -215,6 +223,11 @@ void funcWriteMasterTime(uint8_t *serialData, uint8_t dataSize) {
 }
 
 void funcWriteMasterNum(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize < 1) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
+
     byte data[] = {serialData[0], 0, 0, 0};     // station num
     
     uint8_t error = writeMasterCard(MASTER_CARD_SET_NUMBER, data, sizeof(data));
@@ -227,7 +240,7 @@ void funcWriteMasterNum(uint8_t *serialData, uint8_t dataSize) {
 }
 
 void funcWriteMasterConfig(uint8_t *serialData, uint8_t dataSize) {
-    if(dataSize != 6) {
+    if(dataSize < 6) {
         signalError(ERROR_BAD_DATASIZE);
         return;
     }
@@ -242,7 +255,7 @@ void funcWriteMasterConfig(uint8_t *serialData, uint8_t dataSize) {
 }
 
 void funcWriteMasterPassword(uint8_t *serialData, uint8_t dataSize) {
-    if(dataSize != 3) {
+    if(dataSize < 3) {
         signalError(ERROR_BAD_DATASIZE);
         return;
     }
@@ -257,11 +270,15 @@ void funcWriteMasterPassword(uint8_t *serialData, uint8_t dataSize) {
 }
 
 void funcApplyPassword(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize < 3) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
     memcpy(password, serialData, 3);
     signalOK();
 }
 
-void funcReadSettings(uint8_t *serialData, uint8_t dataSize) {
+void funcReadSettings(uint8_t *, uint8_t ) {
     serialProto.start(RESP_FUNC_SETTINGS);
     // Send first 2 bytes of configuration (without ntagAuthPassword)
     serialProto.add((uint8_t*)&config, 2);
@@ -269,7 +286,7 @@ void funcReadSettings(uint8_t *serialData, uint8_t dataSize) {
 }
 
 void funcWriteMasterAuthPassword(uint8_t *serialData, uint8_t dataSize) {
-    if(dataSize != 4) {
+    if(dataSize < 4) {
         signalError(ERROR_BAD_DATASIZE);
         return;
     }
@@ -382,8 +399,8 @@ void funcInitParticipantCard(uint8_t *serialData, uint8_t dataSize) {
     signalOK();
 }
 
-void funcWriteInfo(uint8_t *serialData, uint8_t dataSize) {
-    if(dataSize != 8) {
+void funcWritePages6_7(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize < 8) {
         signalError(ERROR_BAD_DATASIZE);
         return;
     }
@@ -422,6 +439,10 @@ void funcWriteGetInfoCard(uint8_t*, uint8_t) {
 }
 
 void funcWriteMasterSleep(uint8_t *serialData, uint8_t dataSize) {
+    if(dataSize < 6) {
+        signalError(ERROR_BAD_DATASIZE);
+        return;
+    }
     // wakeup time
     byte data[] = {
         serialData[1], serialData[0], serialData[2], 0,
@@ -533,13 +554,23 @@ void funcReadCard(uint8_t*, uint8_t) {
         signalError(ERROR_CARD_READ);
         return;
     }
+
     if(pageData[2] == 0xff) {
         return;
     }
+
+    uint8_t *cardNumPointer = pageData;
+    if(memcmp(pageData, NTAG213_PAGE4_FACTORY_DATA, 4) == 0
+            || memcmp(pageData, NTAG215_216_PAGE4_FACTORY_DATA, 4) == 0) {
+        // Reset card number
+        cardNumPointer[0] = 0;
+        cardNumPointer[1] = 0;
+    }
+
     serialProto.start(RESP_FUNC_MARKS);
     // Output the card number
-    serialProto.add(pageData[0]);
-    serialProto.add(pageData[1]);
+    serialProto.add(cardNumPointer[0]);
+    serialProto.add(cardNumPointer[1]);
 
     if(!rfid.cardPageRead(CARD_PAGE_INIT_TIME, pageData)) {
         signalError(ERROR_CARD_READ);
@@ -607,17 +638,24 @@ void funcReadCard(uint8_t*, uint8_t) {
     serialProto.send();
 }
 
-void funcReadRawCard(uint8_t*, uint8_t) {
+void funcReadRawCard(uint8_t* serialData, uint8_t dataSize) {
     uint8_t error = ERROR_CARD_NOT_FOUND;
     byte pageData[] = {0,0,0,0};
 
-    serialProto.start(RESP_FUNC_RAW_DATA);
-
     if(rfid.isCardDetected()) {
         error = ERROR_CARD_READ;
-        uint8_t maxPage = rfid.getCardMaxPage();
+        uint8_t firstPage = CARD_PAGE_INIT;
+        uint8_t lastPage = rfid.getCardMaxPage();
 
-        for(uint8_t page = CARD_PAGE_INIT; page <= maxPage; page++) {
+        if (dataSize > 1) {
+            firstPage = serialData[0];
+            uint8_t numPages = serialData[1];
+            numPages = max(numPages, 1);
+            lastPage = min(firstPage + numPages - 1, lastPage);
+        }
+
+        serialProto.start(RESP_FUNC_RAW_DATA);
+        for(uint8_t page = firstPage; page <= lastPage; page++) {
             if(!rfid.cardPageRead(page, pageData)) {
                 error = ERROR_CARD_READ;
                 break;
@@ -681,7 +719,7 @@ void handleCmd(uint8_t cmdCode, uint8_t *data, uint8_t dataSize) {
             callRfidFunction(funcInitParticipantCard, data, dataSize);
             break;
         case 0x45:
-            callRfidFunction(funcWriteInfo, data, dataSize);
+            callRfidFunction(funcWritePages6_7, data, dataSize);
             break;
         case 0x46:
             funcGetVersion(data, dataSize);
