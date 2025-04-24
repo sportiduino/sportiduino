@@ -138,6 +138,7 @@ Errors:
 
 | Repetitions | Duration in ms | Meaning |
 | --- | --- | --- |
+| 2 |  80 | DS3231 broken or not connected
 | 3 | 100 | The clock is not right
 | 4 | 100 | The master card password is wrong
 | 5 | 100 | The battery is low

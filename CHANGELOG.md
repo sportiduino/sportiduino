@@ -1,3 +1,45 @@
+## v3.11.0 - 2025-04-24
+
+- Added write and read protection for NTAG 21x cards by 4 bytes password.
+- Documentation update
+
+Base station firmware **v3.11.0**:
+- Reduced clearing time for NTAG cards by about 2 times
+- Check RTC IC on waking up from sleep (beep 2 times if error)
+- Card expiration time now is 180 days after initialization or clearing
+- Don't wake up by Sleep master card
+- Don't wait at measuring battery voltage when writing State master card
+- Blink LED at reed switch triggering
+
+Master station firmware **v1.11.0**:
+- Added NTAG authentication password to config
+- Fixed reading a card as empty in the SPORTident emulation mode
+
+For working with this firmware version use [SportiduinoPQ](https://github.com/sportiduino/sportiduinopq/releases/latest) >= 0.13, [SportiduinoApp](https://github.com/sportiduino/sportiduinoapp/releases/latest) >= 1.6 and [SportOrgPlus](https://github.com/sembruk/sportorg-plus/releases/latest).
+
+[All changes](https://github.com/sportiduino/sportiduino/compare/v3.10.0...v3.11.0)
+
+---
+
+- Добавлена защита паролем (4 байта) от записи и чтения для NTAG 213/215/216
+- Обновлена документация
+
+Прошивка базовой станции **v3.11.0**:
+- Сокращено время очистки чипов NTAG 21x до 2-х раз
+- Проверка RTC IC при пробуждении станции (двойной короткий сигнал в случае ошибки)
+- Срок действия чипа увеличен до 180 дней после инициализации или очистки
+- Выключено пробуждение по чипу сна
+- Не ждать при измерении напряжения аккумулятора при записи чипа состояния
+- Мигание светодиода при срабатывании геркона
+
+Прошивка станции сопряжения **v1.11.0**:
+- Добавлена пароль аутентификации NTAG в настройки
+- Исправлено ошибочное чтение чипа как пустого в режиме эмуляции SPORTident
+
+Для работы с данной версией прошивок используйте [SportiduinoPQ](https://github.com/sportiduino/sportiduinopq/releases/latest) >= 0.13, [SportiduinoApp](https://github.com/sportiduino/sportiduinoapp/releases/latest) >= 1.6 и [SportOrgPlus](https://github.com/sembruk/sportorg-plus/releases/latest).
+
+[Все изменения](https://github.com/sportiduino/sportiduino/compare/v3.10.0...v3.11.0)
+
 ## v3.10.0 - 2022-05-17
 
 Base station firmware **v3.10.0**:
