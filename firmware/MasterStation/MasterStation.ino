@@ -300,7 +300,7 @@ void funcWriteMasterAuthPassword(uint8_t *serialData, uint8_t dataSize) {
 }
 
 void funcWriteSettings(uint8_t *serialData, uint8_t dataSize) {
-    if(dataSize != sizeof(Configuration) || dataSize != 2 /*old config format*/) {
+    if(dataSize != sizeof(Configuration) && dataSize != 2 /*old config format*/) {
         signalError(ERROR_BAD_DATASIZE);
         return;
     }
