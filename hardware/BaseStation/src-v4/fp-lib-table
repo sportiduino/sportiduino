@@ -1,0 +1,4 @@
+(fp_lib_table
+  (version 7)
+  (lib (name "Sportiduino")(type "KiCad")(uri "${KIPRJMOD}/libs")(options "")(descr "Sportiduino specific lib"))
+)
