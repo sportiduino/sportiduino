@@ -247,90 +247,7 @@
       "mpn": ""
     },
     "layer_pairs": [],
-    "layer_presets": [
-      {
-        "activeLayer": -2,
-        "flipBoard": false,
-        "layers": [
-          0,
-          1,
-          2,
-          3,
-          5,
-          7,
-          9,
-          11,
-          13,
-          15,
-          21,
-          23,
-          25,
-          27,
-          29,
-          31
-        ],
-        "name": "my",
-        "renderLayers": [
-          "vias",
-          "footprint_text",
-          "footprint_anchors",
-          "ratsnest",
-          "grid",
-          "footprints_front",
-          "footprints_back",
-          "footprint_values",
-          "footprint_references",
-          "tracks",
-          "drc_errors",
-          "drawing_sheet",
-          "bitmaps",
-          "pads",
-          "zones",
-          "drc_warnings",
-          "locked_item_shadows",
-          "conflict_shadows",
-          "shapes"
-        ]
-      },
-      {
-        "activeLayer": -2,
-        "flipBoard": false,
-        "layers": [
-          0,
-          1,
-          5,
-          9,
-          13,
-          21,
-          23,
-          25,
-          27,
-          31
-        ],
-        "name": "my front",
-        "renderLayers": [
-          "vias",
-          "footprint_text",
-          "footprint_anchors",
-          "ratsnest",
-          "grid",
-          "footprints_front",
-          "footprints_back",
-          "footprint_values",
-          "footprint_references",
-          "tracks",
-          "drc_errors",
-          "drawing_sheet",
-          "bitmaps",
-          "pads",
-          "zones",
-          "drc_warnings",
-          "locked_item_shadows",
-          "conflict_shadows",
-          "shapes"
-        ]
-      }
-    ],
+    "layer_presets": [],
     "viewports": []
   },
   "boards": [],
@@ -847,26 +764,14 @@
           "label": "Datasheet",
           "name": "Datasheet",
           "show": true
-        },
-        {
-          "group_by": false,
-          "label": "Description",
-          "name": "Description",
-          "show": false
-        },
-        {
-          "group_by": false,
-          "label": "#",
-          "name": "${ITEM_NUMBER}",
-          "show": false
         }
       ],
       "filter_string": "",
       "group_symbols": true,
       "include_excluded_from_bom": true,
-      "name": "",
-      "sort_asc": false,
-      "sort_field": "Footprint"
+      "name": "Default Editing",
+      "sort_asc": true,
+      "sort_field": "Reference"
     },
     "connection_grid_size": 50.0,
     "drawing": {
