@@ -247,7 +247,43 @@
       "mpn": ""
     },
     "layer_pairs": [],
-    "layer_presets": [],
+    "layer_presets": [
+      {
+        "activeLayer": -2,
+        "flipBoard": false,
+        "layers": [
+          0,
+          1,
+          5,
+          9,
+          13,
+          25,
+          31
+        ],
+        "name": "Front My",
+        "renderLayers": [
+          "vias",
+          "footprint_text",
+          "footprint_anchors",
+          "ratsnest",
+          "grid",
+          "footprints_front",
+          "footprints_back",
+          "footprint_values",
+          "footprint_references",
+          "tracks",
+          "drc_errors",
+          "drawing_sheet",
+          "bitmaps",
+          "pads",
+          "zones",
+          "drc_warnings",
+          "locked_item_shadows",
+          "conflict_shadows",
+          "shapes"
+        ]
+      }
+    ],
     "viewports": []
   },
   "boards": [],
@@ -480,7 +516,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "sportiduino-base-v4.kicad_pro",
+    "filename": "sportiduino-base-v3bm.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -691,7 +727,7 @@
       "gencad": "",
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "../prod/v3bm/",
       "pos_files": "",
       "specctra_dsn": "",
       "step": "",

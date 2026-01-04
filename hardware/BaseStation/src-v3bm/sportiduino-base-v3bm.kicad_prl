@@ -1,6 +1,6 @@
 {
   "board": {
-    "active_layer": 25,
+    "active_layer": 0,
     "active_layer_preset": "",
     "auto_track_width": true,
     "hidden_netclasses": [],
@@ -49,7 +49,7 @@
       "conflict_shadows",
       "shapes"
     ],
-    "visible_layers": "00000000_00000000_00000000_a20200a5",
+    "visible_layers": "00000000_00000000_00000000_82002227",
     "zone_display_mode": 0
   },
   "git": {
@@ -58,7 +58,7 @@
     "ssh_key": ""
   },
   "meta": {
-    "filename": "sportiduino-base-v4.kicad_prl",
+    "filename": "sportiduino-base-v3bm.kicad_prl",
     "version": 5
   },
   "net_inspector_panel": {

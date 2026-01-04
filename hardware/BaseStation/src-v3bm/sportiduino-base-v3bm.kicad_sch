@@ -6,11 +6,11 @@
 	(paper "A4")
 	(title_block
 		(title "Sportiduino Base Station")
-		(date "2021-01-01")
-		(rev "3b")
+		(date "2026-01-04")
+		(rev "3bm")
 		(company "Sportiduino")
 		(comment 1 "TP4056")
-		(comment 2 "RC522 Mini or RC522 boards")
+		(comment 2 "RC522 Mini")
 	)
 	(lib_symbols
 		(symbol "Connector_Generic:Conn_01x02"
@@ -6550,6 +6550,16 @@
 			(justify left bottom)
 		)
 		(uuid "89568d5b-e3b2-4289-9861-1372c8d9f27c")
+	)
+	(label "Charge"
+		(at 87.63 153.67 0)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left bottom)
+		)
+		(uuid "94d31a5a-2858-4684-9632-66861de3fdf6")
 	)
 	(label "PB4"
 		(at 217.17 40.64 0)
